@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xiuyu0000/agent-reporting-skills/report-contract.schema.json",
+  "title": "Dual-audience report delivery contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "report_id", "title", "language", "as_of",
+    "output_dir", "repository_status", "source_hierarchy", "deliverables",
+    "claims", "decisions", "constraints", "risks", "open_questions", "validation"
+  ],
+  "properties": {
+    "schema_version": {"const": "dual-audience-report-contract-v1"},
+    "report_id": {"type": "string", "pattern": "^DAR-[A-F0-9]{12}$"},
+    "title": {"type": "string", "minLength": 1},
+    "language": {"type": "string", "minLength": 2},
+    "as_of": {"type": "string", "format": "date-time"},
+    "output_dir": {"type": "string", "minLength": 1},
+    "repository_status": {"enum": ["local-only", "tracked-approved", "public-approved"]},
+    "source_hierarchy": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["rank", "label", "reference", "freshness"],
+        "properties": {
+          "rank": {"type": "integer", "minimum": 1},
+          "label": {"type": "string", "minLength": 1},
+          "reference": {"type": "string", "minLength": 1},
+          "freshness": {"enum": ["live", "snapshot", "static"]}
+        }
+      }
+    },
+    "deliverables": {
+      "type": "object", "additionalProperties": false,
+      "required": ["agent", "human"],
+      "properties": {
+        "agent": {"$ref": "#/$defs/deliverable"},
+        "human": {"$ref": "#/$defs/deliverable"}
+      }
+    },
+    "claims": {"type": "array", "items": {"$ref": "#/$defs/sharedItem"}},
+    "decisions": {"type": "array", "items": {"$ref": "#/$defs/sharedItem"}},
+    "constraints": {"type": "array", "items": {"type": "string"}},
+    "risks": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "agent_sha256", "human_sha256"],
+      "properties": {
+        "status": {"enum": ["pending", "passed"]},
+        "agent_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "human_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  },
+  "$defs": {
+    "deliverable": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "format", "audience", "status", "required", "waiver_reason"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "format": {"enum": ["markdown", "html"]},
+        "audience": {"enum": ["agent", "human"]},
+        "status": {"enum": ["skeleton", "draft", "validated", "delivered", "waived"]},
+        "required": {"type": "boolean"},
+        "waiver_reason": {"type": ["string", "null"]}
+      }
+    },
+    "sharedItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "summary", "confidence", "source_refs", "required_in"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[CD]-[0-9]{3}$"},
+        "summary": {"type": "string", "minLength": 1},
+        "confidence": {"enum": ["high", "medium", "low", "unknown"]},
+        "source_refs": {"type": "array", "items": {"type": "string"}},
+        "required_in": {"type": "array", "items": {"enum": ["agent", "human"]}, "uniqueItems": true}
+      }
+    }
+  }
+}

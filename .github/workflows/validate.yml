@@ -1,0 +1,28 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile scripts
+        run: python -m py_compile skills/deliver-dual-audience-report/scripts/*.py
+      - name: Install specification validators
+        run: python -m pip install check-jsonschema "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
+      - name: Validate Agent Skill and report contract schema
+        run: |
+          skills-ref validate skills/deliver-dual-audience-report
+          check-jsonschema --check-metaschema skills/deliver-dual-audience-report/references/report-contract.schema.json
+      - name: Unit and privacy tests
+        run: python -m unittest discover -s tests -v
