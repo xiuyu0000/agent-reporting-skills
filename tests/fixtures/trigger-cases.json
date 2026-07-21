@@ -1,0 +1,38 @@
+{
+  "should_trigger": [
+    {
+      "id": "project-summary",
+      "prompt": "Create an Agent-facing Markdown context file and a separate human-facing HTML overview from the same current project facts."
+    },
+    {
+      "id": "research-report",
+      "prompt": "Deliver this research as two files: a precise report for the next Agent and a plain-language self-contained HTML report for leadership."
+    },
+    {
+      "id": "incident-review",
+      "prompt": "Produce an incident reconstruction for an operations Agent plus a zero-context HTML postmortem for people outside the team."
+    },
+    {
+      "id": "accepted-plan-contract",
+      "prompt": "Implement the accepted plan, which explicitly promises both *_AGENT.md and *_HUMAN.html deliverables."
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "id": "single-markdown",
+      "prompt": "Write one Markdown project summary for the repository."
+    },
+    {
+      "id": "single-html",
+      "prompt": "Create a self-contained HTML explainer for a nontechnical reader."
+    },
+    {
+      "id": "chat-answer",
+      "prompt": "Summarize the conclusion in this chat in three sentences."
+    },
+    {
+      "id": "code-change",
+      "prompt": "Fix the parser bug, add tests, and open a pull request."
+    }
+  ]
+}

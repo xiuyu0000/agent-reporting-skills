@@ -1,0 +1,6 @@
+interface:
+  display_name: "Dual-Audience Report Delivery"
+  short_description: "Deliver aligned Agent and human reports"
+  default_prompt: "Use $deliver-dual-audience-report to create and verify separate Agent-facing and human-facing reports from one evidence set."
+policy:
+  allow_implicit_invocation: true
