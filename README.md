@@ -56,6 +56,18 @@ python3 skills/deliver-dual-audience-report/scripts/validate_delivery.py \
 The validator writes `delivery-receipt.json` and `delivery-receipt.md` only
 after all checks pass.
 
+Optionally record a content-free local workflow outcome after validation:
+
+```bash
+python3 skills/deliver-dual-audience-report/scripts/record_usage.py \
+  --eligible yes --triggered yes --correct yes \
+  --validation passed --result success
+```
+
+The receipt contains only the Skill content hash, a local HMAC scenario
+identifier, trigger/terminal labels, validation status, and human-burden counts.
+Monitoring failure does not invalidate a verified report.
+
 ## Privacy
 
 This repository contains only generic workflow guidance and synthetic tests.
