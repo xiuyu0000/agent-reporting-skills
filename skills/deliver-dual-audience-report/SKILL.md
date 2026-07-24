@@ -114,6 +114,28 @@ Use the generated `delivery-receipt.md` as the checklist. In the final response,
 link both real files. Mention the as-of time and any remaining uncertainty. Do
 not claim completion if only one link is present.
 
+### 8. Record a content-free usage receipt
+
+After the final validation status is known, record whether the Skill reached its
+terminal state:
+
+```bash
+python3 scripts/record_usage.py \
+  --eligible yes \
+  --triggered yes \
+  --correct yes \
+  --validation passed \
+  --result success
+```
+
+Resolve the script relative to this Skill directory. Optionally pass a short,
+redacted `--scenario-key` only when it is stable across retries. Never pass
+dialogue, prompts, paths, filenames, project names, commands, outputs, Session
+IDs, or credentials. The receipt stores only the Skill content hash, a local
+HMAC scenario identifier, trigger/terminal labels, validation status, and
+human-burden counts. If monitoring is unavailable, report the measurement gap;
+do not invalidate an otherwise verified report or invent a receipt.
+
 ## Failure handling
 
 - Stop if a source conflict changes the conclusion; expose it instead of
@@ -127,6 +149,7 @@ not claim completion if only one link is present.
 
 - `scripts/init_delivery.py`: create the contract and both skeletons.
 - `scripts/validate_delivery.py`: validate and generate delivery receipts.
+- `scripts/record_usage.py`: append a content-free local workflow receipt.
 - `references/report-contract.schema.json`: public data contract.
 - `references/audience-contracts.md`: audience-specific content requirements.
 - `references/evidence-and-privacy.md`: source, freshness, and privacy rules.

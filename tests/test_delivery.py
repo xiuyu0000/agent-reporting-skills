@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/deliver-dual-audience-report"
 INIT = SKILL / "scripts/init_delivery.py"
 VALIDATE = SKILL / "scripts/validate_delivery.py"
+RECORD_USAGE = SKILL / "scripts/record_usage.py"
 
 
 def digest(value: str) -> str:
@@ -173,6 +174,31 @@ class StructureTest(unittest.TestCase):
             if path.is_file() and ".git" not in path.parts and path.suffix.lower() in {".md", ".html", ".json", ".yaml", ".yml", ".py"}:
                 text = path.read_text(encoding="utf-8")
                 self.assertIsNone(forbidden.search(text), str(path.relative_to(ROOT)))
+
+    def test_usage_receipt_is_content_free(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            state = Path(temp) / "state"
+            result = subprocess.run(
+                [
+                    "python3", str(RECORD_USAGE), "--state-dir", str(state),
+                    "--eligible", "yes", "--triggered", "yes", "--correct", "yes",
+                    "--validation", "passed", "--result", "success",
+                ],
+                text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            path = state / "usage-receipts/deliver-dual-audience-report.jsonl"
+            receipt = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(receipt["artifact_id"], "deliver-dual-audience-report")
+            self.assertIsNone(receipt["deployment_id"])
+            self.assertEqual(receipt["privacy"], {
+                "contains_dialogue": False,
+                "contains_commands": False,
+                "contains_outputs": False,
+                "contains_paths": False,
+                "contains_session_ids": False,
+            })
+            self.assertNotIn(str(SKILL), path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
