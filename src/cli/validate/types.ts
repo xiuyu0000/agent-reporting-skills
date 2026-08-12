@@ -189,6 +189,27 @@ export interface GeneratedReplacementByteVerifiers {
   approval: GeneratedArtifactByteVerifier;
 }
 
+export type ValidationFailureRequest =
+  | { kind: "validation-code"; code: ValErrorCode; path: string }
+  | { kind: "protocol-errors"; errors: readonly ProtocolError[] };
+
+export type ValidationExitInput =
+  | { ok: true }
+  | { ok: false; errors: readonly ValidationError[] };
+
+export interface ExactGeneratedArtifactByteVerifierInput {
+  document: ReviewDocumentV1;
+  generatorVersion: string;
+  templateBytes: Uint8Array;
+  agentBytes: Uint8Array;
+  approvalBytes: Uint8Array;
+}
+
+export interface ExactGeneratedArtifactByteVerifiers {
+  agent: GeneratedArtifactByteVerifier;
+  approval: GeneratedArtifactByteVerifier;
+}
+
 export interface ValidatedDeliveryArtifacts {
   document: ReviewDocumentV1;
   generatorVersion: string;
