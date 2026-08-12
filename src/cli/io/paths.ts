@@ -54,6 +54,26 @@ interface RootIdentity {
   metadata: Stats;
   parentPath: string;
   parentMetadata: Stats;
+  expectedContainerMetadata?: Stats;
+}
+
+export type FreshOutputRootProbe = { readonly kind: "fresh" } | { readonly kind: "recovery" };
+
+interface RecoveryOutputRootProbeIdentity {
+  absolutePath: string;
+  rootMetadata: Stats;
+  parentPath: string;
+  parentMetadata: Stats;
+  containerPath: string;
+  containerMetadata: Stats;
+  witnessPath: string;
+  witnessMetadata: Stats;
+}
+
+interface RecoverySceneIdentity {
+  containerMetadata: Stats;
+  witnessPath: string;
+  witnessMetadata: Stats;
 }
 
 interface TargetIdentity {
@@ -92,6 +112,7 @@ interface InputFileSnapshot {
 }
 
 const rootRegistry = new WeakMap<object, RootIdentity>();
+const recoveryOutputRootProbeRegistry = new WeakMap<object, RecoveryOutputRootProbeIdentity>();
 const inputRootRegistry = new WeakMap<object, InputRootIdentity>();
 const targetRegistry = new WeakMap<object, TargetIdentity>();
 const SAFE_OUTPUT_INPUT = /^.{1,32768}$/su;
@@ -247,10 +268,27 @@ async function verifyTransactionContainer(
   const containerPath = join(root.absolutePath, TRANSACTION_CONTAINER);
   const metadata = await lstatIfPresent(adapter, containerPath);
   if (metadata === undefined) {
+    if (root.expectedContainerMetadata !== undefined) boundary("PATH_INVALID", "/outputDir/.review-txn");
     await adapter.mkdir(containerPath, TRANSACTION_DIRECTORY_MODE);
     await syncDirectory(adapter, root.absolutePath);
   }
   const observed = await adapter.lstat(containerPath);
+  if (root.expectedContainerMetadata !== undefined && !sameIdentity(root.expectedContainerMetadata, observed)) {
+    boundary("PATH_INVALID", "/outputDir/.review-txn");
+  }
+  await assertTransactionContainerIdentity(adapter, root, containerPath, observed);
+  const rootAfter = await adapter.lstat(root.absolutePath);
+  if (!sameIdentity(root.metadata, rootAfter) || (await adapter.realpath(root.absolutePath)) !== root.absolutePath) {
+    boundary("PATH_INVALID", "/outputDir");
+  }
+}
+
+async function assertTransactionContainerIdentity(
+  adapter: PrivateFileSystemAdapter,
+  root: RootIdentity,
+  containerPath: string,
+  observed: Stats,
+): Promise<void> {
   if (observed.isSymbolicLink()) boundary("SYMLINK_REJECTED", "/outputDir/.review-txn");
   try {
     assertRealDirectory(observed, TRANSACTION_DIRECTORY_MODE, true);
@@ -265,10 +303,39 @@ async function verifyTransactionContainer(
   if (relativeContainer !== TRANSACTION_CONTAINER) {
     boundary("PATH_ESCAPE", "/outputDir/.review-txn");
   }
+  const confirmed = await adapter.lstat(containerPath);
+  if (!sameIdentity(observed, confirmed)) {
+    boundary("PATH_INVALID", "/outputDir/.review-txn");
+  }
+}
+
+async function hasTransactionRecoveryScene(
+  adapter: PrivateFileSystemAdapter,
+  root: RootIdentity,
+): Promise<RecoverySceneIdentity | undefined> {
+  const rootBefore = await adapter.lstat(root.absolutePath);
+  if (!sameIdentity(root.metadata, rootBefore) || (await adapter.realpath(root.absolutePath)) !== root.absolutePath) {
+    boundary("PATH_INVALID", "/outputDir");
+  }
+  const containerPath = join(root.absolutePath, TRANSACTION_CONTAINER);
+  const metadata = await lstatIfPresent(adapter, containerPath);
+  if (metadata === undefined) return undefined;
+  await assertTransactionContainerIdentity(adapter, root, containerPath, metadata);
+  const entries = await adapter.readdir(containerPath);
+  const witnessName = entries.map((entry) => entry.name).sort()[0];
+  const witnessPath = witnessName === undefined ? undefined : join(containerPath, witnessName);
+  const witnessMetadata = witnessPath === undefined ? undefined : await adapter.lstat(witnessPath);
+  const confirmed = await adapter.lstat(containerPath);
+  if (!sameIdentity(metadata, confirmed) || (await adapter.realpath(containerPath)) !== containerPath) {
+    boundary("PATH_INVALID", "/outputDir/.review-txn");
+  }
   const rootAfter = await adapter.lstat(root.absolutePath);
   if (!sameIdentity(root.metadata, rootAfter) || (await adapter.realpath(root.absolutePath)) !== root.absolutePath) {
     boundary("PATH_INVALID", "/outputDir");
   }
+  return witnessPath === undefined || witnessMetadata === undefined
+    ? undefined
+    : { containerMetadata: metadata, witnessPath, witnessMetadata };
 }
 
 function getRootIdentity(root: ResolvedOutputRoot): RootIdentity | undefined {
@@ -445,6 +512,207 @@ export async function resolveOutputRoot(input: {
     return await resolveOutputRootWithAdapter(input, nativeFileSystemAdapter);
   } catch {
     return cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/outputDir")]);
+  }
+}
+
+export async function probeFreshOutputRootWithAdapter(
+  absolutePath: string,
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<FreshOutputRootProbe>> {
+  try {
+    if (!isAbsolute(absolutePath)) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+    }
+    const outputMetadata = await lstatIfPresent(adapter, absolutePath);
+    if (outputMetadata === undefined) {
+      await adapter.checkpoint("fresh-output-probed:fresh");
+      return cliIoSuccess(Object.freeze({ kind: "fresh" as const }));
+    }
+
+    const chain = await inspectExistingDirectoryChain(adapter, absolutePath);
+    const observedRoot = chain.at(-1);
+    const observedParent = chain.at(-2) ?? chain.at(-1);
+    if (observedRoot === undefined || observedParent === undefined) boundary("PATH_INVALID", "/outputDir");
+    if (
+      !observedRoot.metadata.isDirectory()
+      || observedRoot.metadata.isSymbolicLink()
+      || !isOwnedByCurrentUser(observedRoot.metadata)
+      || (observedRoot.metadata.mode & 0o022) !== 0
+    ) {
+      boundary(observedRoot.metadata.isSymbolicLink() ? "SYMLINK_REJECTED" : "PATH_INVALID", "/outputDir");
+    }
+    if (observedRoot.realPath !== absolutePath) boundary("PATH_ESCAPE", "/outputDir");
+    const confirmedRoot = await adapter.lstat(absolutePath);
+    if (!sameIdentity(observedRoot.metadata, confirmedRoot)) boundary("PATH_INVALID", "/outputDir");
+    const root: RootIdentity = {
+      absolutePath,
+      createdByThisCall: false,
+      metadata: confirmedRoot,
+      parentPath: parse(absolutePath).dir,
+      parentMetadata: observedParent.metadata,
+    };
+    const entries = await adapter.readdir(absolutePath);
+    const recoveryScene = await hasTransactionRecoveryScene(adapter, root);
+    const businessEntries = entries.filter((entry) => entry.name !== TRANSACTION_CONTAINER);
+    const rootAfter = await adapter.lstat(absolutePath);
+    if (!sameIdentity(root.metadata, rootAfter) || (await adapter.realpath(absolutePath)) !== absolutePath) {
+      boundary("PATH_INVALID", "/outputDir");
+    }
+    if (businessEntries.length > 0 && recoveryScene === undefined) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+    }
+    if (recoveryScene === undefined) {
+      await adapter.checkpoint("fresh-output-probed:fresh");
+      return cliIoSuccess(Object.freeze({ kind: "fresh" as const }));
+    }
+    const value = Object.freeze({ kind: "recovery" as const });
+    recoveryOutputRootProbeRegistry.set(value, {
+      absolutePath,
+      rootMetadata: confirmedRoot,
+      parentPath: root.parentPath,
+      parentMetadata: root.parentMetadata,
+      containerPath: join(absolutePath, TRANSACTION_CONTAINER),
+      containerMetadata: recoveryScene.containerMetadata,
+      witnessPath: recoveryScene.witnessPath,
+      witnessMetadata: recoveryScene.witnessMetadata,
+    });
+    await adapter.checkpoint("fresh-output-probed:recovery");
+    return cliIoSuccess(value);
+  } catch (error) {
+    return resultFromPathError(error, "/outputDir");
+  }
+}
+
+export function bindFreshOutputPath(outputDir: unknown): CliIoResult<string> {
+  try {
+    if (typeof outputDir !== "string" || !SAFE_OUTPUT_INPUT.test(outputDir) || outputDir.includes("\0")) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+    }
+    return cliIoSuccess(resolve(outputDir));
+  } catch {
+    return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+  }
+}
+
+export async function resolveRecoveryOutputRootWithAdapter(
+  probe: Extract<FreshOutputRootProbe, { kind: "recovery" }>,
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<ResolvedOutputRoot>> {
+  try {
+    const bound = recoveryOutputRootProbeRegistry.get(probe);
+    if (bound === undefined) boundary("PATH_INVALID", "/outputDir");
+    const rootBefore = await adapter.lstat(bound.absolutePath);
+    if (
+      !sameIdentity(bound.rootMetadata, rootBefore)
+      || rootBefore.isSymbolicLink()
+      || !rootBefore.isDirectory()
+      || (await adapter.realpath(bound.absolutePath)) !== bound.absolutePath
+    ) {
+      boundary("PATH_INVALID", "/outputDir");
+    }
+    const parent = await adapter.lstat(bound.parentPath);
+    if (!sameIdentity(bound.parentMetadata, parent)) boundary("PATH_INVALID", "/outputDir");
+    const container = await adapter.lstat(bound.containerPath);
+    if (!sameIdentity(bound.containerMetadata, container)) boundary("PATH_INVALID", "/outputDir");
+    await assertTransactionContainerIdentity(adapter, {
+      absolutePath: bound.absolutePath,
+      createdByThisCall: false,
+      metadata: bound.rootMetadata,
+      parentPath: bound.parentPath,
+      parentMetadata: bound.parentMetadata,
+      expectedContainerMetadata: bound.containerMetadata,
+    }, bound.containerPath, container);
+    if ((await adapter.readdir(bound.containerPath)).length === 0) {
+      boundary("PATH_INVALID", "/outputDir");
+    }
+    const confirmedContainer = await adapter.lstat(bound.containerPath);
+    if (
+      !sameIdentity(bound.containerMetadata, confirmedContainer)
+      || (await adapter.realpath(bound.containerPath)) !== bound.containerPath
+    ) {
+      boundary("PATH_INVALID", "/outputDir");
+    }
+    const witness = await adapter.lstat(bound.witnessPath);
+    if (!sameIdentity(bound.witnessMetadata, witness)) boundary("PATH_INVALID", "/outputDir");
+    const containerAfterWitness = await adapter.lstat(bound.containerPath);
+    if (!sameIdentity(bound.containerMetadata, containerAfterWitness)) boundary("PATH_INVALID", "/outputDir");
+    const rootAfter = await adapter.lstat(bound.absolutePath);
+    if (
+      !sameIdentity(bound.rootMetadata, rootAfter)
+      || (await adapter.realpath(bound.absolutePath)) !== bound.absolutePath
+    ) {
+      boundary("PATH_INVALID", "/outputDir");
+    }
+    const identity: RootIdentity = {
+      absolutePath: bound.absolutePath,
+      createdByThisCall: false,
+      metadata: bound.rootMetadata,
+      parentPath: bound.parentPath,
+      parentMetadata: bound.parentMetadata,
+      expectedContainerMetadata: bound.containerMetadata,
+    };
+    const value = Object.freeze({
+      absolutePath: bound.absolutePath,
+      createdByThisCall: false,
+      [resolvedOutputRootBrand]: true as const,
+    });
+    rootRegistry.set(value, identity);
+    return cliIoSuccess(value);
+  } catch (error) {
+    return resultFromPathError(error, "/outputDir");
+  }
+}
+
+export async function assertRecoverySceneBeforeFirstClaimWrite(
+  probe: Extract<FreshOutputRootProbe, { kind: "recovery" }>,
+  adapter: PrivateFileSystemAdapter,
+): Promise<boolean> {
+  try {
+    const bound = recoveryOutputRootProbeRegistry.get(probe);
+    if (bound === undefined) return false;
+    const root = await adapter.lstat(bound.absolutePath);
+    if (
+      !sameIdentity(bound.rootMetadata, root)
+      || (await adapter.realpath(bound.absolutePath)) !== bound.absolutePath
+    ) {
+      return false;
+    }
+    const container = await adapter.lstat(bound.containerPath);
+    if (
+      !sameIdentity(bound.containerMetadata, container)
+      || (await adapter.realpath(bound.containerPath)) !== bound.containerPath
+    ) {
+      return false;
+    }
+    const witness = await adapter.lstat(bound.witnessPath);
+    if (!sameIdentity(bound.witnessMetadata, witness)) return false;
+    const containerAfter = await adapter.lstat(bound.containerPath);
+    const rootAfter = await adapter.lstat(bound.absolutePath);
+    return sameIdentity(bound.containerMetadata, containerAfter)
+      && sameIdentity(bound.rootMetadata, rootAfter)
+      && (await adapter.realpath(bound.absolutePath)) === bound.absolutePath;
+  } catch (error) {
+    if (isErrorCode(error, "ENOENT") || isErrorCode(error, "ENOTDIR") || isErrorCode(error, "ELOOP")) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+export async function assertFreshResolvedRootWithAdapter(
+  root: ResolvedOutputRoot,
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<true>> {
+  try {
+    const identity = await assertResolvedRoot(root, adapter);
+    const entries = await adapter.readdir(identity.absolutePath);
+    await assertResolvedRoot(root, adapter);
+    if (entries.some((entry) => entry.name !== TRANSACTION_CONTAINER)) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+    }
+    return cliIoSuccess(true);
+  } catch (error) {
+    return resultFromPathError(error, "/outputDir");
   }
 }
 

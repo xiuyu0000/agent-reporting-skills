@@ -23,4 +23,4 @@ export type {
   CommitValue,
   FileTransactionTarget,
 } from "./transaction.js";
-export { commitFileTransaction } from "./transaction.js";
+export { commitFileTransaction, commitFreshFileTransaction } from "./transaction.js";
