@@ -1,0 +1,97 @@
+{
+  "verificationScope": "Static Skill workflow contract for SKL-002; INT-001 owns fresh-Agent reader-isolation execution.",
+  "expectedStageOrder": [
+    "init",
+    "populate-contract",
+    "render",
+    "semantic-browser-check",
+    "deliver",
+    "consume"
+  ],
+  "requiredCommands": {
+    "init": "node <skill>/scripts/review-delivery.mjs init --output-dir <dir> --base-name <name> --title <title> --language <bcp47> --ui-locale <zh-CN|en> --as-of <iso8601-with-timezone> [--contract-name <review-document.json|baseName.review-document.json>] [--repository-status <local-only|tracked-approved|public-approved>] [--confirm-output-scope <tracked|public>]",
+    "render": "node <skill>/scripts/review-delivery.mjs render --document <review-document.json> [--document <part.review-document.json> ...] [--replace-generated] [--confirm-output-scope <tracked|public>]",
+    "validateDelivery": "node <skill>/scripts/review-delivery.mjs validate delivery --document <path>",
+    "validateBatch": "node <skill>/scripts/review-delivery.mjs validate batch --document <part1.review-document.json> --document <part2.review-document.json> [...]",
+    "validatePacket": "node <skill>/scripts/review-delivery.mjs validate packet --document <path> --input <packet.json|packet.md> [--legacy-profile prototype-v1 --confirm-document-id <id> --confirm-content-version <n> --confirm-round <n>]",
+    "validateState": "node <skill>/scripts/review-delivery.mjs validate state --document <path> --input <state.json> [--legacy-profile prototype-v1 --confirm-document-id <id> --confirm-content-version <n> --confirm-round <n>]",
+    "validateTransition": "node <skill>/scripts/review-delivery.mjs validate transition --current <path> --packet <path> --candidate <path> [--derived <topicId=path> ...]",
+    "consume": "node <skill>/scripts/review-delivery.mjs consume --current <review-document.json> --packet <packet.json|packet.md> --candidate <next-review-document.json> [--derived <topicId=review-document.json> ...] [--legacy-profile prototype-v1 --confirm-document-id <id> --confirm-content-version <n> --confirm-round <n>] [--confirm-output-scope <tracked|public>] --output-dir <fresh-dir>",
+    "recordUsageAppend": "node <skill>/scripts/review-delivery.mjs record-usage append --input <content-free-metrics.json>",
+    "recordUsageSummarize": "node <skill>/scripts/review-delivery.mjs record-usage summarize --min-samples 3 --max-samples 5"
+  },
+  "cases": [
+    {
+      "id": "local-only-initial-round",
+      "kind": "output-scope",
+      "repositoryStatus": "local-only",
+      "explainScope": false,
+      "explainDisclosureRisk": false,
+      "requireCurrentConfirmation": false,
+      "confirmOutputScope": null
+    },
+    {
+      "id": "tracked-write-current-confirmation",
+      "kind": "output-scope",
+      "repositoryStatus": "tracked-approved",
+      "explainScope": true,
+      "explainDisclosureRisk": false,
+      "requireCurrentConfirmation": true,
+      "confirmOutputScope": "tracked"
+    },
+    {
+      "id": "public-write-current-confirmation",
+      "kind": "output-scope",
+      "repositoryStatus": "public-approved",
+      "explainScope": true,
+      "explainDisclosureRisk": true,
+      "requireCurrentConfirmation": true,
+      "confirmOutputScope": "public"
+    },
+    {
+      "id": "valid-split-handoff",
+      "kind": "split-handoff",
+      "requiresReason": true,
+      "requiresPartBoundary": true,
+      "requiresTotal": true,
+      "requiresTwoLinksPerPart": true,
+      "treatsPartsAsRounds": false
+    },
+    {
+      "id": "partial-packet-preserves-untouched",
+      "kind": "review-state",
+      "partial": true,
+      "untouchedActiveMeaning": "pending",
+      "defaultAction": null
+    },
+    {
+      "id": "reopen-preserves-history",
+      "kind": "review-state",
+      "reopened": true,
+      "preserveApprovalHistory": true,
+      "suspendEligibilityUntilDecision": true,
+      "includeInActiveProgress": true
+    },
+    {
+      "id": "consume-validates-agent-authored-candidate",
+      "kind": "consume-boundary",
+      "agentAuthorsEdit": true,
+      "agentAnswersHold": true,
+      "agentChoosesImpactSet": true,
+      "cliAuthorsSemanticChange": false,
+      "cliExecutesApprovedWork": false,
+      "approvalGrantsExternalAuthority": false
+    },
+    {
+      "id": "handoff-discloses-four-classes",
+      "kind": "handoff",
+      "uncertaintyClasses": [
+        "evidenceGaps",
+        "unresolvedNonblockingConflicts",
+        "risks",
+        "openQuestions"
+      ],
+      "discloseEveryNonemptyClass": true
+    }
+  ]
+}

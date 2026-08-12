@@ -1,50 +1,114 @@
 # Audience contracts
 
-## Shared contract
+Use one validated `review-document/1` to generate two complete but distinct
+views. Keep their identities, facts, decisions, constraints, block state, and
+important uncertainty aligned. Never use one generated view as the factual
+source for the other.
 
-Both artifacts must agree on the title, as-of time, core facts, decisions,
-constraints, and important uncertainty. They may use different order, detail,
-examples, and wording.
+## Contents
 
-## Agent-facing Markdown
+- [Agent Markdown](#agent-markdown)
+- [Approval HTML](#approval-html)
+- [Shared snapshot boundary](#shared-snapshot-boundary)
+- [Reader-isolation checks](#reader-isolation-checks)
+- [Delivery handoff](#delivery-handoff)
 
-Write for a capable Agent that must continue the work without re-discovering
-the state. Include:
+## Agent Markdown
 
-1. objective, scope, exclusions, language, and as-of time;
-2. source hierarchy and conflict-resolution rule;
-3. precise current state, state model, interfaces, commands, or pseudocode;
-4. decisions and reasons, including rejected alternatives when relevant;
-5. constraints, risks, blockers, open questions, and next actions;
-6. validation evidence and known evidence gaps; and
-7. the statement: “This document is a synthesis, not a source of truth.”
+Write for a capable Agent that receives no hidden conversation context. Include:
 
-Prefer exact nouns and stable identifiers over narrative flourish. Do not copy
-private raw conversations or complete command output.
+1. the objective, scope, exclusions, content language, as-of time, document ID,
+   content version, approval round, and status;
+2. the source hierarchy and the rule used to resolve or preserve conflicts;
+3. the precise current state, shared facts, existing decisions, constraints,
+   risks, open questions, evidence gaps, and unresolved conflicts;
+4. every decision block in narrative order with its stable ID, tier, dependency,
+   current active or frozen status, approval history, and current-round change;
+5. T2 rationale and the concrete question the reviewer must answer;
+6. next actions with stable action IDs and verification conditions;
+7. validation evidence, topic mappings, dependency impacts, and unresolved
+   feedback; and
+8. a visible statement that the document is an evidence synthesis rather than
+   a source of truth.
 
-## Human-facing HTML
+Prefer stable identifiers, exact conditions, and structured content over prose
+that forces the next Agent to infer state. Preserve enough detail to revise a
+single touched block without rediscovering the proposal.
 
-Write for a reader with no background. Include:
+Do not present approval or dependency eligibility as permission to operate an
+external system. State the remaining execution boundary wherever an approved
+action could otherwise look self-authorizing.
 
-1. an immediately visible Executive Summary with the conclusion and importance;
-2. a plain-language explanation of what happened and why;
-3. impact, decisions, alternatives, tradeoffs, and the recommended next step;
-4. uncertainty placed next to the claim it qualifies;
-5. a source/evidence section and a linked glossary for necessary terminology;
-6. semantic headings, keyboard-visible focus, a skip link, and one `<main>`;
-7. responsive layout with no horizontal scrolling at narrow width; and
-8. no external scripts, stylesheets, fonts, images, iframes, or form actions.
+## Approval HTML
 
-Use diagrams only when they clarify a relationship that prose would make hard
-to follow. CSS-only flows and timelines are preferred for portability.
+Write for one human reviewer who receives no Agent Markdown and no prior
+conversation. Keep all decision-essential information inside the file.
+
+Preserve the proposal's narrative block order. Default T2 blocks open; let T1
+and T0 start compact while remaining expandable. Explain unfamiliar terms in
+place or through an in-file glossary. Use a controlled flow only when it makes a
+relationship materially easier to judge, and provide equivalent text.
+
+Support these review behaviors without an external service:
+
+- inspect all blocks and distinguish active, frozen, reopened, and decided
+  state without relying on color alone;
+- apply, replace, or undo PASS, EDIT, TOPIC, and HOLD decisions;
+- require actionable text for EDIT, a title for TOPIC, and a question for HOLD;
+- preserve selected source text as an optional quote;
+- add, edit, search, and delete decisions, side notes, and global topics;
+- bulk-PASS only pending active T0/T1 blocks after a second confirmation;
+- export a partial or complete packet at any point;
+- export and import resumable state without turning it into approval authority;
+- reopen a frozen block while preserving approval history and suspending its
+  current eligibility; and
+- complete the core flow with a keyboard and visible focus.
+
+Keep the file self-contained. Do not require remote scripts, styles, fonts,
+images, frames, forms, or runtime requests. Allow ordinary external links only
+as optional further reading initiated by the user.
+
+## Shared snapshot boundary
+
+Generate both views from the same validated document, generator version, and
+render transaction. Allow different order, detail, and wording only where their
+audience duties differ. Require agreement on:
+
+- document and delivery identity;
+- title, language, as-of time, content version, and approval round;
+- core facts, decisions, constraints, risks, and uncertainty;
+- stable block IDs and active, frozen, changed, or reopened meaning; and
+- current approval and lineage state.
+
+Do not expect browser review edits to update the already-generated Agent
+Markdown. Treat them as a review overlay until a valid packet is consumed and a
+new round regenerates both views.
 
 ## Reader-isolation checks
 
-After drafting, use a fresh reader when risk or complexity warrants it:
+Run both checks after deterministic validation and before delivery:
 
-- Give only the Agent document to a new Agent and ask what it would do next,
-  which facts it trusts, and what remains unknown.
-- Give only the HTML to a zero-context reader and ask for the conclusion,
-  reason, impact, and next step.
+1. Give only the Agent Markdown to a fresh Agent. Ask it to identify the goal,
+   authoritative sources, current state, active and frozen blocks, required
+   next actions, and remaining uncertainty. Reject the view if the answer
+   depends on hidden chat context.
+2. Give only the Approval HTML to a zero-context reviewer. Ask them to explain
+   the proposal, decide each T2 block, find supporting evidence and definitions,
+   record a decision, export feedback, and explain what is not yet authorized.
+   Reject the view if another report or external link is required.
 
-Any answer that depends on hidden conversation context exposes a document gap.
+Inspect the Approval HTML in a real browser with the network unavailable. Check
+desktop and narrow layouts, keyboard-only use, focus visibility, decision
+feedback, and the absence of runtime requests. Perform a separate semantic
+comparison because structural checks cannot prove that differently worded
+passages agree.
+
+## Delivery handoff
+
+Use only paths returned by the current successful CLI handoff. Link both real
+views and state the exact as-of time. Report each non-empty handoff uncertainty
+class separately with all safe summaries.
+
+For a split group, explain the reason, total number of parts, and each part's
+judgment boundary before listing that part's Agent and Approval links. Treat
+each part as an independent approval document, not as a revision round.
