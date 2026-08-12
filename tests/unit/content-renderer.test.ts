@@ -10,6 +10,7 @@ import {
   type ReviewDocumentV1,
 } from "../../src/protocol/index.js";
 import {
+  WORKBENCH_ARTIFACT_META,
   WORKBENCH_META_NAMES,
   bootstrapWorkbench,
 } from "../../src/workbench/bootstrap.js";
@@ -483,6 +484,7 @@ function makeShell(documentValue: ReviewDocumentV1): MiniDocument {
   const digest = computeReviewDigest(documentValue);
   if (!digest.ok) throw new Error("digest failed");
   const metadata: Record<string, string> = {
+    [WORKBENCH_ARTIFACT_META.name]: WORKBENCH_ARTIFACT_META.content,
     "dar-generator-version": "0.2.0",
     "dar-document-id": documentValue.document.id,
     "dar-content-version": String(documentValue.document.contentVersion),
@@ -690,6 +692,7 @@ describe("safe content renderer and bootstrap", () => {
   });
 
   it.each([
+    ["dar-artifact", "review-approval-html/2", "META_IDENTITY_MISMATCH"],
     ["dar-generator-version", "99.0.0", "META_IDENTITY_MISMATCH"],
     ["dar-generator-version", "not-semver", "META_FORMAT_INVALID"],
     ["dar-document-id", "RD-invalid", "META_FORMAT_INVALID"],
@@ -712,6 +715,15 @@ describe("safe content renderer and bootstrap", () => {
   });
 
   it("rejects duplicated shell identity and pre-existing headings", () => {
+    const duplicateArtifact = makeShell(enrichedDocument());
+    appendElement(duplicateArtifact.head, "meta", {
+      name: WORKBENCH_ARTIFACT_META.name,
+      content: WORKBENCH_ARTIFACT_META.content,
+    });
+    installDom(duplicateArtifact);
+    bootstrapWorkbench();
+    expect(errorText(duplicateArtifact)).toContain("SHELL_IDENTITY_INVALID");
+
     const duplicateMeta = makeShell(enrichedDocument());
     appendElement(duplicateMeta.head, "meta", {
       name: "dar-document-id",
@@ -720,6 +732,15 @@ describe("safe content renderer and bootstrap", () => {
     installDom(duplicateMeta);
     bootstrapWorkbench();
     expect(errorText(duplicateMeta)).toContain("SHELL_IDENTITY_INVALID");
+
+    const unknownMeta = makeShell(enrichedDocument());
+    appendElement(unknownMeta.head, "meta", {
+      name: "dar-unknown",
+      content: "unexpected",
+    });
+    installDom(unknownMeta);
+    bootstrapWorkbench();
+    expect(errorText(unknownMeta)).toContain("SHELL_IDENTITY_INVALID");
 
     const headingShell = makeShell(enrichedDocument());
     appendElement(headingShell.body, "h1").textContent = "ATTACKER_VISIBLE";
@@ -737,17 +758,19 @@ describe("safe content renderer and bootstrap", () => {
 });
 
 describe("raw workbench shell contract", () => {
-  it("contains the closed ten-token and five-meta interface exactly once", () => {
+  it("contains the closed ten-token, one-artifact, and five-identity-meta interface exactly once", () => {
     const raw = createRawWorkbenchTemplate();
     expect(WORKBENCH_TOKENS).toHaveLength(10);
     expect(GENERATOR_DATA_TOKENS).toHaveLength(6);
     expect(UI_BUILD_TOKENS).toHaveLength(4);
     expect(WORKBENCH_META_NAMES).toHaveLength(5);
+    expect(raw.split(`meta name="${WORKBENCH_ARTIFACT_META.name}" content="${WORKBENCH_ARTIFACT_META.content}"`))
+      .toHaveLength(2);
     for (const token of WORKBENCH_TOKENS) {
       expect(raw.split(token)).toHaveLength(2);
     }
     for (const name of WORKBENCH_META_NAMES) {
-      expect(raw).toContain(`meta name="${name}"`);
+      expect(raw.split(`meta name="${name}"`)).toHaveLength(2);
     }
     expect(WORKBENCH_STYLE).toContain(":focus-visible{outline:3px");
     expect(WORKBENCH_STYLE).toContain("overflow-wrap:anywhere");

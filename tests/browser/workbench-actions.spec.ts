@@ -116,6 +116,12 @@ test("@A03 bulk confirmation passes only pending T0/T1 blocks", async ({ page })
   await expect(block(page, "B001")).toBeFocused();
 
   await page.reload();
+  for (const blockId of ["B002", "B003", "B004"]) {
+    await expect(block(page, blockId).locator(".decision-status")).toContainText("通过");
+  }
+  for (const blockId of ["B003", "B004"]) {
+    await block(page, blockId).getByRole("button", { name: "撤销决定" }).click();
+  }
   await block(page, "B002").getByRole("button", { name: /2 · 修改/ }).click();
   await page.locator("dialog textarea").fill("Do not pass this block in bulk.");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();

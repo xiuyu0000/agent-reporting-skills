@@ -4,13 +4,16 @@ import type {
 } from "../protocol/index.js";
 import type { WorkbenchStrings } from "./i18n.js";
 import {
+  cloneWorkbenchReviewState,
   createInitialReviewState,
   normalizeQuote,
   reduceReviewState,
   type DecisionInput,
   type ReviewAction,
+  type ReviewReducerResult,
   type WorkbenchReviewState,
 } from "./reducer.js";
+import { reopenFrozenBlock } from "./reopen.js";
 import {
   activeBlockIds,
   bulkPassPreview,
@@ -36,6 +39,20 @@ export interface MountReviewInteractionsInput {
   readonly documentValue: ReviewDocumentV1;
   readonly strings: WorkbenchStrings;
   readonly landmarks: InteractionLandmarks;
+  readonly stateHooks?: ReviewInteractionStateHooks;
+}
+
+export interface ReviewInteractionStateHooks {
+  readonly initialState?: WorkbenchReviewState;
+  readonly apply?: (next: WorkbenchReviewState) => { readonly accepted: boolean };
+  readonly clear?: (next: WorkbenchReviewState) => { readonly accepted: boolean };
+}
+
+export interface ReviewInteractionController {
+  getState(): WorkbenchReviewState;
+  replaceState(next: WorkbenchReviewState, message: string): boolean;
+  clearReview(message: string): boolean;
+  announce(message: string): void;
 }
 
 type DecisionAction = ReviewDecision["action"];
@@ -58,10 +75,17 @@ type EditorContext = DecisionEditorContext | BulkEditorContext;
 
 interface BlockControls {
   readonly article: HTMLElement;
+  readonly actions: HTMLElement;
   readonly status: HTMLElement;
   readonly quote: HTMLElement;
   readonly actionButtons: ReadonlyMap<DecisionAction, HTMLButtonElement>;
   readonly undo: HTMLButtonElement;
+}
+
+interface ReopenControls {
+  readonly container: HTMLElement;
+  readonly button: HTMLButtonElement;
+  readonly status: HTMLElement;
 }
 
 interface RailControls {
@@ -181,8 +205,11 @@ export function mountReviewInteractions({
   documentValue,
   strings,
   landmarks,
-}: MountReviewInteractionsInput): void {
-  let state = createInitialReviewState(documentValue);
+  stateHooks,
+}: MountReviewInteractionsInput): ReviewInteractionController {
+  let state = cloneWorkbenchReviewState(
+    stateHooks?.initialState ?? createInitialReviewState(documentValue),
+  );
   let filter: ReviewFilter = "all";
   let search = "";
   let currentBlockId = activeBlockIds(documentValue, state)[0] ?? documentValue.blocks[0]?.id;
@@ -191,6 +218,7 @@ export function mountReviewInteractions({
   let editingGlobalTopicId: string | undefined;
 
   const blockControls = new Map<string, BlockControls>();
+  const reopenControls = new Map<string, ReopenControls>();
   const eligibilityControls = new Map<string, HTMLElement>();
   const visibleFeedback = elementWithText(document, "p", "");
   visibleFeedback.className = "review-feedback";
@@ -224,18 +252,12 @@ export function mountReviewInteractions({
   );
   landmarks.header.append(toolbar);
 
-  function createBlockControls(
+  function createDecisionControls(
     block: ReviewDocumentV1["blocks"][number],
-  ): void {
-    const article = landmarks.main.querySelector<HTMLElement>(`article#block-${block.id}`);
-    if (article === null) return;
-    article.tabIndex = -1;
-    const eligibilityStatus = elementWithText(document, "p", strings.eligibilityUnavailable);
-    eligibilityStatus.className = "execution-eligibility";
-    eligibilityStatus.dataset.eligibility = "unavailable";
-    article.append(eligibilityStatus);
-    eligibilityControls.set(block.id, eligibilityStatus);
-    if (documentValue.approvals.currentFrozen.includes(block.id)) return;
+    article: HTMLElement,
+  ): BlockControls {
+    const existing = blockControls.get(block.id);
+    if (existing !== undefined) return existing;
     const controls = document.createElement("section");
     controls.className = "review-actions";
     controls.setAttribute("aria-label", `${block.id} ${strings.decisionStatus}`);
@@ -269,7 +291,61 @@ export function mountReviewInteractions({
     undo.hidden = true;
     controls.append(status, quote, group, undo);
     article.append(controls);
-    blockControls.set(block.id, { article, status, quote, actionButtons, undo });
+    const created = { article, actions: controls, status, quote, actionButtons, undo };
+    blockControls.set(block.id, created);
+    for (const [action, button] of actionButtons) {
+      button.addEventListener("click", () => {
+        currentBlockId = block.id;
+        renderCurrentBlock();
+        if (action === "PASS") applyPass(block.id);
+        else openDecisionEditor(block.id, action, button);
+      });
+    }
+    undo.addEventListener("click", () => {
+      if (dispatch({ type: "UNSET_DECISION", blockId: block.id }, strings.decisionUndone)) {
+        focusBlock(block.id);
+      }
+    });
+    return created;
+  }
+
+  function createBlockControls(
+    block: ReviewDocumentV1["blocks"][number],
+  ): void {
+    const article = landmarks.main.querySelector<HTMLElement>(`article#block-${block.id}`);
+    if (article === null) return;
+    article.tabIndex = -1;
+    article.addEventListener("focusin", () => {
+      currentBlockId = block.id;
+      renderCurrentBlock();
+    });
+    article.addEventListener("pointerdown", () => {
+      currentBlockId = block.id;
+      renderCurrentBlock();
+    });
+    const eligibilityStatus = elementWithText(document, "p", strings.eligibilityUnavailable);
+    eligibilityStatus.className = "execution-eligibility";
+    eligibilityStatus.dataset.eligibility = "unavailable";
+    article.append(eligibilityStatus);
+    eligibilityControls.set(block.id, eligibilityStatus);
+    if (documentValue.approvals.currentFrozen.includes(block.id)) {
+      const container = document.createElement("section");
+      container.className = "reopen-controls";
+      const status = elementWithText(document, "p", strings.frozenNotReopened);
+      status.className = "reopen-status";
+      const button = buttonWithText(document, strings.reopenBlock, "reopen-block secondary-action");
+      button.addEventListener("click", () => {
+        const result = reopenFrozenBlock(documentValue, state, block.id);
+        if (acceptResult(result, strings.blockReopened)) {
+          focusBlock(block.id);
+        }
+      });
+      container.append(status, button);
+      article.append(container);
+      reopenControls.set(block.id, { container, button, status });
+      if (!state.reopened.has(block.id)) return;
+    }
+    createDecisionControls(block, article);
   }
 
   for (const block of documentValue.blocks) createBlockControls(block);
@@ -553,6 +629,12 @@ export function mountReviewInteractions({
   }
 
   function render(): void {
+    for (const blockId of state.reopened) {
+      if (blockControls.has(blockId)) continue;
+      const block = documentValue.blocks.find((item) => item.id === blockId);
+      const article = landmarks.main.querySelector<HTMLElement>(`article#block-${blockId}`);
+      if (block !== undefined && article !== null) createDecisionControls(block, article);
+    }
     const progress = reviewProgress(documentValue, state);
     const stats = reviewStats(state);
     const eligibility = executionEligibility(documentValue, state);
@@ -565,6 +647,14 @@ export function mountReviewInteractions({
       currentBlockId = visible[0];
     }
     for (const block of documentValue.blocks) {
+      const effectivelyFrozen = documentValue.approvals.currentFrozen.includes(block.id)
+        && !state.reopened.has(block.id);
+      const reopen = reopenControls.get(block.id);
+      if (reopen !== undefined) {
+        reopen.button.hidden = !effectivelyFrozen;
+        reopen.status.textContent = effectivelyFrozen ? strings.frozenNotReopened : strings.reopenedActive;
+        reopen.container.dataset.reopened = String(!effectivelyFrozen);
+      }
       const eligibilityStatus = eligibilityControls.get(block.id);
       if (eligibilityStatus !== undefined) {
         const derived = eligible.has(block.id)
@@ -582,6 +672,7 @@ export function mountReviewInteractions({
         ?? landmarks.main.querySelector<HTMLElement>(`article#block-${block.id}`);
       if (article !== null && article !== undefined) article.hidden = !visibleSet.has(block.id);
       if (controls === undefined) continue;
+      controls.actions.hidden = effectivelyFrozen;
       const decision = state.decisionsByBlock.get(block.id);
       const detail = decision === undefined ? "" : decisionDetail(decision, state);
       controls.status.textContent = decision === undefined
@@ -602,16 +693,28 @@ export function mountReviewInteractions({
     renderDecisionLists();
   }
 
-  function dispatch(action: ReviewAction, message: string): boolean {
-    const result = reduceReviewState(documentValue, state, action);
+  function acceptResult(
+    result: ReviewReducerResult,
+    message: string,
+    mode: "apply" | "clear" = "apply",
+  ): boolean {
     if (!result.ok) {
       announce(`${result.code}`);
+      return false;
+    }
+    const hook = mode === "clear" ? stateHooks?.clear : stateHooks?.apply;
+    if (hook !== undefined && !hook(result.state).accepted) {
+      announce(strings.stateCommitFailed);
       return false;
     }
     state = result.state;
     render();
     announce(message);
     return true;
+  }
+
+  function dispatch(action: ReviewAction, message: string): boolean {
+    return acceptResult(reduceReviewState(documentValue, state, action), message);
   }
 
   function focusAfterDecision(blockId: string): void {
@@ -794,6 +897,14 @@ export function mountReviewInteractions({
       dialog.querySelector<HTMLElement>("input,textarea")?.focus();
       return;
     }
+    if (stateHooks?.apply !== undefined && !stateHooks.apply(result.state).accepted) {
+      const error = dialog.querySelector<HTMLElement>(".dialog-error");
+      if (error !== null) {
+        error.textContent = strings.stateCommitFailed;
+        error.hidden = false;
+      }
+      return;
+    }
     state = result.state;
     const decidedBlock = context.blockId;
     editorContext = undefined;
@@ -801,30 +912,6 @@ export function mountReviewInteractions({
     render();
     announce(strings.decisionSaved);
     focusAfterDecision(decidedBlock);
-  }
-
-  for (const [blockId, controls] of blockControls) {
-    for (const [action, button] of controls.actionButtons) {
-      button.addEventListener("click", () => {
-        currentBlockId = blockId;
-        renderCurrentBlock();
-        if (action === "PASS") applyPass(blockId);
-        else openDecisionEditor(blockId, action, button);
-      });
-    }
-    controls.undo.addEventListener("click", () => {
-      if (dispatch({ type: "UNSET_DECISION", blockId }, strings.decisionUndone)) {
-        focusBlock(blockId);
-      }
-    });
-    controls.article.addEventListener("focusin", () => {
-      currentBlockId = blockId;
-      renderCurrentBlock();
-    });
-    controls.article.addEventListener("pointerdown", () => {
-      currentBlockId = blockId;
-      renderCurrentBlock();
-    });
   }
 
   filterSelect.addEventListener("change", () => {
@@ -911,7 +998,7 @@ export function mountReviewInteractions({
   });
 
   document.body.addEventListener("keydown", (event) => {
-    if (dialog.open || isTextEntry(event.target)) return;
+    if (document.querySelector("dialog[open]") !== null || isTextEntry(event.target)) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === "j" || event.key === "k") {
       event.preventDefault();
@@ -930,7 +1017,7 @@ export function mountReviewInteractions({
     if (action === undefined || currentBlockId === undefined) return;
     event.preventDefault();
     const controls = blockControls.get(currentBlockId);
-    if (controls === undefined) {
+    if (controls === undefined || controls.actions.hidden) {
       announce(strings.frozen);
       return;
     }
@@ -941,4 +1028,31 @@ export function mountReviewInteractions({
   });
 
   render();
+  return {
+    getState: () => cloneWorkbenchReviewState(state),
+    replaceState(next, message) {
+      const accepted = acceptResult(
+        reduceReviewState(documentValue, state, { type: "IMPORT_STATE", state: next }),
+        message,
+      );
+      if (accepted) {
+        resetNoteEditor();
+        resetTopicEditor();
+      }
+      return accepted;
+    },
+    clearReview(message) {
+      const accepted = acceptResult(
+        reduceReviewState(documentValue, state, { type: "CLEAR_REVIEW" }),
+        message,
+        "clear",
+      );
+      if (accepted) {
+        resetNoteEditor();
+        resetTopicEditor();
+      }
+      return accepted;
+    },
+    announce,
+  };
 }
