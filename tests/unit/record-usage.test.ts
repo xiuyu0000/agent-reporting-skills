@@ -13,6 +13,10 @@ import {
 } from "../../src/cli/record-usage.js";
 
 const temporaryDirectories: string[] = [];
+// Two 24-writer batches cover immediate and held-lock contention. This test-only
+// budget absorbs coverage instrumentation without changing the production 3.4s
+// contender bound or weakening the 24/24 integrity assertions below.
+const CONCURRENT_APPEND_TEST_TIMEOUT_MS = 15_000;
 
 async function makeTemporaryDirectory(): Promise<string> {
   const path = await mkdtemp(resolve(".test-temporary-unit-"));
@@ -145,7 +149,7 @@ describe("content-free usage append", () => {
         entry.startsWith(".usage-") || entry === usageStorageNames.appendIntent,
       )).toEqual([]);
     }
-  });
+  }, CONCURRENT_APPEND_TEST_TIMEOUT_MS);
 
   it("returns a sanitized non-blocking result when storage is unavailable", async () => {
     const root = await makeTemporaryDirectory();
