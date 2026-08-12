@@ -1,9 +1,12 @@
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { afterAll, describe, expect, it } from "vitest";
-import { sha256Bytes, type ReviewDocumentV1 } from "../../src/protocol/index.js";
+import type { ByteVerifier } from "../../src/cli/io/index.js";
+import { reviewDigest, sha256Bytes, type ReviewDocumentV1 } from "../../src/protocol/index.js";
+import { createGeneratedReplacementByteVerifiers } from "../../src/cli/validate.js";
 import {
   GENERATOR_VERSION,
+  approvalTemplateBytes,
   reviewDocumentFixture,
   validAgentBytes,
   validApprovalBytes,
@@ -54,6 +57,38 @@ function splitPart(part: number): ReviewDocumentV1 {
 }
 
 describe("validate delivery subprocess", () => {
+  it("provides transaction-compatible exact-byte callbacks after paired cross-round preflight", async () => {
+    const previous = reviewDocumentFixture();
+    const current = structuredClone(previous);
+    current.document.title = "Current replacement snapshot";
+    current.document.contentVersion = 2;
+    current.document.round = 2;
+    current.lineage.previousReviewDigest = reviewDigest(previous);
+    const agentBytes = validAgentBytes(previous);
+    const approvalBytes = validApprovalBytes(previous);
+
+    const result = createGeneratedReplacementByteVerifiers({
+      currentDocument: current,
+      generatorVersion: GENERATOR_VERSION,
+      templateBytes: approvalTemplateBytes(),
+      existingAgentBytes: agentBytes,
+      existingApprovalBytes: approvalBytes,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const agentVerifier: ByteVerifier = result.value.agent;
+    const approvalVerifier: ByteVerifier = result.value.approval;
+    expect(await agentVerifier(agentBytes)).toEqual({ ok: true });
+    expect(await approvalVerifier(approvalBytes)).toEqual({ ok: true });
+    const driftedAgent = new Uint8Array(agentBytes);
+    const driftedApproval = new Uint8Array(approvalBytes);
+    driftedAgent[8] = (driftedAgent[8] ?? 0) ^ 1;
+    driftedApproval[8] = (driftedApproval[8] ?? 0) ^ 1;
+    expect(await agentVerifier(driftedAgent)).toEqual({ ok: false });
+    expect(await approvalVerifier(driftedApproval)).toEqual({ ok: false });
+  });
+
   it("returns the closed handoff and leaves every inode, byte, mode, and directory entry unchanged", async () => {
     const parent = await temporaryDirectory("validate-delivery");
     const root = await makeInputRoot(parent);
