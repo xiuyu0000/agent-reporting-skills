@@ -92,6 +92,11 @@ export {
   migratePrototypeState,
 } from "./migration.js";
 
+export type {
+  PrototypePacketUnboundMigrationOptions,
+} from "./migration.js";
+export { migratePrototypePacketUnbound } from "./migration.js";
+
 export {
   parseReviewPacketMarkdown,
   parseReviewPacketMarkdownUnbound,
