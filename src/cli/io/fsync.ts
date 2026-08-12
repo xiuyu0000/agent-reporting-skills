@@ -564,7 +564,7 @@ export interface PrivateWriterClaim {
 
 export class WriterClaimError extends Error {
   constructor(
-    readonly ioCode: "TRANSACTION_OWNER_UNKNOWN" | "TRANSACTION_RECOVERY_BLOCKED" | "IO_OPERATION_FAILED",
+    readonly ioCode: "PATH_INVALID" | "TRANSACTION_OWNER_UNKNOWN" | "TRANSACTION_RECOVERY_BLOCKED" | "IO_OPERATION_FAILED",
     readonly errorPath: string,
     readonly uncertain: boolean,
     options?: ErrorOptions,
@@ -728,6 +728,7 @@ export async function acquireWriterClaim(
     rootPath: string;
     rootMetadata: Stats;
     generatorVersion: string;
+    prewriteGuard?: () => Promise<boolean>;
   },
 ): Promise<PrivateWriterClaim> {
   const containerPath = join(input.rootPath, TRANSACTION_CONTAINER);
@@ -748,6 +749,9 @@ export async function acquireWriterClaim(
   let candidate: { metadata: Stats; digest: Sha256Digest } | undefined;
   let claimPublished = false;
   try {
+    if (input.prewriteGuard !== undefined && !(await input.prewriteGuard())) {
+      throw new WriterClaimError("PATH_INVALID", "/outputDir", false);
+    }
     await writeNewPrivateFile(adapter, candidatePath, serializeWriterClaim(record));
     await syncDirectory(adapter, containerPath);
     const inspectedCandidate = await inspectClaimArtifact(adapter, candidatePath, input.generatorVersion, [1]);

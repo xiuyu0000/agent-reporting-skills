@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { Stats } from "node:fs";
+import { isProxy } from "node:util/types";
 import {
   sha256Bytes,
   type PortablePathKey,
@@ -14,12 +15,18 @@ import {
 } from "../result.js";
 import {
   assertPortableTargetSet,
+  assertFreshResolvedRootWithAdapter,
+  assertRecoverySceneBeforeFirstClaimWrite,
   assertResolvedRoot,
   assertTargetParentGuard,
   cleanupCreatedRootIfEmpty,
+  bindFreshOutputPath,
   getTargetIdentity,
   inspectTargetParent,
   pathFailureResult,
+  probeFreshOutputRootWithAdapter,
+  resolveRecoveryOutputRootWithAdapter,
+  resolveOutputRootWithAdapter,
   type ResolvedOutputRoot,
   type TargetParentGuard,
   type ValidatedRelativeTarget,
@@ -93,6 +100,10 @@ interface PreparedTransactionTarget {
   backupRelativePath?: string;
 }
 
+type TransactionTargetSnapshot = Omit<PreparedTransactionTarget,
+  "relativePath" | "portableKey" | "newDigest" | "oldDigest" | "existingMetadata" | "guard" | "stageRelativePath" | "backupRelativePath"
+>;
+
 class TransactionError extends Error {
   constructor(
     readonly ioCode: CliIoErrorCode,
@@ -128,9 +139,7 @@ function ownDataValue(record: object, key: string): unknown {
   return descriptor.value;
 }
 
-function snapshotTarget(value: unknown, _index: number): Omit<PreparedTransactionTarget,
-  "relativePath" | "portableKey" | "newDigest" | "oldDigest" | "existingMetadata" | "guard" | "stageRelativePath" | "backupRelativePath"
-> | undefined {
+function snapshotTarget(value: unknown): TransactionTargetSnapshot | undefined {
   try {
     if (
       typeof value !== "object"
@@ -170,6 +179,127 @@ function snapshotTarget(value: unknown, _index: number): Omit<PreparedTransactio
   }
 }
 
+function asOwnedFreshBytes(value: unknown): Uint8Array | undefined {
+  try {
+    if (
+      typeof value !== "object"
+      || value === null
+      || isProxy(value)
+      || !(value instanceof Uint8Array)
+      || Object.getPrototypeOf(value) !== Uint8Array.prototype
+      || Object.getOwnPropertySymbols(value).length !== 0
+      || Object.keys(value).some((key) => !/^(?:0|[1-9][0-9]*)$/u.test(key))
+    ) {
+      return undefined;
+    }
+    return Uint8Array.from(value);
+  } catch {
+    return undefined;
+  }
+}
+
+async function freshVerifierPasses(verifier: ByteVerifier, bytes: Uint8Array): Promise<boolean> {
+  try {
+    const result: unknown = await verifier(Uint8Array.from(bytes));
+    if (typeof result !== "object" || result === null || isProxy(result) || Array.isArray(result)) return false;
+    const descriptor = Object.getOwnPropertyDescriptor(result, "ok");
+    return descriptor !== undefined
+      && descriptor.get === undefined
+      && descriptor.set === undefined
+      && descriptor.value === true;
+  } catch {
+    return false;
+  }
+}
+
+function strictVerifier(verifier: ByteVerifier): ByteVerifier {
+  return async (bytes) => (await freshVerifierPasses(verifier, bytes)) ? { ok: true } : { ok: false };
+}
+
+function snapshotFreshTarget(value: unknown): TransactionTargetSnapshot | undefined {
+  try {
+    if (
+      typeof value !== "object"
+      || value === null
+      || isProxy(value)
+      || Array.isArray(value)
+      || Object.getPrototypeOf(value) !== Object.prototype
+    ) {
+      return undefined;
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<string, PropertyDescriptor>;
+    const descriptorKeys = Reflect.ownKeys(descriptors);
+    const allowedKeys = new Set(["target", "bytes", "disposition", "verifyStaged", "verifyExisting"]);
+    if (descriptorKeys.some((key) =>
+      typeof key !== "string"
+      || (descriptors[key]?.enumerable === true && !allowedKeys.has(key)))) {
+      return undefined;
+    }
+    const dataValue = (key: string): unknown => {
+      const descriptor = descriptors[key];
+      return descriptor !== undefined && "value" in descriptor ? descriptor.value : undefined;
+    };
+    const target = dataValue("target");
+    const bytes = asOwnedFreshBytes(dataValue("bytes"));
+    const disposition = dataValue("disposition");
+    const verifyStaged = dataValue("verifyStaged");
+    const verifyExisting = dataValue("verifyExisting");
+    if (
+      typeof target !== "object"
+      || target === null
+      || isProxy(target)
+      || bytes === undefined
+      || (disposition !== "create" && disposition !== "replace")
+      || typeof verifyStaged !== "function"
+      || isProxy(verifyStaged)
+      || (disposition === "replace" ? typeof verifyExisting !== "function" : verifyExisting !== undefined)
+      || (typeof verifyExisting === "function" && isProxy(verifyExisting))
+    ) {
+      return undefined;
+    }
+    return {
+      target: target as ValidatedRelativeTarget,
+      bytes,
+      disposition,
+      verifyStaged: strictVerifier(verifyStaged as ByteVerifier),
+      ...(disposition === "replace"
+        ? { verifyExisting: strictVerifier(verifyExisting as ByteVerifier) }
+        : {}),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function snapshotFreshTargetArray(value: unknown): readonly unknown[] | undefined {
+  try {
+    if (typeof value !== "object" || value === null || isProxy(value) || !Array.isArray(value)) return undefined;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<string, PropertyDescriptor>;
+    const lengthDescriptor = descriptors.length;
+    const lengthValue = lengthDescriptor?.value as unknown;
+    if (
+      lengthDescriptor === undefined
+      || typeof lengthValue !== "number"
+      || !Number.isSafeInteger(lengthValue)
+      || lengthValue < 1
+      || lengthValue > 1024
+      || Object.getPrototypeOf(value) !== Array.prototype
+      || Reflect.ownKeys(descriptors).length !== lengthValue + 1
+    ) {
+      return undefined;
+    }
+    const snapshots: unknown[] = [];
+    for (let index = 0; index < lengthValue; index += 1) {
+      const descriptor = descriptors[String(index)];
+      if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) return undefined;
+      snapshots.push(descriptor.value);
+    }
+    return Object.freeze(snapshots);
+  } catch {
+    return undefined;
+  }
+}
+
 async function verifierPasses(verifier: ByteVerifier, bytes: Uint8Array): Promise<boolean> {
   try {
     const result: unknown = await verifier(Uint8Array.from(bytes));
@@ -181,6 +311,103 @@ async function verifierPasses(verifier: ByteVerifier, bytes: Uint8Array): Promis
       && descriptor.value === true;
   } catch {
     return false;
+  }
+}
+
+async function snapshotAndVerifyFreshTargets(
+  value: unknown,
+): Promise<CliIoResult<readonly TransactionTargetSnapshot[]>> {
+  const targetValues = snapshotFreshTargetArray(value);
+  if (targetValues === undefined) return cliIoFailure([cliIoError("PATH_INVALID", "/targets")]);
+  const snapshots: TransactionTargetSnapshot[] = [];
+  const validatedTargets: ValidatedRelativeTarget[] = [];
+  for (const [index, targetValue] of targetValues.entries()) {
+    const snapshot = snapshotFreshTarget(targetValue);
+    if (snapshot === undefined) {
+      return cliIoFailure([cliIoError("PATH_INVALID", `/targets/${index}`)]);
+    }
+    if (getTargetIdentity(snapshot.target) === undefined) {
+      return cliIoFailure([cliIoError("PATH_INVALID", `/targets/${index}`)]);
+    }
+    snapshots.push(snapshot);
+    validatedTargets.push(snapshot.target);
+  }
+  const portableSet = assertPortableTargetSet(validatedTargets);
+  if (!portableSet.ok) return portableSet;
+  for (const [index, snapshot] of snapshots.entries()) {
+    if (!(await freshVerifierPasses(snapshot.verifyStaged, snapshot.bytes))) {
+      return cliIoFailure([cliIoError("STAGED_CONTENT_INVALID", `/targets/${index}/bytes`)]);
+    }
+  }
+  return cliIoSuccess(Object.freeze(snapshots));
+}
+
+async function snapshotAndVerifyOrdinaryTargets(
+  value: unknown,
+): Promise<CliIoResult<readonly TransactionTargetSnapshot[]>> {
+  try {
+    if (!Array.isArray(value) || value.length === 0 || value.length > 1024) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/targets")]);
+    }
+    const snapshots: TransactionTargetSnapshot[] = [];
+    const validatedTargets: ValidatedRelativeTarget[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const snapshot = snapshotTarget(value[index]);
+      if (snapshot === undefined || getTargetIdentity(snapshot.target) === undefined) {
+        return cliIoFailure([cliIoError("PATH_INVALID", `/targets/${index}`)]);
+      }
+      snapshots.push(snapshot);
+      validatedTargets.push(snapshot.target);
+    }
+    const portableSet = assertPortableTargetSet(validatedTargets);
+    if (!portableSet.ok) return portableSet;
+    for (const [index, snapshot] of snapshots.entries()) {
+      if (!(await verifierPasses(snapshot.verifyStaged, snapshot.bytes))) {
+        return cliIoFailure([cliIoError("STAGED_CONTENT_INVALID", `/targets/${index}/bytes`)]);
+      }
+    }
+    return cliIoSuccess(snapshots);
+  } catch (error) {
+    return pathFailureResult(error, "/targets");
+  }
+}
+
+function snapshotExactRecord(
+  value: unknown,
+  expectedKeys: readonly string[],
+): Readonly<Record<string, unknown>> | undefined {
+  try {
+    if (
+      typeof value !== "object"
+      || value === null
+      || isProxy(value)
+      || Array.isArray(value)
+      || Object.getPrototypeOf(value) !== Object.prototype
+    ) {
+      return undefined;
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(descriptors);
+    if (
+      keys.length !== expectedKeys.length
+      || keys.some((key) => typeof key !== "string" || !expectedKeys.includes(key))
+    ) {
+      return undefined;
+    }
+    const snapshot: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of expectedKeys) {
+      const descriptor = descriptors[key];
+      if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) return undefined;
+      Object.defineProperty(snapshot, key, {
+        value: descriptor.value,
+        enumerable: true,
+        configurable: false,
+        writable: false,
+      });
+    }
+    return Object.freeze(snapshot);
+  } catch {
+    return undefined;
   }
 }
 
@@ -229,35 +456,13 @@ async function inspectExistingForReplacement(
 }
 
 async function preflightTargets(
-  input: { root: ResolvedOutputRoot; targets: readonly FileTransactionTarget[] },
+  input: { root: ResolvedOutputRoot; targets: readonly TransactionTargetSnapshot[] },
   adapter: PrivateFileSystemAdapter,
 ): Promise<CliIoResult<PreparedTransactionTarget[]>> {
   try {
-    if (!Array.isArray(input.targets) || input.targets.length === 0 || input.targets.length > 1024) {
-      return cliIoFailure([cliIoError("PATH_INVALID", "/targets")]);
-    }
     await assertResolvedRoot(input.root, adapter);
-    const snapshots: Array<ReturnType<typeof snapshotTarget> extends infer T ? Exclude<T, undefined> : never> = [];
-    const validatedTargets: ValidatedRelativeTarget[] = [];
-    for (let index = 0; index < input.targets.length; index += 1) {
-      const snapshot = snapshotTarget(input.targets[index], index);
-      if (snapshot === undefined || getTargetIdentity(snapshot.target) === undefined) {
-        return cliIoFailure([cliIoError("PATH_INVALID", `/targets/${index}`)]);
-      }
-      snapshots.push(snapshot);
-      validatedTargets.push(snapshot.target);
-    }
-    const portableSet = assertPortableTargetSet(validatedTargets);
-    if (!portableSet.ok) return portableSet as CliIoResult<PreparedTransactionTarget[]>;
-
-    for (const [index, snapshot] of snapshots.entries()) {
-      if (!(await verifierPasses(snapshot.verifyStaged, snapshot.bytes))) {
-        return cliIoFailure([cliIoError("STAGED_CONTENT_INVALID", `/targets/${index}/bytes`)]);
-      }
-    }
-
     const preparedTargets: PreparedTransactionTarget[] = [];
-    for (const [index, snapshot] of snapshots.entries()) {
+    for (const [index, snapshot] of input.targets.entries()) {
       const targetIdentity = getTargetIdentity(snapshot.target);
       if (targetIdentity === undefined) return cliIoFailure([cliIoError("PATH_INVALID", `/targets/${index}/target`)]);
       const guard = await inspectTargetParent(input.root, snapshot.target, adapter);
@@ -447,10 +652,15 @@ async function commitFileTransactionUnderClaimWithAdapter(
   input: {
     root: ResolvedOutputRoot;
     generatorVersion: string;
-    targets: readonly FileTransactionTarget[];
+    targets: () => unknown;
   },
   adapter: PrivateFileSystemAdapter,
   claim: PrivateWriterClaim,
+  options: {
+    recoverBeforePreflight: boolean;
+    requireFreshBeforeTransaction: boolean;
+    targetsPreverified: boolean;
+  },
 ): Promise<CliIoResult<CommitValue>> {
   let preparedTargets: PreparedTransactionTarget[] = [];
   let transactionDirectory: { transactionId: string; path: string; metadata: Stats } | undefined;
@@ -458,16 +668,30 @@ async function commitFileTransactionUnderClaimWithAdapter(
   let initiatingFailure: CliIoResult<CommitValue> | undefined;
   try {
     await assertWriterClaim(adapter, claim);
-    const recovered = await recoverTransactionsUnderClaimWithAdapter(
-      { root: input.root, generatorVersion: input.generatorVersion },
-      adapter,
-      claim,
-    );
-    if (!recovered.ok) return recovered;
-    const preflight = await preflightTargets({ root: input.root, targets: input.targets }, adapter);
+    if (options.recoverBeforePreflight) {
+      const recovered = await recoverTransactionsUnderClaimWithAdapter(
+        { root: input.root, generatorVersion: input.generatorVersion },
+        adapter,
+        claim,
+      );
+      if (!recovered.ok) return recovered;
+      await adapter.checkpoint("transaction-recovery-complete");
+    }
+    if (!options.targetsPreverified) await assertResolvedRoot(input.root, adapter);
+    const targetInput = input.targets();
+    const snapshots = options.targetsPreverified
+      ? cliIoSuccess(targetInput as readonly TransactionTargetSnapshot[])
+      : await snapshotAndVerifyOrdinaryTargets(targetInput);
+    if (!snapshots.ok) return snapshots;
+    const preflight = await preflightTargets({ root: input.root, targets: snapshots.value }, adapter);
     if (!preflight.ok) return preflight;
     preparedTargets = preflight.value;
     await assertWriterClaim(adapter, claim);
+    if (options.requireFreshBeforeTransaction) {
+      const fresh = await assertFreshResolvedRootWithAdapter(input.root, adapter);
+      if (!fresh.ok) return fresh;
+      await assertWriterClaim(adapter, claim);
+    }
     transactionDirectory = await createTransactionDirectory(adapter, input.root);
     await adapter.checkpoint("transaction-directory-created");
     for (const [index, target] of preparedTargets.entries()) {
@@ -655,10 +879,14 @@ export async function commitFileTransactionWithAdapter(
   },
   adapter: PrivateFileSystemAdapter,
 ): Promise<CliIoResult<CommitValue>> {
-  if (typeof input !== "object" || input === null || !isGeneratorVersion(input.generatorVersion)) {
+  if (
+    typeof input !== "object"
+    || input === null
+    || !isGeneratorVersion(input.generatorVersion)
+  ) {
     return cliIoFailure([cliIoError("PATH_INVALID", "/generatorVersion")]);
   }
-  let claim: PrivateWriterClaim | undefined;
+  let claim: PrivateWriterClaim;
   let result: CliIoResult<CommitValue>;
   try {
     const identity = await assertResolvedRoot(input.root, adapter);
@@ -667,13 +895,22 @@ export async function commitFileTransactionWithAdapter(
       rootMetadata: identity.metadata,
       generatorVersion: input.generatorVersion,
     });
-    result = await commitFileTransactionUnderClaimWithAdapter(input, adapter, claim);
+    result = await commitFileTransactionUnderClaimWithAdapter({
+      root: input.root,
+      generatorVersion: input.generatorVersion,
+      targets: () => input.targets,
+    }, adapter, claim, {
+      recoverBeforePreflight: true,
+      requireFreshBeforeTransaction: false,
+      targetsPreverified: false,
+    });
   } catch (error) {
     if (error instanceof WriterClaimError) {
       return cliIoFailure([cliIoError(error.ioCode, error.errorPath)], error.uncertain);
+    } else {
+      const failure = pathFailureResult<CommitValue>(error, "/writerClaim");
+      return failure.ok ? cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/writerClaim")]) : failure;
     }
-    const failure = pathFailureResult<CommitValue>(error, "/writerClaim");
-    return failure.ok ? cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/writerClaim")]) : failure;
   }
   try {
     await releaseWriterClaim(adapter, claim);
@@ -689,6 +926,99 @@ export async function commitFileTransactionWithAdapter(
   return result;
 }
 
+export async function commitFreshFileTransactionWithAdapter(
+  input: {
+    outputDir: string;
+    generatorVersion: string;
+    targets: readonly FileTransactionTarget[];
+  },
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<CommitValue>> {
+  const envelope = snapshotExactRecord(input, ["outputDir", "generatorVersion", "targets"]);
+  if (envelope === undefined || typeof envelope.outputDir !== "string") {
+    return cliIoFailure([cliIoError("PATH_INVALID", "/outputDir")]);
+  }
+  if (!isGeneratorVersion(envelope.generatorVersion)) {
+    return cliIoFailure([cliIoError("PATH_INVALID", "/generatorVersion")]);
+  }
+  const outputPath = bindFreshOutputPath(envelope.outputDir);
+  if (!outputPath.ok) return outputPath;
+  const targets = await snapshotAndVerifyFreshTargets(envelope.targets);
+  if (!targets.ok) return targets;
+
+  const outputDir = outputPath.value;
+  const generatorVersion = envelope.generatorVersion;
+  const probe = await probeFreshOutputRootWithAdapter(outputDir, adapter);
+  if (!probe.ok) return probe;
+  const resolved = probe.value.kind === "recovery"
+    ? await resolveRecoveryOutputRootWithAdapter(probe.value, adapter)
+    : await resolveOutputRootWithAdapter({
+        outputDir,
+        creation: "create-if-missing",
+        freshness: "require-no-business-entries",
+      }, adapter);
+  if (!resolved.ok) return resolved;
+  const root = resolved.value;
+  const recoveryProbe = probe.value.kind === "recovery" ? probe.value : undefined;
+
+  let claim: PrivateWriterClaim | undefined;
+  let result: CliIoResult<CommitValue>;
+  try {
+    if (recoveryProbe !== undefined) await adapter.checkpoint("fresh-recovery-root-resolved");
+    const identity = await assertResolvedRoot(root, adapter);
+    claim = await acquireWriterClaim(adapter, {
+      rootPath: identity.absolutePath,
+      rootMetadata: identity.metadata,
+      generatorVersion,
+      ...(recoveryProbe === undefined
+        ? {}
+        : { prewriteGuard: async () => assertRecoverySceneBeforeFirstClaimWrite(recoveryProbe, adapter) }),
+    });
+    const recovered = await recoverTransactionsUnderClaimWithAdapter(
+      { root, generatorVersion },
+      adapter,
+      claim,
+    );
+    if (!recovered.ok) {
+      result = recovered;
+    } else {
+      const fresh = await assertFreshResolvedRootWithAdapter(root, adapter);
+      result = fresh.ok
+        ? await commitFileTransactionUnderClaimWithAdapter({
+            root,
+            generatorVersion,
+            targets: () => targets.value,
+          }, adapter, claim, {
+            recoverBeforePreflight: false,
+            requireFreshBeforeTransaction: true,
+            targetsPreverified: true,
+          })
+        : fresh;
+    }
+  } catch (error) {
+    if (error instanceof WriterClaimError) {
+      result = cliIoFailure([cliIoError(error.ioCode, error.errorPath)], error.uncertain);
+    } else {
+      const failure = pathFailureResult<CommitValue>(error, "/writerClaim");
+      result = failure.ok ? cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/writerClaim")]) : failure;
+    }
+  }
+  if (claim !== undefined) {
+    try {
+      await releaseWriterClaim(adapter, claim);
+    } catch (error) {
+      const failure = error instanceof WriterClaimError
+        ? cliIoError(error.ioCode, error.errorPath)
+        : cliIoError("TRANSACTION_RECOVERY_BLOCKED", "/writerClaim");
+      return cliIoFailure([failure], true);
+    }
+  }
+  if (!result.ok && !result.recoveryRequired) {
+    return cleanupRootAfterFailedCommit(root, adapter, result);
+  }
+  return result;
+}
+
 export async function commitFileTransaction(input: {
   root: ResolvedOutputRoot;
   generatorVersion: string;
@@ -696,6 +1026,18 @@ export async function commitFileTransaction(input: {
 }): Promise<CliIoResult<CommitValue>> {
   try {
     return await commitFileTransactionWithAdapter(input, nativeFileSystemAdapter);
+  } catch {
+    return cliIoFailure([cliIoError("TRANSACTION_RECOVERY_BLOCKED", "/transaction")], true);
+  }
+}
+
+export async function commitFreshFileTransaction(input: {
+  outputDir: string;
+  generatorVersion: string;
+  targets: readonly FileTransactionTarget[];
+}): Promise<CliIoResult<CommitValue>> {
+  try {
+    return await commitFreshFileTransactionWithAdapter(input, nativeFileSystemAdapter);
   } catch {
     return cliIoFailure([cliIoError("TRANSACTION_RECOVERY_BLOCKED", "/transaction")], true);
   }
