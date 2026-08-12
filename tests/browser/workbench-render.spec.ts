@@ -320,8 +320,32 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   await expect(page.locator("article#block-B001 .code-region")).toHaveAttribute("tabindex", "0");
   await expect(page.locator("article#block-B001 details.block-body")).toHaveAttribute("open", "");
   await expect(page.locator("article#block-B002 details.block-body")).not.toHaveAttribute("open", "");
+  const tierHierarchy = await page.evaluate(() => {
+    const t0 = document.querySelector<HTMLElement>("article#block-B003");
+    const t1 = document.querySelector<HTMLElement>("article#block-B002");
+    if (t0 === null || t1 === null) {
+      throw new Error("tier hierarchy fixture missing");
+    }
+    const t0Title = t0.querySelector<HTMLElement>("h3");
+    const t1Title = t1.querySelector<HTMLElement>("h3");
+    if (t0Title === null || t1Title === null) {
+      throw new Error("tier hierarchy fixture missing");
+    }
+    return {
+      t0Border: Number.parseFloat(getComputedStyle(t0).borderInlineStartWidth),
+      t1Border: Number.parseFloat(getComputedStyle(t1).borderInlineStartWidth),
+      t0Weight: Number.parseInt(getComputedStyle(t0Title).fontWeight, 10),
+      t1Weight: Number.parseInt(getComputedStyle(t1Title).fontWeight, 10),
+    };
+  });
+  expect(tierHierarchy.t0Border).toBeLessThan(tierHierarchy.t1Border);
+  expect(tierHierarchy.t0Weight).toBeLessThan(tierHierarchy.t1Weight);
+  const t0Body = page.locator("article#block-B003 details.block-body");
+  await expect(t0Body).not.toHaveAttribute("open", "");
+  await t0Body.locator("summary").click();
+  await expect(t0Body).toHaveAttribute("open", "");
   await expect(page.locator("article#block-B004 .status-chip")).toHaveText("❄ 已冻结 · 冻结轮次: 1");
-  await expect(page.locator("button:not(.term-disclosure-toggle)")).toHaveCount(0);
+  await expect(page.locator(".decision-action[aria-pressed='true']")).toHaveCount(0);
   expect(await page.evaluate(() => (globalThis as typeof globalThis & {
     __DAR_INJECTED__?: boolean;
   }).__DAR_INJECTED__ ?? false)).toBe(false);

@@ -7,6 +7,7 @@ import {
 } from "../protocol/index.js";
 import { renderContentNodes, type ContentRenderContext } from "./content-renderer.js";
 import { isUiLocale, stringsFor, type WorkbenchStrings } from "./i18n.js";
+import { mountReviewInteractions } from "./interactions.js";
 
 export const SUPPORTED_GENERATOR_VERSION = "0.2.0" as const;
 
@@ -824,6 +825,7 @@ export function bootstrapWorkbench(): void {
     landmarks.rail.replaceChildren(fragments.rail);
     landmarks.footer.replaceChildren(fragments.footer);
     landmarks.status.textContent = strings.approvalWorkspace;
+    mountReviewInteractions({ documentValue, strings, landmarks });
     landmarks.skip.addEventListener("click", (event) => {
       event.preventDefault();
       landmarks?.main.focus();
