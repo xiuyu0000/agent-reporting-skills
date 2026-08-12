@@ -3,6 +3,9 @@ export type {
   BatchHandoff,
   DeliveryHandoff,
   DeliveryPartHandoff,
+  GeneratedArtifactByteVerifier,
+  GeneratedReplacementByteVerifierInput,
+  GeneratedReplacementByteVerifiers,
   ParsedAgentArtifact,
   ParsedApprovalArtifact,
   UncertaintySummary,
@@ -20,8 +23,11 @@ export { validateDeliverableDocument } from "./business.js";
 export { validatePrivateData } from "./privacy.js";
 export { decodeStrictUtf8, parseStrictJson } from "./text.js";
 export {
+  SUPPORTED_GENERATED_ARTIFACT_VERSIONS,
   createAgentArtifactByteVerifier,
   createApprovalArtifactByteVerifier,
+  createGeneratedReplacementByteVerifiers,
+  encodeAgentMarkdownHeadingText,
   parseAgentArtifact,
   parseApprovalArtifact,
 } from "./parsers.js";

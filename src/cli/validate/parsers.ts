@@ -17,6 +17,9 @@ import { validatePrivateData, validatePrivateText } from "./privacy.js";
 import { decodeStrictUtf8, isSemver, parseStrictJson } from "./text.js";
 import { snapshotSafeInput } from "./safe-input.js";
 import type {
+  GeneratedArtifactByteVerifier,
+  GeneratedReplacementByteVerifierInput,
+  GeneratedReplacementByteVerifiers,
   ParsedAgentArtifact,
   ParsedApprovalArtifact,
   ValidationError,
@@ -72,6 +75,122 @@ const GENERATOR_TOKENS = [
   "@@DAR_REVIEW_DIGEST@@",
   "@@DAR_DOCUMENT_BASE64@@",
 ] as const;
+
+const SUPPORTED_GENERATOR_VERSION = "0.2.0";
+export const SUPPORTED_GENERATED_ARTIFACT_VERSIONS: readonly ["0.2.0"] = Object.freeze([
+  SUPPORTED_GENERATOR_VERSION,
+]);
+
+const AGENT_H1_SUFFIX = " — Agent Continuation";
+const FORMAT_OR_LINE_SEPARATOR = /[\p{Cf}\p{Zl}\p{Zp}]/u;
+
+function agentHeadingError<T = never>(): ValidationResult<T> {
+  return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/agent/title")]);
+}
+
+function isAsciiPunctuation(codePoint: number): boolean {
+  return (codePoint >= 0x21 && codePoint <= 0x2f)
+    || (codePoint >= 0x3a && codePoint <= 0x40)
+    || (codePoint >= 0x5b && codePoint <= 0x60)
+    || (codePoint >= 0x7b && codePoint <= 0x7e);
+}
+
+function encodedUnicodeScalar(codePoint: number): string {
+  const hex = codePoint.toString(16).toUpperCase();
+  return codePoint <= 0xffff
+    ? `\\u${hex.padStart(4, "0")}`
+    : `\\u{${hex}}`;
+}
+
+/**
+ * Encodes a review-document title for the frozen single-line Agent Markdown H1.
+ * The result is data, not Markdown syntax: every ASCII punctuation scalar is
+ * CommonMark escaped, while invisible/control scalars and edge ASCII spaces use
+ * one canonical uppercase Unicode escape.
+ */
+export function encodeAgentMarkdownHeadingText(title: string): ValidationResult<string> {
+  try {
+    if (typeof title !== "string") return agentHeadingError();
+    const scalars = Array.from(title);
+    const firstNonSpace = scalars.findIndex((scalar) => scalar !== " ");
+    let lastNonSpace = -1;
+    for (let index = scalars.length - 1; index >= 0; index -= 1) {
+      if (scalars[index] !== " ") {
+        lastNonSpace = index;
+        break;
+      }
+    }
+    const output: string[] = [];
+    for (const [index, scalar] of scalars.entries()) {
+      const codePoint = scalar.codePointAt(0);
+      if (codePoint === undefined || (codePoint >= 0xd800 && codePoint <= 0xdfff)) {
+        return agentHeadingError();
+      }
+      const isControl = codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+      const isEdgeAsciiSpace = scalar === " "
+        && (firstNonSpace < 0 || index < firstNonSpace || index > lastNonSpace);
+      if (isControl || isEdgeAsciiSpace || FORMAT_OR_LINE_SEPARATOR.test(scalar)) {
+        output.push(encodedUnicodeScalar(codePoint));
+      } else if (isAsciiPunctuation(codePoint)) {
+        output.push(`\\${scalar}`);
+      } else {
+        output.push(scalar);
+      }
+    }
+    return validationSuccess(output.join(""));
+  } catch {
+    return agentHeadingError();
+  }
+}
+
+function decodeCanonicalAgentHeadingText(encoded: string): string | undefined {
+  if (encoded === "") return undefined;
+  let decoded = "";
+  for (let index = 0; index < encoded.length;) {
+    const codePoint = encoded.codePointAt(index);
+    if (codePoint === undefined || (codePoint >= 0xd800 && codePoint <= 0xdfff)) return undefined;
+    if (codePoint !== 0x5c) {
+      decoded += String.fromCodePoint(codePoint);
+      index += codePoint > 0xffff ? 2 : 1;
+      continue;
+    }
+
+    if (encoded[index + 1] === "u") {
+      if (encoded[index + 2] === "{") {
+        const close = encoded.indexOf("}", index + 3);
+        if (close < 0) return undefined;
+        const hex = encoded.slice(index + 3, close);
+        if (!/^[0-9A-F]{5,6}$/u.test(hex)) return undefined;
+        const escapedCodePoint = Number.parseInt(hex, 16);
+        if (escapedCodePoint < 0x10000 || escapedCodePoint > 0x10ffff) return undefined;
+        decoded += String.fromCodePoint(escapedCodePoint);
+        index = close + 1;
+        continue;
+      }
+      const hex = encoded.slice(index + 2, index + 6);
+      if (!/^[0-9A-F]{4}$/u.test(hex)) return undefined;
+      const escapedCodePoint = Number.parseInt(hex, 16);
+      if (escapedCodePoint >= 0xd800 && escapedCodePoint <= 0xdfff) return undefined;
+      decoded += String.fromCodePoint(escapedCodePoint);
+      index += 6;
+      continue;
+    }
+
+    const escapedCodePoint = encoded.codePointAt(index + 1);
+    if (escapedCodePoint === undefined || !isAsciiPunctuation(escapedCodePoint)) return undefined;
+    decoded += String.fromCodePoint(escapedCodePoint);
+    index += 2;
+  }
+
+  const canonical = encodeAgentMarkdownHeadingText(decoded);
+  return canonical.ok && canonical.value === encoded ? decoded : undefined;
+}
+
+function canonicalAgentH1(value: string): string | undefined {
+  if (!value.endsWith(AGENT_H1_SUFFIX)) return undefined;
+  const encodedTitle = value.slice(0, -AGENT_H1_SUFFIX.length);
+  return decodeCanonicalAgentHeadingText(encodedTitle) === undefined ? undefined : value;
+}
 
 interface MarkdownHeadings {
   h1: string[];
@@ -309,11 +428,19 @@ function parseAgentArtifactSnapshot(
     errors.push(validationError("ARTIFACT_FORMAT_INVALID", "/agent/markers"));
   }
   const headings = scanMarkdown(lines.slice(8).join("\n"));
-  const expectedH1 = expectedDocument === undefined
+  const encodedExpectedTitle = expectedDocument === undefined
     ? undefined
-    : `${expectedDocument.document.title} — Agent Continuation`;
+    : encodeAgentMarkdownHeadingText(expectedDocument.document.title);
+  if (encodedExpectedTitle !== undefined && !encodedExpectedTitle.ok) {
+    errors.push(...encodedExpectedTitle.errors);
+  }
+  const expectedH1 = encodedExpectedTitle?.ok === true
+    ? `${encodedExpectedTitle.value}${AGENT_H1_SUFFIX}`
+    : undefined;
+  const parsedH1 = headings.h1[0] ?? "";
+  const unboundH1 = expectedDocument === undefined ? canonicalAgentH1(parsedH1) : parsedH1;
   const expectedSequence = [
-    `# ${expectedH1 ?? headings.h1[0] ?? ""}`,
+    `# ${expectedH1 ?? unboundH1 ?? ""}`,
     "## Document identity",
     "## Objective and boundaries",
     "### Objective",
@@ -336,8 +463,9 @@ function parseAgentArtifactSnapshot(
     "## Validation evidence",
     "## Glossary",
   ];
-  if (lines[8] !== `# ${expectedH1 ?? headings.h1[0] ?? ""}`
-    || headings.h1.length !== 1 || (expectedH1 !== undefined && headings.h1[0] !== expectedH1)
+  if (lines[8] !== `# ${expectedH1 ?? unboundH1 ?? ""}`
+    || headings.h1.length !== 1 || unboundH1 === undefined
+    || (expectedH1 !== undefined && headings.h1[0] !== expectedH1)
     || !sameStrings(headings.h2, REQUIRED_H2) || !sameStrings(headings.h3, REQUIRED_H3)
     || !sameStrings(headings.sequence, expectedSequence)) {
     errors.push(validationError("ARTIFACT_FORMAT_INVALID", "/agent/headings"));
@@ -564,7 +692,14 @@ interface ApprovalArtifactInput {
   expectedGeneratorVersion?: string;
 }
 
-function parseApprovalArtifactSnapshot(input: ApprovalArtifactInput): ValidationResult<ParsedApprovalArtifact> {
+interface ApprovalArtifactCoreInput {
+  bytes: Uint8Array;
+  templateBytes: Uint8Array;
+  expectedDocument?: ReviewDocumentV1;
+  expectedGeneratorVersion?: string;
+}
+
+function parseApprovalArtifactSnapshot(input: ApprovalArtifactCoreInput): ValidationResult<ParsedApprovalArtifact> {
   const decoded = decodeStrictUtf8(input.bytes, "/approval");
   if (!decoded.ok) return decoded;
   const templateDecoded = decodeStrictUtf8(input.templateBytes, "/approval/template");
@@ -635,20 +770,26 @@ function parseApprovalArtifactSnapshot(input: ApprovalArtifactInput): Validation
       errors.push(validationError("ARTIFACT_FORMAT_INVALID", "/approval/document"));
     }
   }
-  const expectedDigest = reviewDigestForDocument(input.expectedDocument);
-  if (meta.documentId !== input.expectedDocument.document.id
-    || meta.contentVersion !== String(input.expectedDocument.document.contentVersion)
-    || meta.round !== String(input.expectedDocument.document.round)
-    || meta.reviewDigest !== expectedDigest
-    || (input.expectedGeneratorVersion !== undefined && meta.generatorVersion !== input.expectedGeneratorVersion)
-    || embedded === undefined
-    || canonicalJson(canonicalReviewDocument(embedded)) !== canonicalJson(canonicalReviewDocument(input.expectedDocument))) {
+  const embeddedDigest = embedded === undefined ? undefined : reviewDigestForDocument(embedded);
+  const embeddedMatchesMeta = embedded !== undefined
+    && meta.documentId === embedded.document.id
+    && meta.contentVersion === String(embedded.document.contentVersion)
+    && meta.round === String(embedded.document.round)
+    && meta.reviewDigest === embeddedDigest;
+  const embeddedMatchesExpected = input.expectedDocument === undefined || (embedded !== undefined
+    && canonicalJson(canonicalReviewDocument(embedded))
+      === canonicalJson(canonicalReviewDocument(input.expectedDocument)));
+  if (!embeddedMatchesMeta || !embeddedMatchesExpected
+    || (input.expectedGeneratorVersion !== undefined && meta.generatorVersion !== input.expectedGeneratorVersion)) {
     errors.push(validationError("ARTIFACT_IDENTITY_MISMATCH", "/approval/meta"));
   }
-  errors.push(...documentInternalLinkErrors(input.expectedDocument));
-  const expected = meta.generatorVersion === undefined
+  const authoritativeDocument = input.expectedDocument ?? embedded;
+  if (authoritativeDocument !== undefined) {
+    errors.push(...documentInternalLinkErrors(authoritativeDocument));
+  }
+  const expected = meta.generatorVersion === undefined || authoritativeDocument === undefined
     ? validationErrors<string>([validationError("ARTIFACT_FORMAT_INVALID", "/approval/meta")])
-    : fillTemplate(templateDecoded.value, input.expectedDocument, meta.generatorVersion);
+    : fillTemplate(templateDecoded.value, authoritativeDocument, meta.generatorVersion);
   if (!expected.ok) errors.push(...expected.errors);
   else if (expected.value !== text) {
     errors.push(validationError(actualCsp === templateCsp ? "ARTIFACT_DRIFT" : "CSP_INVALID", "/approval"));
@@ -667,6 +808,19 @@ export function parseApprovalArtifact(input: ApprovalArtifactInput): ValidationR
   const snapshot = snapshotSafeInput<ApprovalArtifactInput>(input, "/approval");
   if (!snapshot.ok) return snapshot;
   try {
+    const keys = Object.keys(snapshot.value);
+    const allowedKeys = new Set([
+      "bytes",
+      "templateBytes",
+      "expectedDocument",
+      "expectedGeneratorVersion",
+    ]);
+    if (!Object.hasOwn(snapshot.value, "bytes")
+      || !Object.hasOwn(snapshot.value, "templateBytes")
+      || !Object.hasOwn(snapshot.value, "expectedDocument")
+      || keys.some((key) => !allowedKeys.has(key))) {
+      return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/approval")]);
+    }
     return parseApprovalArtifactSnapshot(snapshot.value);
   } catch {
     return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/approval")]);
@@ -709,4 +863,86 @@ export function createApprovalArtifactByteVerifier(input: {
       return { ok: false };
     }
   };
+}
+
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= (left[index] ?? 0) ^ (right[index] ?? 0);
+  }
+  return difference === 0;
+}
+
+function exactSnapshottedByteVerifier(expected: Uint8Array): GeneratedArtifactByteVerifier {
+  const frozenExpected = new Uint8Array(expected);
+  return (bytes) => {
+    try {
+      const candidate = snapshotSafeInput<{ bytes: Uint8Array }>({ bytes }, "/verifier/bytes");
+      return candidate.ok && sameBytes(candidate.value.bytes, frozenExpected)
+        ? { ok: true }
+        : { ok: false };
+    } catch {
+      return { ok: false };
+    }
+  };
+}
+
+/**
+ * Performs one paired, read-only preflight of the existing generated artifacts.
+ * The Approval document is the authority for the old snapshot; the Agent
+ * artifact is then bound to that exact embedded snapshot. Returned callbacks
+ * accept only the two byte strings copied during this preflight.
+ */
+export function createGeneratedReplacementByteVerifiers(
+  input: GeneratedReplacementByteVerifierInput,
+): ValidationResult<GeneratedReplacementByteVerifiers> {
+  const snapshot = snapshotSafeInput<GeneratedReplacementByteVerifierInput>(input, "/replacement");
+  if (!snapshot.ok) return snapshot;
+  try {
+    if (!isSemver(snapshot.value.generatorVersion)
+      || snapshot.value.generatorVersion !== SUPPORTED_GENERATOR_VERSION) {
+      return validationErrors([
+        validationError("ARTIFACT_FORMAT_INVALID", "/replacement/generatorVersion"),
+      ]);
+    }
+
+    const current = validateReviewDocument(snapshot.value.currentDocument);
+    if (!current.ok) {
+      return validationErrors(current.errors.map((error) => {
+        const mapped = fromProtocolError(error);
+        return { ...mapped, path: `/replacement/currentDocument${mapped.path}` };
+      }));
+    }
+    const currentPrivacy = validatePrivateData(current.value, "/replacement/currentDocument");
+    if (!currentPrivacy.ok) return currentPrivacy;
+
+    const approval = parseApprovalArtifactSnapshot({
+      bytes: snapshot.value.existingApprovalBytes,
+      templateBytes: snapshot.value.templateBytes,
+      expectedGeneratorVersion: snapshot.value.generatorVersion,
+    });
+    if (!approval.ok) return approval;
+
+    if (approval.value.document.delivery.id !== current.value.delivery.id
+      || approval.value.document.document.id !== current.value.document.id) {
+      return validationErrors([
+        validationError("ARTIFACT_IDENTITY_MISMATCH", "/replacement/identity"),
+      ]);
+    }
+
+    const agent = parseAgentArtifactSnapshot(
+      snapshot.value.existingAgentBytes,
+      approval.value.document,
+      snapshot.value.generatorVersion,
+    );
+    if (!agent.ok) return agent;
+
+    return validationSuccess({
+      agent: exactSnapshottedByteVerifier(snapshot.value.existingAgentBytes),
+      approval: exactSnapshottedByteVerifier(snapshot.value.existingApprovalBytes),
+    });
+  } catch {
+    return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/replacement")]);
+  }
 }

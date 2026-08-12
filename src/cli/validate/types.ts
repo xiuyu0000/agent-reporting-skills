@@ -172,6 +172,23 @@ export interface ParsedApprovalArtifact {
   text: string;
 }
 
+export type GeneratedArtifactByteVerifier = (
+  bytes: Uint8Array,
+) => { ok: true } | { ok: false };
+
+export interface GeneratedReplacementByteVerifierInput {
+  currentDocument: ReviewDocumentV1;
+  generatorVersion: string;
+  templateBytes: Uint8Array;
+  existingAgentBytes: Uint8Array;
+  existingApprovalBytes: Uint8Array;
+}
+
+export interface GeneratedReplacementByteVerifiers {
+  agent: GeneratedArtifactByteVerifier;
+  approval: GeneratedArtifactByteVerifier;
+}
+
 export interface ValidatedDeliveryArtifacts {
   document: ReviewDocumentV1;
   generatorVersion: string;
