@@ -3,7 +3,11 @@ import { readdir } from "node:fs/promises";
 import { afterAll, describe, expect, it } from "vitest";
 import type { ByteVerifier } from "../../src/cli/io/index.js";
 import { reviewDigest, sha256Bytes, type ReviewDocumentV1 } from "../../src/protocol/index.js";
-import { createGeneratedReplacementByteVerifiers } from "../../src/cli/validate.js";
+import {
+  createExactGeneratedArtifactByteVerifiers,
+  createGeneratedReplacementByteVerifiers,
+} from "../../src/cli/validate.js";
+import { generateArtifactBytes } from "../../src/generators/index.js";
 import {
   GENERATOR_VERSION,
   approvalTemplateBytes,
@@ -57,6 +61,31 @@ function splitPart(part: number): ReviewDocumentV1 {
 }
 
 describe("validate delivery subprocess", () => {
+  it("provides transaction-compatible exact callbacks for one real freshly generated pair", async () => {
+    const document = reviewDocumentFixture();
+    const templateBytes = approvalTemplateBytes();
+    const generated = generateArtifactBytes({ document, approvalTemplateBytes: templateBytes });
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+
+    const result = createExactGeneratedArtifactByteVerifiers({
+      document,
+      generatorVersion: GENERATOR_VERSION,
+      templateBytes,
+      agentBytes: generated.value.agent,
+      approvalBytes: generated.value.approval,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const agentVerifier: ByteVerifier = result.value.agent;
+    const approvalVerifier: ByteVerifier = result.value.approval;
+    expect(await agentVerifier(generated.value.agent)).toEqual({ ok: true });
+    expect(await approvalVerifier(generated.value.approval)).toEqual({ ok: true });
+    expect(await agentVerifier(generated.value.approval)).toEqual({ ok: false });
+    expect(await approvalVerifier(generated.value.agent)).toEqual({ ok: false });
+  });
+
   it("provides transaction-compatible exact-byte callbacks after paired cross-round preflight", async () => {
     const previous = reviewDocumentFixture();
     const current = structuredClone(previous);

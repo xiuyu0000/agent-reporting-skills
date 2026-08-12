@@ -13,11 +13,14 @@ import {
   validationErrors,
   validationSuccess,
 } from "./errors.js";
+import { validateDeliverableDocument } from "./business.js";
 import { validatePrivateData, validatePrivateText } from "./privacy.js";
 import { decodeStrictUtf8, isSemver, parseStrictJson } from "./text.js";
 import { snapshotSafeInput } from "./safe-input.js";
 import type {
   GeneratedArtifactByteVerifier,
+  ExactGeneratedArtifactByteVerifierInput,
+  ExactGeneratedArtifactByteVerifiers,
   GeneratedReplacementByteVerifierInput,
   GeneratedReplacementByteVerifiers,
   ParsedAgentArtifact,
@@ -874,18 +877,85 @@ function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
   return difference === 0;
 }
 
+function isSnapshottedUint8Array(value: unknown): value is Uint8Array {
+  return typeof value === "object"
+    && value !== null
+    && ArrayBuffer.isView(value)
+    && Object.getPrototypeOf(value) === Uint8Array.prototype;
+}
+
 function exactSnapshottedByteVerifier(expected: Uint8Array): GeneratedArtifactByteVerifier {
   const frozenExpected = new Uint8Array(expected);
   return (bytes) => {
     try {
       const candidate = snapshotSafeInput<{ bytes: Uint8Array }>({ bytes }, "/verifier/bytes");
-      return candidate.ok && sameBytes(candidate.value.bytes, frozenExpected)
+      return candidate.ok
+        && isSnapshottedUint8Array(candidate.value.bytes)
+        && sameBytes(candidate.value.bytes, frozenExpected)
         ? { ok: true }
         : { ok: false };
     } catch {
       return { ok: false };
     }
   };
+}
+
+export function createExactGeneratedArtifactByteVerifiers(
+  input: ExactGeneratedArtifactByteVerifierInput,
+): ValidationResult<ExactGeneratedArtifactByteVerifiers> {
+  const snapshot = snapshotSafeInput<ExactGeneratedArtifactByteVerifierInput>(input, "/generated");
+  if (!snapshot.ok) return snapshot;
+  try {
+    const keys = Object.keys(snapshot.value);
+    const expectedKeys = [
+      "document",
+      "generatorVersion",
+      "templateBytes",
+      "agentBytes",
+      "approvalBytes",
+    ] as const;
+    if (keys.length !== expectedKeys.length
+      || expectedKeys.some((key) => !Object.hasOwn(snapshot.value, key))) {
+      return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/generated")]);
+    }
+    if (snapshot.value.generatorVersion !== SUPPORTED_GENERATOR_VERSION) {
+      return validationErrors([
+        validationError("ARTIFACT_FORMAT_INVALID", "/generated/generatorVersion"),
+      ]);
+    }
+    const document = validateDeliverableDocument(snapshot.value.document);
+    if (!document.ok) {
+      return validationErrors(document.errors.map((error) => ({
+        ...error,
+        path: `/generated/document${error.path}`,
+      })));
+    }
+    const documentPrivacy = validatePrivateData(document.value, "/generated/document");
+    if (!documentPrivacy.ok) return documentPrivacy;
+    const approval = parseApprovalArtifactSnapshot({
+      bytes: snapshot.value.approvalBytes,
+      templateBytes: snapshot.value.templateBytes,
+      expectedDocument: document.value,
+      expectedGeneratorVersion: snapshot.value.generatorVersion,
+    });
+    const agent = parseAgentArtifactSnapshot(
+      snapshot.value.agentBytes,
+      document.value,
+      snapshot.value.generatorVersion,
+    );
+    if (!agent.ok || !approval.ok) {
+      return validationErrors([
+        ...(agent.ok ? [] : agent.errors),
+        ...(approval.ok ? [] : approval.errors),
+      ]);
+    }
+    return validationSuccess({
+      agent: exactSnapshottedByteVerifier(snapshot.value.agentBytes),
+      approval: exactSnapshottedByteVerifier(snapshot.value.approvalBytes),
+    });
+  } catch {
+    return validationErrors([validationError("ARTIFACT_FORMAT_INVALID", "/generated")]);
+  }
 }
 
 /**
