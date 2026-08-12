@@ -294,3 +294,216 @@ export function migratePrototypeState(
   prepared.stateDigest = stateDigest(prepared);
   return validateReviewState(prepared, preparedOptions.value.document);
 }
+
+export interface PrototypePacketUnboundMigrationOptions {
+  profile: "prototype-v1";
+  confirmation?: LegacyIdentityConfirmation;
+}
+
+interface UnboundMigrationContext {
+  confirmation?: LegacyIdentityConfirmation;
+}
+
+function prepareUnboundOptions(options: unknown): ProtocolResult<UnboundMigrationContext> {
+  if (options === undefined) {
+    return failure([protocolError("UNKNOWN_FORMAT", "/profile")]);
+  }
+  const cloned = cloneSafeJson(options);
+  if (!cloned.ok) {
+    if (cloned.errors.some((error) => error.path === "/profile")) {
+      return failure([protocolError("UNKNOWN_FORMAT", "/profile")]);
+    }
+    return failure(cloned.errors.map((error) => ({
+      ...error,
+      path: error.path === "" ? "/options" : error.path,
+    })));
+  }
+  const value = asRecord(cloned.value);
+  if (!value) return failure([protocolError("SCHEMA_TYPE", "/options")]);
+  const optionKeys = new Set(["profile", "confirmation"]);
+  const optionErrors = Object.keys(value)
+    .filter((key) => !optionKeys.has(key))
+    .map((key) => protocolError(
+      "SCHEMA_ADDITIONAL_PROPERTIES",
+      `/options/${escapePointerSegment(key)}`,
+    ));
+  if (optionErrors.length > 0) return failure(optionErrors);
+  if (value.profile !== "prototype-v1") {
+    return failure([protocolError("UNKNOWN_FORMAT", "/profile")]);
+  }
+
+  let confirmation: LegacyIdentityConfirmation | undefined;
+  if (Object.hasOwn(value, "confirmation")) {
+    const rawConfirmation = asRecord(value.confirmation);
+    if (!rawConfirmation) {
+      return failure([protocolError("SCHEMA_TYPE", "/confirmation")]);
+    }
+    const expectedKeys = new Set(["documentId", "contentVersion", "round"]);
+    const errors: ProtocolError[] = [];
+    for (const key of Object.keys(rawConfirmation)) {
+      if (!expectedKeys.has(key)) {
+        errors.push(protocolError(
+          "SCHEMA_ADDITIONAL_PROPERTIES",
+          `/confirmation/${escapePointerSegment(key)}`,
+        ));
+      }
+    }
+    if (typeof rawConfirmation.documentId !== "string") {
+      errors.push(protocolError("SCHEMA_TYPE", "/confirmation/documentId"));
+    }
+    if (!Number.isSafeInteger(rawConfirmation.contentVersion)) {
+      errors.push(protocolError("SCHEMA_TYPE", "/confirmation/contentVersion"));
+    }
+    if (!Number.isSafeInteger(rawConfirmation.round)) {
+      errors.push(protocolError("SCHEMA_TYPE", "/confirmation/round"));
+    }
+    if (errors.length > 0) return failure(errors);
+    confirmation = rawConfirmation as unknown as LegacyIdentityConfirmation;
+  }
+  return success(confirmation === undefined ? {} : { confirmation });
+}
+
+function completeUnboundPacketIdentity(
+  value: Record<string, unknown>,
+  options: UnboundMigrationContext,
+): ProtocolResult<Record<string, unknown>> {
+  const rawDoc = asRecord(value.doc);
+  if (value.doc !== undefined && rawDoc === undefined) {
+    return failure([protocolError("SCHEMA_TYPE", "/doc")]);
+  }
+  const identityFields = rawDoc ?? {};
+  const fieldSpecs = [
+    { input: "id", confirmation: "documentId", kind: "string" },
+    { input: "contentVersion", confirmation: "contentVersion", kind: "integer" },
+    { input: "round", confirmation: "round", kind: "integer" },
+  ] as const;
+  const typeErrors: ProtocolError[] = [];
+  for (const field of fieldSpecs) {
+    if (!Object.hasOwn(identityFields, field.input)) continue;
+    const fieldValue = identityFields[field.input];
+    const valid = field.kind === "string"
+      ? typeof fieldValue === "string"
+      : Number.isSafeInteger(fieldValue);
+    if (!valid) {
+      typeErrors.push(protocolError("SCHEMA_TYPE", `/doc/${field.input}`));
+    }
+  }
+  if (typeErrors.length > 0) return failure(typeErrors);
+
+  const incomplete = fieldSpecs.some((field) => !Object.hasOwn(identityFields, field.input));
+  if (incomplete && options.confirmation === undefined) {
+    return failure([protocolError("IDENTITY_CONFIRMATION_REQUIRED", "/doc")]);
+  }
+
+  const errors: ProtocolError[] = [];
+  if (options.confirmation !== undefined) {
+    for (const field of fieldSpecs) {
+      if (Object.hasOwn(identityFields, field.input)
+        && identityFields[field.input] !== options.confirmation[field.confirmation]) {
+        errors.push(protocolError("IDENTITY_MISMATCH", `/doc/${field.input}`));
+      }
+    }
+  }
+  if (errors.length > 0) return failure(errors);
+
+  return success({
+    ...identityFields,
+    id: Object.hasOwn(identityFields, "id")
+      ? identityFields.id
+      : options.confirmation?.documentId,
+    contentVersion: Object.hasOwn(identityFields, "contentVersion")
+      ? identityFields.contentVersion
+      : options.confirmation?.contentVersion,
+    round: Object.hasOwn(identityFields, "round")
+      ? identityFields.round
+      : options.confirmation?.round,
+  });
+}
+
+function validateUnboundPacketContext(
+  identity: Record<string, unknown>,
+  value: Record<string, unknown>,
+): ProtocolResult<{ total: unknown }> {
+  const errors: ProtocolError[] = [];
+  if (!Object.hasOwn(identity, "title")) {
+    errors.push(protocolError("SCHEMA_REQUIRED", "/doc/title"));
+  }
+  if (!Object.hasOwn(identity, "reviewDigest")) {
+    errors.push(protocolError("SCHEMA_REQUIRED", "/doc/reviewDigest"));
+  }
+  const progress = asRecord(value.progress);
+  if (progress === undefined || !Object.hasOwn(progress, "total")) {
+    errors.push(protocolError("SCHEMA_REQUIRED", "/progress/total"));
+  }
+  if (!Object.hasOwn(value, "frozenCarried")) {
+    errors.push(protocolError("SCHEMA_REQUIRED", "/frozenCarried"));
+  }
+  return errors.length === 0 ? success({ total: progress?.total }) : failure(errors);
+}
+
+export function migratePrototypePacketUnbound(
+  input: unknown,
+  options: PrototypePacketUnboundMigrationOptions,
+): ProtocolResult<ReviewPacketV1> {
+  const preparedOptions = prepareUnboundOptions(options);
+  if (!preparedOptions.ok) return preparedOptions;
+  const clonedInput = cloneSafeJson(input);
+  if (!clonedInput.ok) return clonedInput;
+  const raw = asRecord(clonedInput.value);
+  if (!raw) return failure([protocolError("SCHEMA_TYPE", "")]);
+  if (raw.format !== undefined && raw.format !== "review-packet/1") {
+    return failure([protocolError("UNKNOWN_FORMAT", "/format")]);
+  }
+  const identity = completeUnboundPacketIdentity(raw, preparedOptions.value);
+  if (!identity.ok) return identity;
+  const decisions = normalizeActions(raw);
+  if (!decisions.ok) return decisions;
+  const derivedContainers = validateDerivedContainers(raw);
+  if (!derivedContainers.ok) return derivedContainers;
+
+  if (Object.hasOwn(raw, "reopened") && !Array.isArray(raw.reopened)) {
+    return failure([protocolError("SCHEMA_TYPE", "/reopened")]);
+  }
+  if (Object.hasOwn(raw, "frozenCarried") && !Array.isArray(raw.frozenCarried)) {
+    return failure([protocolError("SCHEMA_TYPE", "/frozenCarried")]);
+  }
+  const context = validateUnboundPacketContext(identity.value, raw);
+  if (!context.ok) return context;
+
+  const reopened = Array.isArray(raw.reopened) ? raw.reopened : [];
+  const frozenCarried = raw.frozenCarried as unknown[];
+  const decided = decisions.value.length;
+  const total = context.value.total;
+  const stats = { PASS: 0, EDIT: 0, TOPIC: 0, HOLD: 0 };
+  for (const decision of decisions.value) {
+    const action = decision.action;
+    if (action === "PASS" || action === "EDIT" || action === "TOPIC" || action === "HOLD") {
+      stats[action] += 1;
+    }
+  }
+  const placeholderDigest = `sha256:${"0".repeat(64)}` as Sha256Digest;
+  const candidate = {
+    ...raw,
+    format: "review-packet/1",
+    packetId: packetIdFromSemanticDigest(placeholderDigest),
+    semanticDigest: placeholderDigest,
+    doc: identity.value,
+    decisions: decisions.value,
+    progress: {
+      decided,
+      total,
+      partial: typeof total === "number" && Number.isFinite(total)
+        ? decided < total
+        : false,
+    },
+    frozenCarried,
+    reopened,
+    stats,
+  };
+  const schema = validateReviewPacketSchema(candidate);
+  if (!schema.ok) return schema;
+  const prepared = schema.value;
+  prepared.semanticDigest = packetSemanticDigest(prepared);
+  prepared.packetId = packetIdFromSemanticDigest(prepared.semanticDigest as Sha256Digest);
+  return validateReviewPacket(prepared);
+}
