@@ -21,6 +21,57 @@ function readable(value: string): string {
     .replaceAll("|", "\\|");
 }
 
+const READABLE_ESCAPED_MARKDOWN = new Set(["`", "*", "_", "[", "]", "|"]);
+
+function isReadableNonEmptyString(value: string): boolean {
+  try {
+    let markdownDecoded = "";
+    for (let index = 0; index < value.length;) {
+      if (value[index] !== "\\") {
+        markdownDecoded += value[index];
+        index += 1;
+        continue;
+      }
+      let end = index;
+      while (value[end] === "\\") end += 1;
+      const count = end - index;
+      const next = value[end];
+      if (next !== undefined && READABLE_ESCAPED_MARKDOWN.has(next)) {
+        if (count % 2 !== 1) return false;
+        markdownDecoded += "\\".repeat(count - 1) + next;
+        index = end + 1;
+      } else {
+        if (count % 2 !== 0) return false;
+        markdownDecoded += "\\".repeat(count);
+        index = end;
+      }
+    }
+
+    let json = "";
+    for (let index = 0; index < markdownDecoded.length;) {
+      if (markdownDecoded[index] !== "\\") {
+        json += markdownDecoded[index];
+        index += 1;
+        continue;
+      }
+      let end = index;
+      while (markdownDecoded[end] === "\\") end += 1;
+      const count = end - index;
+      if (count % 2 !== 0) return false;
+      json += "\\".repeat(count / 2);
+      index = end;
+    }
+    json = json
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("&amp;", "&");
+    const decoded: unknown = JSON.parse(json);
+    return typeof decoded === "string" && decoded.length > 0 && readable(decoded) === value;
+  } catch {
+    return false;
+  }
+}
+
 function renderValidatedMarkdown(packet: ReviewPacketV1, document: ReviewDocumentV1): string {
   const lines = [
     `# Review packet: ${readable(packet.doc.title)}`,
@@ -153,6 +204,55 @@ export function parseReviewPacketMarkdown(
 ): ProtocolResult<ReviewPacketV1> {
   const validatedDocument = validateReviewDocument(document);
   if (!validatedDocument.ok) return validatedDocument;
+  const input = parseReviewPacketMarkdownPayload(markdown);
+  if (!input.ok) return input;
+  const bound = validateReviewPacket(input.value, validatedDocument.value);
+  if (!bound.ok) return bound;
+  const expected = renderValidatedMarkdown(bound.value, validatedDocument.value);
+  if (markdown !== expected) {
+    return failure([protocolError("MARKDOWN_SUMMARY_MISMATCH", "")]);
+  }
+  return success(bound.value);
+}
+
+export function parseReviewPacketMarkdownUnbound(
+  markdown: string,
+): ProtocolResult<ReviewPacketV1> {
+  const input = parseReviewPacketMarkdownPayload(markdown);
+  if (!input.ok) return input;
+  const packet = validateReviewPacket(input.value);
+  if (!packet.ok) return packet;
+  const titleSentinel = "DAR_UNBOUND_DOCUMENT_TITLE";
+  const expected = renderValidatedMarkdown(packet.value, {
+    blocks: packet.value.decisions.map((decision) => ({
+      id: decision.blockId,
+      title: titleSentinel,
+    })),
+  } as ReviewDocumentV1);
+  const actualLines = markdown.split("\n");
+  const expectedLines = expected.split("\n");
+  const titleSuffix = readable(titleSentinel);
+  const decisionPrefixes = new Set(packet.value.decisions.map(
+    (decision) => `- \`${decision.blockId}\` `,
+  ));
+  const matches = actualLines.length === expectedLines.length
+    && expectedLines.every((line, index) => {
+      const actual = actualLines[index];
+      if (actual === undefined) return false;
+      const decisionPrefix = [...decisionPrefixes].find((prefix) => line === `${prefix}${titleSuffix}`);
+      if (decisionPrefix === undefined) return actual === line;
+      return actual.startsWith(decisionPrefix)
+        && isReadableNonEmptyString(actual.slice(decisionPrefix.length));
+    });
+  if (!matches) {
+    return failure([protocolError("MARKDOWN_SUMMARY_MISMATCH", "")]);
+  }
+  return success(packet.value);
+}
+
+function parseReviewPacketMarkdownPayload(
+  markdown: string,
+): ProtocolResult<unknown> {
   if (typeof markdown !== "string") {
     return failure([protocolError("MARKDOWN_CONTAINER_INVALID", "")]);
   }
@@ -169,11 +269,5 @@ export function parseReviewPacketMarkdown(
   } catch {
     return failure([protocolError("MARKDOWN_CONTAINER_INVALID", "")]);
   }
-  const packet = validateReviewPacket(input, validatedDocument.value);
-  if (!packet.ok) return packet;
-  const expected = renderValidatedMarkdown(packet.value, validatedDocument.value);
-  if (markdown !== expected) {
-    return failure([protocolError("MARKDOWN_SUMMARY_MISMATCH", "")]);
-  }
-  return success(packet.value);
+  return success(input);
 }
