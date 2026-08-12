@@ -3,6 +3,9 @@ import { resolve } from "node:path";
 import process from "node:process";
 import { build } from "esbuild";
 import { assertSupportedNode } from "../tests/helpers/runtime.ts";
+import {
+  writeWorkbenchArtifacts,
+} from "./build-workbench.mjs";
 
 assertSupportedNode();
 
@@ -33,13 +36,5 @@ await Promise.all([
     sourcemap: true,
     target: "node24",
   }),
-  build({
-    bundle: true,
-    entryPoints: [workbenchEntry],
-    format: "iife",
-    minify: true,
-    outfile: "build/workbench.js",
-    platform: "browser",
-    target: ["es2023"],
-  }),
+  writeWorkbenchArtifacts(),
 ]);
