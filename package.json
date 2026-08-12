@@ -1,0 +1,51 @@
+{
+  "name": "agent-reporting-skills",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check:acceptance-coverage": "node tools/run-component.mjs tools/check-acceptance-coverage.mjs",
+    "check:bundle-size": "node tools/run-component.mjs tools/check-bundle-size.mjs",
+    "check:generated": "node tools/run-component.mjs tools/check-generated.mjs",
+    "lint": "eslint .",
+    "release:build": "node tools/run-component.mjs tools/release-build.mjs",
+    "scan:legacy-surface": "node tools/run-component.mjs tools/scan-legacy-surface.mjs",
+    "schema:meta": "node tools/run-component.mjs tools/check-schema-meta.mjs",
+    "schema:types": "node tools/run-component.mjs tools/generate-schema-types.mjs",
+    "test:browser": "playwright test",
+    "test:coverage": "node tools/run-test-suite.mjs tests --coverage",
+    "test:e2e": "node tools/run-test-suite.mjs tests/e2e",
+    "test:unit": "node tools/run-test-suite.mjs tests/unit",
+    "typecheck": "tsc --noEmit",
+    "validate:skill": "node tools/validate-skill.mjs",
+    "verify:dist": "node tools/run-component.mjs tools/verify-dist.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "10.0.1",
+    "@noble/hashes": "2.3.0",
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.13.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.8.1",
+    "json-canonicalize": "2.0.0",
+    "json-schema-to-typescript": "15.0.4",
+    "string-width": "8.2.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "unicode-case-folding": "1.1.1",
+    "vitest": "4.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true
+  }
+}
