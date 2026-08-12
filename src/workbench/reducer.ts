@@ -65,11 +65,16 @@ export type ReviewAction =
   }
   | { readonly type: "DELETE_TOPIC"; readonly topicId: string }
   | { readonly type: "SET_OVERALL"; readonly overall: string }
-  | { readonly type: "BULK_PASS"; readonly blockIds: readonly string[] };
+  | { readonly type: "BULK_PASS"; readonly blockIds: readonly string[] }
+  | { readonly type: "REOPEN_BLOCK"; readonly blockId: string }
+  | { readonly type: "IMPORT_STATE"; readonly state: WorkbenchReviewState }
+  | { readonly type: "CLEAR_REVIEW" };
 
 export type ReviewReducerErrorCode =
   | "BLOCK_NOT_FOUND"
   | "BLOCK_FROZEN"
+  | "BLOCK_NOT_FROZEN"
+  | "BLOCK_ALREADY_REOPENED"
   | "DECISION_REQUIRED"
   | "DECISION_NOTE_REQUIRED"
   | "TOPIC_TITLE_REQUIRED"
@@ -419,6 +424,44 @@ export function createInitialReviewState(documentValue: ReviewDocumentV1): Workb
   };
 }
 
+export function cloneWorkbenchReviewState(
+  state: WorkbenchReviewState,
+): WorkbenchReviewState {
+  return {
+    idHighWater: cloneHighWater(state.idHighWater),
+    decisionsByBlock: new Map(state.decisionsByBlock),
+    sideNotesById: new Map(state.sideNotesById),
+    topicsById: new Map(state.topicsById),
+    overall: state.overall,
+    reopened: new Set(state.reopened),
+  };
+}
+
+function reopenBlock(
+  documentValue: ReviewDocumentV1,
+  state: WorkbenchReviewState,
+  blockId: string,
+): ReviewReducerResult {
+  if (findBlock(documentValue, blockId) === undefined) return failure(state, "BLOCK_NOT_FOUND");
+  if (!documentValue.approvals.currentFrozen.includes(blockId)) {
+    return failure(state, "BLOCK_NOT_FROZEN");
+  }
+  if (state.reopened.has(blockId)) return failure(state, "BLOCK_ALREADY_REOPENED");
+  const reopened = new Set(state.reopened);
+  reopened.add(blockId);
+  return success({ ...state, reopened });
+}
+
+function clearReview(
+  documentValue: ReviewDocumentV1,
+  state: WorkbenchReviewState,
+): ReviewReducerResult {
+  return success({
+    ...createInitialReviewState(documentValue),
+    idHighWater: cloneHighWater(state.idHighWater),
+  });
+}
+
 export function reduceReviewState(
   documentValue: ReviewDocumentV1,
   state: WorkbenchReviewState,
@@ -443,5 +486,11 @@ export function reduceReviewState(
       return success({ ...state, overall: action.overall.trim() });
     case "BULK_PASS":
       return bulkPass(documentValue, state, action.blockIds);
+    case "REOPEN_BLOCK":
+      return reopenBlock(documentValue, state, action.blockId);
+    case "IMPORT_STATE":
+      return success(cloneWorkbenchReviewState(action.state));
+    case "CLEAR_REVIEW":
+      return clearReview(documentValue, state);
   }
 }

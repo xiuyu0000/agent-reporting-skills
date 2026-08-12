@@ -8,8 +8,18 @@ import {
 import { renderContentNodes, type ContentRenderContext } from "./content-renderer.js";
 import { isUiLocale, stringsFor, type WorkbenchStrings } from "./i18n.js";
 import { mountReviewInteractions } from "./interactions.js";
+import {
+  bindPersistenceLifecycle,
+  createPersistenceSession,
+  LocalStorageAdapter,
+} from "./persistence/index.js";
+import { mountPersistenceControls, safeWindowLocalStorage } from "./persistence/ui.js";
 
 export const SUPPORTED_GENERATOR_VERSION = "0.2.0" as const;
+export const WORKBENCH_ARTIFACT_META = {
+  name: "dar-artifact",
+  content: "review-approval-html/1",
+} as const;
 
 export const WORKBENCH_META_NAMES = [
   "dar-generator-version",
@@ -132,6 +142,25 @@ function metaContent(name: (typeof WORKBENCH_META_NAMES)[number]): string {
 }
 
 function verifyMetadata(documentValue: ReviewDocumentV1): void {
+  const expectedNames = new Set<string>([
+    WORKBENCH_ARTIFACT_META.name,
+    ...WORKBENCH_META_NAMES,
+  ]);
+  const darMetadata = [...document.querySelectorAll<HTMLMetaElement>("meta[name]")]
+    .filter((meta) => meta.getAttribute("name")?.startsWith("dar-") === true);
+  if (
+    darMetadata.length !== expectedNames.size
+    || darMetadata.some((meta) => !expectedNames.has(meta.getAttribute("name") ?? ""))
+  ) {
+    throw new WorkbenchLoadError("SHELL_IDENTITY_INVALID", "/meta");
+  }
+  const artifact = uniqueElement<HTMLMetaElement>(
+    `meta[name='${WORKBENCH_ARTIFACT_META.name}']`,
+    "meta",
+  ).content;
+  if (artifact !== WORKBENCH_ARTIFACT_META.content) {
+    throw new WorkbenchLoadError("META_IDENTITY_MISMATCH", "/meta/dar-artifact");
+  }
   const generatorVersion = metaContent("dar-generator-version");
   const documentId = metaContent("dar-document-id");
   const contentVersion = metaContent("dar-content-version");
@@ -825,7 +854,46 @@ export function bootstrapWorkbench(): void {
     landmarks.rail.replaceChildren(fragments.rail);
     landmarks.footer.replaceChildren(fragments.footer);
     landmarks.status.textContent = strings.approvalWorkspace;
-    mountReviewInteractions({ documentValue, strings, landmarks });
+    if (typeof window === "undefined") {
+      mountReviewInteractions({ documentValue, strings, landmarks });
+    } else {
+      const reviewClock = (): Date => new Date();
+      const persistence = createPersistenceSession({
+        documentValue,
+        adapter: new LocalStorageAdapter(safeWindowLocalStorage(window)),
+        now: reviewClock,
+      });
+      let refreshPersistence = (): void => {};
+      const controller = mountReviewInteractions({
+        documentValue,
+        strings,
+        landmarks,
+        stateHooks: {
+          initialState: persistence.getState(),
+          apply: (next) => {
+            const result = persistence.apply(next);
+            refreshPersistence();
+            return result;
+          },
+          clear: (next) => {
+            const result = persistence.clear(next);
+            refreshPersistence();
+            return result;
+          },
+        },
+      });
+      const persistenceControls = mountPersistenceControls({
+        documentValue,
+        strings,
+        rail: landmarks.rail,
+        controller,
+        session: persistence,
+        now: reviewClock,
+      });
+      refreshPersistence = persistenceControls.renderStatus;
+      refreshPersistence();
+      bindPersistenceLifecycle(persistence, window, document);
+    }
     landmarks.skip.addEventListener("click", (event) => {
       event.preventDefault();
       landmarks?.main.focus();
