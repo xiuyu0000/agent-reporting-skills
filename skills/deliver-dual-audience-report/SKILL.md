@@ -1,6 +1,6 @@
 ---
 name: deliver-dual-audience-report
-description: "Deliver one verified evidence set as two complete artifacts: precise Agent-facing Markdown and zero-context human-facing HTML. Use when the user explicitly requests, or the accepted plan explicitly promises, both Agent and human versions of a project summary, research report, incident review, decision record, or similar report. Also use when resuming such a task to verify that both promised files were actually created and linked. Do not use for a single Markdown or HTML report, a chat-only answer, or a code-only task."
+description: "Deliver one verified plan as precise Agent-facing Markdown for continuation and a self-contained interactive Approval HTML for decision and feedback. Use only when one primary human reviewer has an explicit approval, review, or item-by-item feedback goal and the initial proposal naturally contains at least 4 independently decidable items; the same contract continues through later revision rounds. Do not use for fewer than 4 natural decision items, multiple or parallel reviewers, exploratory reading without approval, a single Markdown or HTML report, a chat-only answer, code-only work without a separate plan approval deliverable, or the legacy static Agent report plus human narrative HTML workflow. Never split or pad content merely to reach 4 items."
 ---
 
 # Deliver Dual-Audience Report
