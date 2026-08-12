@@ -1,0 +1,59 @@
+{
+  "format": "review-packet/1",
+  "packetId": "RP-C1F7363692AFA99EE528",
+  "semanticDigest": "sha256:c1f7363692afa99ee5288009c2a464ba009a23c8acfce60006a51df6bc87f02a",
+  "doc": {
+    "id": "RD-CCCCCCCCCCCCCCCCCCCC",
+    "title": "Approval workbench protocol",
+    "contentVersion": 1,
+    "round": 1,
+    "reviewDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "reviewedAt": "2026-08-12T16:30:00+08:00",
+  "idHighWater": {
+    "block": 4,
+    "source": 2,
+    "fact": 1,
+    "decision": 1,
+    "glossary": 1,
+    "note": 1,
+    "topic": 2
+  },
+  "progress": {
+    "decided": 4,
+    "total": 4,
+    "partial": false
+  },
+  "frozenCarried": [],
+  "reopened": [],
+  "decisions": [
+    { "blockId": "B001", "action": "PASS" },
+    {
+      "blockId": "B002",
+      "action": "EDIT",
+      "note": "Clarify the dependency explanation.",
+      "quote": "Keep this complete quote even when it contains ```` or </script>."
+    },
+    { "blockId": "B003", "action": "TOPIC", "topicId": "TOP-001" },
+    { "blockId": "B004", "action": "HOLD", "note": "Confirm the offline fallback." }
+  ],
+  "sideNotes": [
+    { "id": "NOTE-001", "blockId": "B003", "note": "Retain the exact command evidence." }
+  ],
+  "topics": [
+    {
+      "id": "TOP-001",
+      "title": "Measure pilot review time",
+      "note": "Track active time only.",
+      "sourceBlockId": "B003"
+    },
+    { "id": "TOP-002", "title": "Compare a second workflow" }
+  ],
+  "overall": "Proceed after the dependency wording is clearer.",
+  "stats": {
+    "PASS": 1,
+    "EDIT": 1,
+    "TOPIC": 1,
+    "HOLD": 1
+  }
+}

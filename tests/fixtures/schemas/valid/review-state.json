@@ -1,0 +1,30 @@
+{
+  "format": "review-state/1",
+  "doc": {
+    "id": "RD-CCCCCCCCCCCCCCCCCCCC",
+    "contentVersion": 1,
+    "round": 1,
+    "reviewDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "savedAt": "2026-08-12T16:20:00+08:00",
+  "stateDigest": "sha256:9c5afd40e9b58daa11bfc187a1a75e3c1b84a38b0c8ef14b2d6e2fb93e2f2224",
+  "idHighWater": {
+    "block": 4,
+    "source": 2,
+    "fact": 1,
+    "decision": 1,
+    "glossary": 1,
+    "note": 1,
+    "topic": 0
+  },
+  "decisions": [
+    { "blockId": "B001", "action": "PASS" },
+    { "blockId": "B004", "action": "HOLD", "note": "Confirm the offline fallback." }
+  ],
+  "sideNotes": [
+    { "id": "NOTE-001", "blockId": "B003", "note": "Retain the exact command evidence." }
+  ],
+  "topics": [],
+  "overall": "Resume from this local state only; it is not execution authority.",
+  "reopened": []
+}

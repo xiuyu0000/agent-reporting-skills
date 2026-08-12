@@ -1,0 +1,239 @@
+{
+  "format": "review-document/1",
+  "delivery": {
+    "id": "RDL-AAAAAAAAAAAAAAAAAAAA",
+    "baseName": "approval_plan",
+    "repositoryStatus": "local-only",
+    "outputs": {
+      "agent": "approval_plan_AGENT.md",
+      "approval": "approval_plan_APPROVAL.html"
+    }
+  },
+  "document": {
+    "id": "RD-CCCCCCCCCCCCCCCCCCCC",
+    "title": "Approval workbench protocol",
+    "language": "zh-CN",
+    "uiLocale": "zh-CN",
+    "contentVersion": 1,
+    "asOf": "2026-08-12T16:00:00+08:00",
+    "round": 1,
+    "status": "in-review",
+    "summary": "Approve four independently actionable protocol decisions."
+  },
+  "continuation": {
+    "objective": "Continue the approved implementation without reopening settled architecture.",
+    "scope": ["Protocol contracts", "Approval behavior"],
+    "exclusions": ["External execution"],
+    "currentState": [
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "The contract is ready for review." },
+          { "type": "strong", "text": "Four blocks" },
+          { "type": "emphasis", "text": "remain active" },
+          { "type": "inlineCode", "text": "review-document/1" },
+          { "type": "link", "text": "Reference", "href": "https://example.com/spec" },
+          { "type": "termRef", "glossaryId": "G-001", "text": "freeze" }
+        ]
+      }
+    ],
+    "nextActions": [
+      {
+        "id": "ACT-001",
+        "action": "Validate the public schemas.",
+        "owner": "Protocol engineer",
+        "verification": "Run the schema test suite."
+      }
+    ],
+    "validationEvidence": ["Draft 2020-12 metaschema compilation passes."],
+    "evidenceGaps": []
+  },
+  "evidence": {
+    "sourceHierarchy": [
+      {
+        "id": "SRC-001",
+        "rank": 1,
+        "label": "Confirmed specification",
+        "reference": "docs/spec.md",
+        "freshness": {
+          "kind": "static",
+          "checkedAt": "2026-08-12T15:00:00+08:00"
+        }
+      },
+      {
+        "id": "SRC-002",
+        "rank": 2,
+        "label": "Runtime support table",
+        "reference": "https://example.com/runtime",
+        "freshness": {
+          "kind": "time-sensitive",
+          "checkedAt": "2026-08-12T15:30:00+08:00",
+          "expiresAt": "2026-08-13T15:30:00+08:00"
+        }
+      }
+    ],
+    "facts": [
+      {
+        "id": "C-001",
+        "content": [
+          {
+            "type": "callout",
+            "tone": "info",
+            "title": "Verified fact",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "The workbench is offline-first." }]
+              }
+            ]
+          }
+        ],
+        "confidence": "high",
+        "sourceRefs": ["SRC-001", "SRC-002"]
+      }
+    ],
+    "decisions": [
+      {
+        "id": "D-001",
+        "content": [
+          {
+            "type": "code",
+            "language": "text",
+            "text": "Unknown protocol fields fail closed."
+          }
+        ],
+        "confidence": "high",
+        "sourceRefs": ["SRC-001"]
+      }
+    ],
+    "constraints": ["No network is required at review time."],
+    "risks": ["Browser storage may be unavailable."],
+    "openQuestions": ["Which real plan will be used for the pilot?"],
+    "conflicts": [
+      {
+        "itemRefs": ["SRC-001", "C-001", "D-001"],
+        "description": "An earlier prototype used a different action name.",
+        "severity": "nonblocking",
+        "status": "resolved",
+        "resolution": "The current four-action contract controls."
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "id": "B001",
+      "tier": "T2",
+      "title": "Approve protocol boundary",
+      "summary": "Choose whether the public JSON shape is ready to freeze.",
+      "body": [
+        {
+          "type": "table",
+          "headers": [[{ "type": "text", "text": "Protocol" }], [{ "type": "text", "text": "Role" }]],
+          "rows": [
+            [
+              [{ "type": "inlineCode", "text": "review-packet/1" }],
+              [{ "type": "text", "text": "Machine authority" }]
+            ]
+          ]
+        }
+      ],
+      "whyTier": "This freezes a public, externally visible interface.",
+      "ask": "Should the three protocol shapes be frozen as written?",
+      "dependencies": [],
+      "claimRefs": ["C-001"],
+      "decisionRefs": ["D-001"]
+    },
+    {
+      "id": "B002",
+      "tier": "T1",
+      "title": "Dependency behavior",
+      "summary": "Downstream eligibility follows the transitive dependency closure.",
+      "body": [
+        {
+          "type": "flow",
+          "title": "Approval dependency",
+          "description": "B001 is upstream of B002.",
+          "nodes": [
+            { "id": "upstream", "label": "B001 approved" },
+            { "id": "downstream", "label": "B002 eligible" }
+          ],
+          "edges": [{ "from": "upstream", "to": "downstream", "label": "enables" }]
+        }
+      ],
+      "dependencies": ["B001"],
+      "claimRefs": ["C-001"],
+      "decisionRefs": []
+    },
+    {
+      "id": "B003",
+      "tier": "T0",
+      "title": "Validation sequence",
+      "summary": "Run schema, type, generated-file and unit checks in order.",
+      "body": [
+        {
+          "type": "steps",
+          "items": [
+            {
+              "title": "Compile schemas",
+              "content": [
+                {
+                  "type": "list",
+                  "ordered": true,
+                  "items": [[{ "type": "text", "text": "Compile all three roots." }]]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "dependencies": [],
+      "claimRefs": [],
+      "decisionRefs": ["D-001"]
+    },
+    {
+      "id": "B004",
+      "tier": "T0",
+      "title": "Offline delivery",
+      "summary": "Keep all judgment-critical content inside the generated artifacts.",
+      "body": [
+        {
+          "type": "callout",
+          "tone": "decision",
+          "content": [
+            { "type": "code", "text": "networkRequests = 0" }
+          ]
+        }
+      ],
+      "dependencies": ["B001"],
+      "claimRefs": ["C-001"],
+      "decisionRefs": ["D-001"]
+    }
+  ],
+  "glossary": [
+    {
+      "id": "G-001",
+      "term": "Frozen block",
+      "definition": "A currently approved block whose content cannot change without reopening."
+    }
+  ],
+  "approvals": {
+    "history": [],
+    "currentFrozen": []
+  },
+  "lineage": {
+    "previousReviewDigest": null,
+    "idHighWater": {
+      "block": 4,
+      "source": 2,
+      "fact": 1,
+      "decision": 1,
+      "glossary": 1,
+      "note": 0,
+      "topic": 0
+    },
+    "consumedPackets": [],
+    "topicMappings": [],
+    "impactAssessments": [],
+    "feedbackResolutions": []
+  }
+}
