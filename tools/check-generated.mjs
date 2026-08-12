@@ -86,3 +86,7 @@ if (
 console.log(
   `generated schema types and standalone validators are current; browser probe ${probeOutput.contents.byteLength}/${PROBE_LIMIT_BYTES} bytes`,
 );
+
+const { checkTrackedWorkbenchTemplate } = await import("./build-workbench.mjs");
+const workbenchBytes = await checkTrackedWorkbenchTemplate();
+console.log(`generated review workbench template is current; shell ${workbenchBytes}/358400 bytes`);

@@ -1,0 +1,12 @@
+{
+  "injectionText": "</h1><script>globalThis.__DAR_INJECTED__=true</script><img src=x onerror=alert(1)>",
+  "externalLink": "https://example.com/review?mode=offline#evidence",
+  "longToken": "LONGBREAKLESSCONTENT0123456789LONGBREAKLESSCONTENT0123456789LONGBREAKLESSCONTENT0123456789LONGBREAKLESSCONTENT0123456789LONGBREAKLESSCONTENT0123456789LONGBREAKLESSCONTENT0123456789",
+  "unsafeLinks": [
+    "javascript:alert(1)",
+    "data:text/html,unsafe",
+    "blob:https://example.com/id",
+    "//example.com/relative",
+    "https://user:secret@example.com/private"
+  ]
+}
