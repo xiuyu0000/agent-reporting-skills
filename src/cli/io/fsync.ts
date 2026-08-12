@@ -236,6 +236,33 @@ export async function writeNewPrivateFile(
   }
 }
 
+export async function readExactFileHandleBytes(
+  handle: FileHandle,
+  expectedSize: number,
+  maximumBytes: number,
+): Promise<Uint8Array> {
+  if (
+    !Number.isSafeInteger(expectedSize)
+    || expectedSize < 0
+    || !Number.isSafeInteger(maximumBytes)
+    || maximumBytes < 1
+    || expectedSize > maximumBytes
+  ) {
+    throw new Error("unsafe bounded read size");
+  }
+  const bytes = new Uint8Array(expectedSize);
+  let offset = 0;
+  while (offset < bytes.byteLength) {
+    const result = await handle.read(bytes, offset, bytes.byteLength - offset, offset);
+    if (result.bytesRead <= 0) throw new Error("file size changed during bounded read");
+    offset += result.bytesRead;
+  }
+  const probe = new Uint8Array(1);
+  const trailing = await handle.read(probe, 0, 1, expectedSize);
+  if (trailing.bytesRead !== 0) throw new Error("file grew during bounded read");
+  return bytes;
+}
+
 export async function readRegularFile(
   adapter: PrivateFileSystemAdapter,
   path: string,
