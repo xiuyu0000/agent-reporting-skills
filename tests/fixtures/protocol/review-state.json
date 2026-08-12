@@ -1,0 +1,35 @@
+{
+  "format": "review-state/1",
+  "doc": {
+    "id": "RD-22222222222222222222",
+    "contentVersion": 1,
+    "round": 1,
+    "reviewDigest": "sha256:984dc7e0765e6efd8c227d569d6cb825e05a85f625dee5bdaeb534fe8052c50c"
+  },
+  "savedAt": "2026-08-12T09:25:00Z",
+  "stateDigest": "sha256:771cb6cdc00b2b09562adbeb4cc44671f0d405d01266eacc0bf79d4dc36b7ad8",
+  "idHighWater": {
+    "block": 4,
+    "source": 1,
+    "fact": 1,
+    "decision": 0,
+    "glossary": 0,
+    "note": 1,
+    "topic": 0
+  },
+  "decisions": [
+    { "blockId": "B001", "action": "PASS" },
+    {
+      "blockId": "B002",
+      "action": "EDIT",
+      "note": "Clarify the delimiter ```` and keep </script> inert.\nPreserve bidi: \u202E and emoji: 🧭.",
+      "quote": "Normalize set-like arrays."
+    }
+  ],
+  "sideNotes": [
+    { "id": "NOTE-001", "blockId": "B003", "note": "Keep the closure deterministic." }
+  ],
+  "topics": [],
+  "overall": "Proceed after the canonical-array wording is explicit.",
+  "reopened": []
+}

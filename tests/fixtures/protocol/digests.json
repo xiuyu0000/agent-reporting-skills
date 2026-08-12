@@ -1,0 +1,10 @@
+{
+  "blockContentDigest": "sha256:6f62e47429e82184ff4a110cf01aa2519a04a091eb1e07c59ad5f84adaa6ced2",
+  "documentContentDigest": "sha256:bb4175f906e3f6d205ead15cc275dd4da1dc8c075803a7a3e54fe7a81f99507a",
+  "reviewDigest": "sha256:984dc7e0765e6efd8c227d569d6cb825e05a85f625dee5bdaeb534fe8052c50c",
+  "packetSemanticDigest": "sha256:c9f0ee27ad112f723c414a78300ddeab68ccf159053afd60aaa635802984a7c0",
+  "packetId": "RP-C9F0EE27AD112F723C41",
+  "stateDigest": "sha256:771cb6cdc00b2b09562adbeb4cc44671f0d405d01266eacc0bf79d4dc36b7ad8",
+  "feedbackDigest": "sha256:104ddb2120623ccd3ab6615884144bde742ec0eddc88830efe39e3415d6be9b7",
+  "bytesDigest": "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+}

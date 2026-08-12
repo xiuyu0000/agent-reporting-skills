@@ -1,0 +1,40 @@
+{
+  "format": "review-packet/1",
+  "packetId": "RP-C9F0EE27AD112F723C41",
+  "semanticDigest": "sha256:c9f0ee27ad112f723c414a78300ddeab68ccf159053afd60aaa635802984a7c0",
+  "doc": {
+    "id": "RD-22222222222222222222",
+    "title": "Protocol digest golden",
+    "contentVersion": 1,
+    "round": 1,
+    "reviewDigest": "sha256:984dc7e0765e6efd8c227d569d6cb825e05a85f625dee5bdaeb534fe8052c50c"
+  },
+  "reviewedAt": "2026-08-12T09:30:00Z",
+  "idHighWater": {
+    "block": 4,
+    "source": 1,
+    "fact": 1,
+    "decision": 0,
+    "glossary": 0,
+    "note": 1,
+    "topic": 0
+  },
+  "progress": { "decided": 2, "total": 4, "partial": true },
+  "frozenCarried": [],
+  "reopened": [],
+  "decisions": [
+    { "blockId": "B001", "action": "PASS" },
+    {
+      "blockId": "B002",
+      "action": "EDIT",
+      "note": "Clarify the delimiter ```` and keep </script> inert.\nPreserve bidi: \u202E and emoji: 🧭.",
+      "quote": "Normalize set-like arrays."
+    }
+  ],
+  "sideNotes": [
+    { "id": "NOTE-001", "blockId": "B003", "note": "Keep the closure deterministic." }
+  ],
+  "topics": [],
+  "overall": "Proceed after the canonical-array wording is explicit.",
+  "stats": { "PASS": 1, "EDIT": 1, "TOPIC": 0, "HOLD": 0 }
+}
