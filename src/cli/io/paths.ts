@@ -1,8 +1,11 @@
 import { isAbsolute, join, parse, relative, resolve, sep } from "node:path";
+import { constants } from "node:fs";
 import type { Stats } from "node:fs";
 import {
   portablePathKey,
+  sha256Bytes,
   type PortablePathKey,
+  type Sha256Digest,
 } from "../../protocol/index.js";
 import {
   cliIoError,
@@ -18,18 +21,25 @@ import {
   isErrorCode,
   isOwnedByCurrentUser,
   nativeFileSystemAdapter,
+  readExactFileHandleBytes,
   sameIdentity,
   syncDirectory,
   type PrivateFileSystemAdapter,
 } from "./fsync.js";
 
 const resolvedOutputRootBrand: unique symbol = Symbol("ResolvedOutputRoot");
+const resolvedInputRootBrand: unique symbol = Symbol("ResolvedInputRoot");
 const validatedRelativeTargetBrand: unique symbol = Symbol("ValidatedRelativeTarget");
 
 export interface ResolvedOutputRoot {
   readonly absolutePath: string;
   readonly createdByThisCall: boolean;
   readonly [resolvedOutputRootBrand]: true;
+}
+
+export interface ResolvedInputRoot {
+  readonly absolutePath: string;
+  readonly [resolvedInputRootBrand]: true;
 }
 
 export interface ValidatedRelativeTarget {
@@ -51,6 +61,12 @@ interface TargetIdentity {
   portableKey: PortablePathKey;
 }
 
+interface InputRootIdentity {
+  absolutePath: string;
+  metadata: Stats;
+  directories: readonly DirectoryIdentity[];
+}
+
 export interface DirectoryIdentity {
   absolutePath: string;
   realPath: string;
@@ -64,10 +80,23 @@ export interface TargetParentGuard {
   directories: readonly DirectoryIdentity[];
 }
 
+interface InputTargetGuard {
+  root: InputRootIdentity;
+  finalAbsolutePath: string;
+  directories: readonly DirectoryIdentity[];
+}
+
+interface InputFileSnapshot {
+  metadata: Stats;
+  realPath: string;
+}
+
 const rootRegistry = new WeakMap<object, RootIdentity>();
+const inputRootRegistry = new WeakMap<object, InputRootIdentity>();
 const targetRegistry = new WeakMap<object, TargetIdentity>();
 const SAFE_OUTPUT_INPUT = /^.{1,32768}$/su;
 const RESERVED_PORTABLE_SEGMENT = ".review-txn";
+export const MAX_INPUT_FILE_BYTES = 64 * 1024 * 1024;
 
 export class PathBoundaryError extends Error {
   constructor(
@@ -143,6 +172,58 @@ async function inspectExistingDirectoryChain(
   return directories;
 }
 
+async function assertBoundInputDirectoryChain(
+  adapter: PrivateFileSystemAdapter,
+  directories: readonly DirectoryIdentity[],
+  errorPath: "/inputDir" | "/root" | "/target",
+  changedCode: "PATH_INVALID" | "IO_OPERATION_FAILED",
+): Promise<void> {
+  for (const directory of directories) {
+    try {
+      const current = await adapter.lstat(directory.absolutePath);
+      if (current.isSymbolicLink()) boundary("SYMLINK_REJECTED", errorPath);
+      if (!current.isDirectory() || !sameIdentity(directory.metadata, current)) {
+        boundary(changedCode, errorPath);
+      }
+      const currentRealPath = await adapter.realpath(directory.absolutePath);
+      if (currentRealPath !== directory.realPath || currentRealPath !== directory.absolutePath) {
+        boundary("PATH_ESCAPE", errorPath);
+      }
+    } catch (error) {
+      if (error instanceof PathBoundaryError) throw error;
+      boundary(isErrorCode(error, "ELOOP") ? "SYMLINK_REJECTED" : changedCode, errorPath);
+    }
+  }
+}
+
+async function inspectExistingInputDirectoryChain(
+  adapter: PrivateFileSystemAdapter,
+  absolutePath: string,
+): Promise<DirectoryIdentity[]> {
+  let directories: DirectoryIdentity[];
+  try {
+    directories = await inspectExistingDirectoryChain(adapter, absolutePath);
+  } catch (error) {
+    if (error instanceof PathBoundaryError) {
+      throw new PathBoundaryError(error.ioCode, "/inputDir");
+    }
+    throw error;
+  }
+  for (const directory of directories) {
+    if (directory.realPath !== directory.absolutePath) boundary("PATH_ESCAPE", "/inputDir");
+  }
+  const root = directories.at(-1);
+  if (
+    root === undefined
+    || !isOwnedByCurrentUser(root.metadata)
+    || (root.metadata.mode & 0o022) !== 0
+  ) {
+    boundary("PATH_INVALID", "/inputDir");
+  }
+  await assertBoundInputDirectoryChain(adapter, directories, "/inputDir", "IO_OPERATION_FAILED");
+  return directories;
+}
+
 async function lstatIfPresent(
   adapter: PrivateFileSystemAdapter,
   path: string,
@@ -193,6 +274,11 @@ async function verifyTransactionContainer(
 function getRootIdentity(root: ResolvedOutputRoot): RootIdentity | undefined {
   if (typeof root !== "object" || root === null) return undefined;
   return rootRegistry.get(root);
+}
+
+function getInputRootIdentity(root: ResolvedInputRoot): InputRootIdentity | undefined {
+  if (typeof root !== "object" || root === null) return undefined;
+  return inputRootRegistry.get(root);
 }
 
 export function getTargetIdentity(target: ValidatedRelativeTarget): TargetIdentity | undefined {
@@ -362,6 +448,53 @@ export async function resolveOutputRoot(input: {
   }
 }
 
+export async function resolveExistingInputRootWithAdapter(
+  input: { inputDir: string },
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<ResolvedInputRoot>> {
+  try {
+    if (typeof input !== "object" || input === null) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/inputDir")]);
+    }
+    let inputDir: string;
+    try {
+      inputDir = input.inputDir;
+    } catch {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/inputDir")]);
+    }
+    if (typeof inputDir !== "string" || !SAFE_OUTPUT_INPUT.test(inputDir) || inputDir.includes("\0")) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/inputDir")]);
+    }
+    const absolutePath = resolve(inputDir);
+    const directories = await inspectExistingInputDirectoryChain(adapter, absolutePath);
+    const root = directories.at(-1);
+    if (root === undefined) boundary("PATH_INVALID", "/inputDir");
+    const identity: InputRootIdentity = {
+      absolutePath,
+      metadata: root.metadata,
+      directories: Object.freeze([...directories]),
+    };
+    const value = Object.freeze({
+      absolutePath,
+      [resolvedInputRootBrand]: true as const,
+    });
+    inputRootRegistry.set(value, identity);
+    return cliIoSuccess(value);
+  } catch (error) {
+    return resultFromPathError(error, "/inputDir");
+  }
+}
+
+export async function resolveExistingInputRoot(input: {
+  inputDir: string;
+}): Promise<CliIoResult<ResolvedInputRoot>> {
+  try {
+    return await resolveExistingInputRootWithAdapter(input, nativeFileSystemAdapter);
+  } catch {
+    return cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/inputDir")]);
+  }
+}
+
 export function validateRelativeTarget(relativePath: string): CliIoResult<ValidatedRelativeTarget> {
   try {
     const key = portablePathKey(relativePath);
@@ -428,6 +561,244 @@ export async function assertResolvedRoot(
 function isContained(rootPath: string, childPath: string): boolean {
   const difference = relative(rootPath, childPath);
   return difference === "" || (!difference.startsWith(`..${sep}`) && difference !== ".." && !isAbsolute(difference));
+}
+
+function isStableInputFile(left: Stats, right: Stats): boolean {
+  return sameIdentity(left, right)
+    && left.size === right.size
+    && left.nlink === right.nlink
+    && left.mtimeMs === right.mtimeMs
+    && left.ctimeMs === right.ctimeMs;
+}
+
+function assertSafeInputFileMetadata(
+  metadata: Stats,
+  invalidCode: "PATH_INVALID" | "IO_OPERATION_FAILED",
+): void {
+  if (
+    !metadata.isFile()
+    || metadata.isSymbolicLink()
+    || !isOwnedByCurrentUser(metadata)
+    || (metadata.mode & 0o022) !== 0
+    || metadata.nlink !== 1
+    || !Number.isSafeInteger(metadata.size)
+    || metadata.size < 0
+  ) {
+    boundary(invalidCode, "/target");
+  }
+}
+
+async function inspectInputFileSnapshot(
+  adapter: PrivateFileSystemAdapter,
+  path: string,
+  root: InputRootIdentity,
+  invalidCode: "PATH_INVALID" | "IO_OPERATION_FAILED",
+): Promise<InputFileSnapshot> {
+  try {
+    const metadata = await adapter.lstat(path);
+    if (metadata.isSymbolicLink()) boundary("SYMLINK_REJECTED", "/target");
+    assertSafeInputFileMetadata(metadata, invalidCode);
+    if (!sameDevice(root.metadata, metadata)) boundary("CROSS_DEVICE_TRANSACTION", "/target");
+    const realPath = await adapter.realpath(path);
+    if (realPath !== path || !isContained(root.absolutePath, realPath)) {
+      boundary("PATH_ESCAPE", "/target");
+    }
+    return { metadata, realPath };
+  } catch (error) {
+    if (invalidCode === "IO_OPERATION_FAILED" && !(error instanceof PathBoundaryError)) {
+      boundary("IO_OPERATION_FAILED", "/target");
+    }
+    throw error;
+  }
+}
+
+async function assertResolvedInputRoot(
+  root: ResolvedInputRoot,
+  adapter: PrivateFileSystemAdapter,
+): Promise<InputRootIdentity> {
+  const identity = getInputRootIdentity(root);
+  if (identity === undefined) boundary("PATH_INVALID", "/root");
+  await assertBoundInputDirectoryChain(adapter, identity.directories, "/root", "IO_OPERATION_FAILED");
+  return identity;
+}
+
+async function inspectInputTargetGuard(
+  root: ResolvedInputRoot,
+  target: ValidatedRelativeTarget,
+  adapter: PrivateFileSystemAdapter,
+): Promise<InputTargetGuard> {
+  try {
+    const rootIdentity = await assertResolvedInputRoot(root, adapter);
+    const targetIdentity = getTargetIdentity(target);
+    if (targetIdentity === undefined) boundary("PATH_INVALID", "/target");
+    const finalAbsolutePath = resolve(rootIdentity.absolutePath, targetIdentity.relativePath);
+    if (!isContained(rootIdentity.absolutePath, finalAbsolutePath) || finalAbsolutePath === rootIdentity.absolutePath) {
+      boundary("PATH_ESCAPE", "/target");
+    }
+    const parentRelative = parse(targetIdentity.relativePath).dir;
+    const parentSegments = parentRelative === "." ? [] : parentRelative.split("/");
+    const directories: DirectoryIdentity[] = [];
+    let current = rootIdentity.absolutePath;
+    for (const segment of parentSegments) {
+      current = join(current, segment);
+      const metadata = await adapter.lstat(current);
+      if (metadata.isSymbolicLink()) boundary("SYMLINK_REJECTED", "/target");
+      try {
+        assertRealDirectory(metadata, undefined, true);
+      } catch {
+        boundary("PATH_INVALID", "/target");
+      }
+      if (!sameDevice(rootIdentity.metadata, metadata)) {
+        boundary("CROSS_DEVICE_TRANSACTION", "/target");
+      }
+      const realPath = await adapter.realpath(current);
+      if (realPath !== current || !isContained(rootIdentity.absolutePath, realPath)) {
+        boundary("PATH_ESCAPE", "/target");
+      }
+      directories.push({ absolutePath: current, realPath, metadata });
+    }
+    return {
+      root: rootIdentity,
+      finalAbsolutePath,
+      directories: Object.freeze(directories),
+    };
+  } catch (error) {
+    if (error instanceof PathBoundaryError) throw error;
+    if (isErrorCode(error, "ELOOP")) boundary("SYMLINK_REJECTED", "/target");
+    if (
+      isErrorCode(error, "ENOENT")
+      || isErrorCode(error, "ENOTDIR")
+      || isErrorCode(error, "EINVAL")
+      || isErrorCode(error, "EACCES")
+      || isErrorCode(error, "EPERM")
+    ) {
+      boundary("PATH_INVALID", "/target");
+    }
+    boundary("IO_OPERATION_FAILED", "/target");
+  }
+}
+
+async function assertInputTargetGuard(
+  guard: InputTargetGuard,
+  adapter: PrivateFileSystemAdapter,
+): Promise<void> {
+  await assertBoundInputDirectoryChain(adapter, guard.root.directories, "/root", "IO_OPERATION_FAILED");
+  await assertBoundInputDirectoryChain(adapter, guard.directories, "/target", "IO_OPERATION_FAILED");
+  for (const directory of guard.directories) {
+    if (!sameDevice(guard.root.metadata, directory.metadata)) {
+      boundary("CROSS_DEVICE_TRANSACTION", "/target");
+    }
+  }
+}
+
+export async function readRelativeRegularFileWithAdapter(
+  input: {
+    root: ResolvedInputRoot;
+    target: ValidatedRelativeTarget;
+    maxBytes: number;
+  },
+  adapter: PrivateFileSystemAdapter,
+): Promise<CliIoResult<{ bytes: Uint8Array; digest: Sha256Digest }>> {
+  let root: ResolvedInputRoot;
+  let target: ValidatedRelativeTarget;
+  let maxBytes: number;
+  try {
+    if (typeof input !== "object" || input === null) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/root")]);
+    }
+    try {
+      root = input.root;
+    } catch {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/root")]);
+    }
+    try {
+      target = input.target;
+    } catch {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/target")]);
+    }
+    try {
+      maxBytes = input.maxBytes;
+    } catch {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/maxBytes")]);
+    }
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_INPUT_FILE_BYTES) {
+      return cliIoFailure([cliIoError("PATH_INVALID", "/maxBytes")]);
+    }
+    const guard = await inspectInputTargetGuard(root, target, adapter);
+    await assertInputTargetGuard(guard, adapter);
+    const before = await inspectInputFileSnapshot(adapter, guard.finalAbsolutePath, guard.root, "PATH_INVALID");
+    if (before.metadata.size > maxBytes) boundary("PATH_INVALID", "/target");
+    let handle;
+    try {
+      handle = await adapter.open(
+        guard.finalAbsolutePath,
+        constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+      );
+    } catch (error) {
+      if (isErrorCode(error, "ELOOP")) boundary("SYMLINK_REJECTED", "/target");
+      boundary("IO_OPERATION_FAILED", "/target");
+    }
+    let bytes: Uint8Array;
+    try {
+      const opened = await handle.stat();
+      assertSafeInputFileMetadata(opened, "IO_OPERATION_FAILED");
+      if (!sameDevice(guard.root.metadata, opened)) boundary("CROSS_DEVICE_TRANSACTION", "/target");
+      if (!isStableInputFile(before.metadata, opened) || opened.size > maxBytes) {
+        boundary("IO_OPERATION_FAILED", "/target");
+      }
+      bytes = await readExactFileHandleBytes(handle, opened.size, maxBytes);
+      const openedAfterRead = await handle.stat();
+      assertSafeInputFileMetadata(openedAfterRead, "IO_OPERATION_FAILED");
+      if (!isStableInputFile(opened, openedAfterRead)) boundary("IO_OPERATION_FAILED", "/target");
+      await assertInputTargetGuard(guard, adapter);
+      const beforeClose = await inspectInputFileSnapshot(
+        adapter,
+        guard.finalAbsolutePath,
+        guard.root,
+        "IO_OPERATION_FAILED",
+      );
+      if (
+        beforeClose.realPath !== before.realPath
+        || !isStableInputFile(openedAfterRead, beforeClose.metadata)
+      ) {
+        boundary("IO_OPERATION_FAILED", "/target");
+      }
+    } catch (error) {
+      if (error instanceof PathBoundaryError) throw error;
+      boundary("IO_OPERATION_FAILED", "/target");
+    } finally {
+      try {
+        await handle.close();
+      } catch {
+        boundary("IO_OPERATION_FAILED", "/target");
+      }
+    }
+    await assertInputTargetGuard(guard, adapter);
+    const afterClose = await inspectInputFileSnapshot(
+      adapter,
+      guard.finalAbsolutePath,
+      guard.root,
+      "IO_OPERATION_FAILED",
+    );
+    if (afterClose.realPath !== before.realPath || !isStableInputFile(before.metadata, afterClose.metadata)) {
+      boundary("IO_OPERATION_FAILED", "/target");
+    }
+    return cliIoSuccess({ bytes, digest: sha256Bytes(bytes) });
+  } catch (error) {
+    return resultFromPathError(error, "/target");
+  }
+}
+
+export async function readRelativeRegularFile(input: {
+  root: ResolvedInputRoot;
+  target: ValidatedRelativeTarget;
+  maxBytes: number;
+}): Promise<CliIoResult<{ bytes: Uint8Array; digest: Sha256Digest }>> {
+  try {
+    return await readRelativeRegularFileWithAdapter(input, nativeFileSystemAdapter);
+  } catch {
+    return cliIoFailure([cliIoError("IO_OPERATION_FAILED", "/target")]);
+  }
 }
 
 export async function inspectTargetParent(

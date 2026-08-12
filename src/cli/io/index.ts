@@ -4,11 +4,15 @@ export type {
   CliIoResult,
 } from "../result.js";
 export type {
+  ResolvedInputRoot,
   ResolvedOutputRoot,
   ValidatedRelativeTarget,
 } from "./paths.js";
 export {
+  MAX_INPUT_FILE_BYTES,
   assertPortableTargetSet,
+  readRelativeRegularFile,
+  resolveExistingInputRoot,
   resolveOutputRoot,
   validateRelativeTarget,
 } from "./paths.js";
