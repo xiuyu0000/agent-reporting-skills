@@ -28,8 +28,15 @@ const APPEND_INTENT = "append-intent.json";
 const APPEND_INTENT_FORMAT = "review-usage-append-intent/1" as const;
 const MAX_INPUT_BYTES = 32 * 1024;
 const MAX_RECORD_BYTES = 64 * 1024 * 1024;
+const DIRECTORY_RETRY_ATTEMPTS = 20;
+const DIRECTORY_RETRY_MS = 5;
 const LOCK_ATTEMPTS = 200;
-const LOCK_RETRY_MS = 5;
+const LOCK_RETRY_BASE_MS = 12;
+const LOCK_RETRY_STEP_ATTEMPTS = 50;
+const LOCK_RETRY_STEP_MS = 2;
+const LOCK_RETRY_MAX_BASE_MS = 18;
+const LOCK_RETRY_JITTER_MS = 2;
+// The full contention schedule sleeps for at most 3.4s, well below stale-owner recovery.
 const STALE_LOCK_MS = 30_000;
 const CASE_KEY_PATTERN = /^[A-Za-z0-9_-]{16,128}$/u;
 const CASE_ID_PATTERN = /^CASE-[A-F0-9]{32}$/u;
@@ -317,13 +324,13 @@ async function assertPlainDirectory(path: string): Promise<void> {
 
 /* v8 ignore start -- bounded filesystem-race fallback */
 async function waitForPlainDirectory(path: string): Promise<void> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < DIRECTORY_RETRY_ATTEMPTS; attempt += 1) {
     try {
       await assertPlainDirectory(path);
       return;
     } catch (error) {
       if (!isErrorCode(error, "ENOENT")) throw error;
-      await delay(LOCK_RETRY_MS);
+      await delay(DIRECTORY_RETRY_MS);
     }
   }
   throw new Error("directory unavailable");
@@ -655,6 +662,16 @@ function isProcessAlive(pid: number): boolean {
   }
 }
 
+function lockRetryDelayMs(owner: string, attempt: number): number {
+  const base = Math.min(
+    LOCK_RETRY_MAX_BASE_MS,
+    LOCK_RETRY_BASE_MS + Math.floor(attempt / LOCK_RETRY_STEP_ATTEMPTS) * LOCK_RETRY_STEP_MS,
+  );
+  const byteOffset = (attempt % (owner.length / 2)) * 2;
+  const ownerByte = Number.parseInt(owner.slice(byteOffset, byteOffset + 2), 16);
+  return base + ownerByte % (LOCK_RETRY_JITTER_MS + 1);
+}
+
 async function removeClaimedLock(claimPath: string, expectedOwner: string): Promise<void> {
   const manifest = await readLockManifest(claimPath);
   if (manifest.owner !== expectedOwner) throw new Error("lock owner changed");
@@ -779,11 +796,11 @@ async function acquireUsageLock(
           if (isErrorCode(inspectionError, "ENOENT")) continue;
           throw inspectionError;
         }
-        await delay(LOCK_RETRY_MS);
+        await delay(lockRetryDelayMs(owner, attempt));
         continue;
       }
       if (await recoverStaleLock(stateDirectory, existing, now, owner)) continue;
-      await delay(LOCK_RETRY_MS);
+      await delay(lockRetryDelayMs(owner, attempt));
     }
     throw new Error("append lock unavailable");
   } catch (error) {

@@ -1,6 +1,8 @@
-import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { createHmac } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   appendUsageMetrics,
@@ -120,15 +122,29 @@ describe("content-free usage append", () => {
   });
 
   it("serializes concurrent appends as intact private JSONL records", async () => {
-    const stateDirectory = await makeTemporaryDirectory();
-    const results = await Promise.all(
-      Array.from({ length: 24 }, (_, index) => appendUsageMetrics(baseMetrics({ caseKey: `concurrent_case_${String(index).padStart(4, "0")}` }), { stateDirectory })),
-    );
-    expect(results).toHaveLength(24);
-    expect(results.every((result) => result.status === "recorded")).toBe(true);
-    const records = await storedLines(stateDirectory);
-    expect(records).toHaveLength(24);
-    expect(new Set(records.map((record) => record.caseId)).size).toBe(24);
+    for (const lockHoldMs of [0, 40]) {
+      const stateDirectory = await makeTemporaryDirectory();
+      const results = await Promise.all(
+        Array.from({ length: 24 }, (_, index) => appendUsageMetrics(
+          baseMetrics({ caseKey: `concurrent_case_${String(index).padStart(4, "0")}` }),
+          {
+            stateDirectory,
+            randomBytes: (size) => Buffer.alloc(size, index + 1),
+            ...(lockHoldMs === 0
+              ? {}
+              : { boundaryHooks: { afterLockAcquired: async () => delay(lockHoldMs) } }),
+          },
+        )),
+      );
+      expect(results).toHaveLength(24);
+      expect(results.every((result) => result.status === "recorded")).toBe(true);
+      const records = await storedLines(stateDirectory);
+      expect(records).toHaveLength(24);
+      expect(new Set(records.map((record) => record.caseId)).size).toBe(24);
+      expect((await readdir(stateDirectory)).filter((entry) =>
+        entry.startsWith(".usage-") || entry === usageStorageNames.appendIntent,
+      )).toEqual([]);
+    }
   });
 
   it("returns a sanitized non-blocking result when storage is unavailable", async () => {
@@ -478,12 +494,14 @@ describe("content-free usage append", () => {
       heartbeatAtMs: 0,
     };
     await writeFile(join(lockDirectory, usageStorageNames.lockManifest), `${JSON.stringify(manifest)}\n`, { mode: 0o600 });
+    const startedAt = performance.now();
     expect(await appendUsageMetrics(baseMetrics(), { stateDirectory, clock: () => 60_000 })).toEqual({
       status: "not-recorded",
       reason: "storage-unavailable",
     });
+    expect(performance.now() - startedAt).toBeLessThan(6_000);
     expect(JSON.parse(await readFile(join(lockDirectory, usageStorageNames.lockManifest), "utf8"))).toEqual(manifest);
-  });
+  }, 7_000);
 
   it("recovers a stale dead owner by an identity-checked claim", async () => {
     const stateDirectory = await makeTemporaryDirectory();
