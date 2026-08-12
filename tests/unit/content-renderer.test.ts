@@ -599,9 +599,11 @@ describe("safe content renderer and bootstrap", () => {
     expect(ownerDocument.querySelector("article#block-B001")?.querySelector("details.block-body")?.open).toBe(true);
     expect(ownerDocument.querySelector("article#block-B002")?.querySelector("details.block-body")?.open).toBe(false);
     expect(ownerDocument.querySelector("article#block-B004")?.textContent).toContain("已冻结 · 冻结轮次: 1");
-    expect(ownerDocument.querySelectorAll("button").filter((button) => (
-      !button.className.split(/\s+/u).includes("term-disclosure-toggle")
-    ))).toHaveLength(0);
+    const initialActions = ownerDocument.querySelectorAll("button")
+      .filter((button) => button.className.split(/\s+/u).includes("decision-action"));
+    expect(initialActions.length).toBe(12);
+    expect(initialActions.map((button) => button.getAttribute("aria-pressed")))
+      .toEqual(Array.from({ length: 12 }, () => "false"));
   });
 
   it("fails closed on every dangerous URL even when called below the protocol boundary", () => {
