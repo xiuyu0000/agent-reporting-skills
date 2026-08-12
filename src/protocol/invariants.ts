@@ -24,6 +24,7 @@ import {
   validateStateIdentity,
 } from "./identity.js";
 import {
+  cloneSafeJson,
   validateReviewDocumentSchema,
   validateReviewPacketSchema,
   validateReviewStateSchema,
@@ -100,12 +101,142 @@ function validateInlineNodes(
   path: string,
   glossaryIds: ReadonlySet<string>,
   errors: ProtocolError[],
+  blockId: string | null = null,
 ): void {
   for (const [index, node] of nodes.entries()) {
     if (node.type === "termRef" && !glossaryIds.has(node.glossaryId)) {
       errors.push(protocolError("UNKNOWN_REFERENCE", `${path}/${index}/glossaryId`));
     }
+    if (node.type === "link" && !isAllowedLinkHref(node.href)) {
+      errors.push(protocolError("SCHEMA_FORMAT", `${path}/${index}/href`, blockId));
+    }
   }
+}
+
+const INTERNAL_LINK_PATTERN = /^#[A-Za-z][A-Za-z0-9_.:-]*$/;
+
+export function isAllowedLinkHref(href: string): boolean {
+  if (href.startsWith("#")) return INTERNAL_LINK_PATTERN.test(href);
+  if (href.startsWith("//")) return false;
+  try {
+    const url = new URL(href);
+    return (url.protocol === "http:" || url.protocol === "https:")
+      && url.username === ""
+      && url.password === "";
+  } catch {
+    return false;
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function collectInlineLinkErrors(
+  value: unknown,
+  path: string,
+  errors: ProtocolError[],
+  blockId: string | null = null,
+): void {
+  if (!Array.isArray(value)) return;
+  for (const [index, item] of value.entries()) {
+    const node = asRecord(item);
+    if (node?.type === "link" && typeof node.href === "string" && !isAllowedLinkHref(node.href)) {
+      errors.push(protocolError("SCHEMA_FORMAT", `${path}/${index}/href`, blockId));
+    }
+  }
+}
+
+function collectContentLinkErrors(
+  value: unknown,
+  path: string,
+  errors: ProtocolError[],
+  blockId: string | null = null,
+): void {
+  if (!Array.isArray(value)) return;
+  for (const [index, item] of value.entries()) {
+    const node = asRecord(item);
+    if (node === undefined) continue;
+    const nodePath = `${path}/${index}`;
+    if (node.type === "paragraph") {
+      collectInlineLinkErrors(node.content, `${nodePath}/content`, errors, blockId);
+    } else if (node.type === "list" && Array.isArray(node.items)) {
+      for (const [itemIndex, listItem] of node.items.entries()) {
+        collectInlineLinkErrors(listItem, `${nodePath}/items/${itemIndex}`, errors, blockId);
+      }
+    } else if (node.type === "table") {
+      if (Array.isArray(node.headers)) {
+        for (const [headerIndex, header] of node.headers.entries()) {
+          collectInlineLinkErrors(
+            header,
+            `${nodePath}/headers/${headerIndex}`,
+            errors,
+            blockId,
+          );
+        }
+      }
+      if (Array.isArray(node.rows)) {
+        for (const [rowIndex, row] of node.rows.entries()) {
+          if (!Array.isArray(row)) continue;
+          for (const [cellIndex, cell] of row.entries()) {
+            collectInlineLinkErrors(
+              cell,
+              `${nodePath}/rows/${rowIndex}/${cellIndex}`,
+              errors,
+              blockId,
+            );
+          }
+        }
+      }
+    } else if (node.type === "callout") {
+      collectContentLinkErrors(node.content, `${nodePath}/content`, errors, blockId);
+    } else if (node.type === "steps" && Array.isArray(node.items)) {
+      for (const [stepIndex, stepValue] of node.items.entries()) {
+        const step = asRecord(stepValue);
+        collectContentLinkErrors(
+          step?.content,
+          `${nodePath}/items/${stepIndex}/content`,
+          errors,
+          blockId,
+        );
+      }
+    }
+  }
+}
+
+function collectDocumentLinkErrors(value: unknown): ProtocolError[] {
+  const document = asRecord(value);
+  if (document === undefined) return [];
+  const errors: ProtocolError[] = [];
+  const continuation = asRecord(document.continuation);
+  collectContentLinkErrors(continuation?.currentState, "/continuation/currentState", errors);
+  const evidence = asRecord(document.evidence);
+  for (const collectionName of ["facts", "decisions"] as const) {
+    const collection = evidence?.[collectionName];
+    if (!Array.isArray(collection)) continue;
+    for (const [index, itemValue] of collection.entries()) {
+      const item = asRecord(itemValue);
+      collectContentLinkErrors(
+        item?.content,
+        `/evidence/${collectionName}/${index}/content`,
+        errors,
+      );
+    }
+  }
+  if (Array.isArray(document.blocks)) {
+    for (const [index, blockValue] of document.blocks.entries()) {
+      const block = asRecord(blockValue);
+      collectContentLinkErrors(
+        block?.body,
+        `/blocks/${index}/body`,
+        errors,
+        typeof block?.id === "string" ? block.id : null,
+      );
+    }
+  }
+  return errors;
 }
 
 function validateContentNodes(
@@ -113,21 +244,28 @@ function validateContentNodes(
   path: string,
   glossaryIds: ReadonlySet<string>,
   errors: ProtocolError[],
+  blockId: string | null = null,
 ): void {
   for (const [index, node] of nodes.entries()) {
     const nodePath = `${path}/${index}`;
     switch (node.type) {
       case "paragraph":
-        validateInlineNodes(node.content, `${nodePath}/content`, glossaryIds, errors);
+        validateInlineNodes(node.content, `${nodePath}/content`, glossaryIds, errors, blockId);
         break;
       case "list":
         for (const [itemIndex, item] of node.items.entries()) {
-          validateInlineNodes(item, `${nodePath}/items/${itemIndex}`, glossaryIds, errors);
+          validateInlineNodes(item, `${nodePath}/items/${itemIndex}`, glossaryIds, errors, blockId);
         }
         break;
       case "table":
         for (const [headerIndex, header] of node.headers.entries()) {
-          validateInlineNodes(header, `${nodePath}/headers/${headerIndex}`, glossaryIds, errors);
+          validateInlineNodes(
+            header,
+            `${nodePath}/headers/${headerIndex}`,
+            glossaryIds,
+            errors,
+            blockId,
+          );
         }
         for (const [rowIndex, row] of node.rows.entries()) {
           if (row.length !== node.headers.length) {
@@ -139,12 +277,13 @@ function validateContentNodes(
               `${nodePath}/rows/${rowIndex}/${cellIndex}`,
               glossaryIds,
               errors,
+              blockId,
             );
           }
         }
         break;
       case "callout":
-        validateContentNodes(node.content, `${nodePath}/content`, glossaryIds, errors);
+        validateContentNodes(node.content, `${nodePath}/content`, glossaryIds, errors, blockId);
         break;
       case "steps":
         for (const [stepIndex, step] of node.items.entries()) {
@@ -153,6 +292,7 @@ function validateContentNodes(
             `${nodePath}/items/${stepIndex}/content`,
             glossaryIds,
             errors,
+            blockId,
           );
         }
         break;
@@ -267,7 +407,7 @@ function validateDocumentSemantics(document: ReviewDocumentV1): ProtocolError[] 
       errors,
       block.id,
     );
-    validateContentNodes(block.body, `/blocks/${index}/body`, glossaryIds, errors);
+    validateContentNodes(block.body, `/blocks/${index}/body`, glossaryIds, errors, block.id);
     if (block.changed !== undefined && block.changed.round !== document.document.round) {
       errors.push(protocolError("DERIVED_VALUE_MISMATCH", `/blocks/${index}/changed/round`, block.id));
     }
@@ -492,7 +632,14 @@ function packetOrStateSemantics(
 
 export function validateReviewDocument(input: unknown): ProtocolResult<ReviewDocumentV1> {
   const schema = validateReviewDocumentSchema(input);
-  if (!schema.ok) return schema;
+  if (!schema.ok) {
+    const safe = cloneSafeJson(input);
+    if (!safe.ok) return schema;
+    const linkErrors = collectDocumentLinkErrors(safe.value).filter((error) =>
+      !schema.errors.some((schemaError) =>
+        schemaError.code === error.code && schemaError.path === error.path));
+    return linkErrors.length === 0 ? schema : failure([...schema.errors, ...linkErrors]);
+  }
   const errors = validateDocumentSemantics(schema.value);
   return errors.length === 0 ? success(canonicalReviewDocument(schema.value)) : failure(errors);
 }

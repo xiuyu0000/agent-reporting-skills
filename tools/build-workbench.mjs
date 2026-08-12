@@ -12,6 +12,11 @@ import {
 } from "../src/workbench/shell.ts";
 
 export const WORKBENCH_ENTRY = resolve("src/workbench/main.ts");
+export const DEFAULT_SCHEMA_VALIDATORS_PATH = resolve("src/protocol/schema.generated.ts");
+export const BROWSER_SCHEMA_VALIDATORS_PATH = resolve(
+  "src/protocol/schema.browser.generated.ts",
+);
+const SCHEMA_FACADE_PATH = resolve("src/protocol/schema.ts");
 export const WORKBENCH_BUNDLE_PATH = resolve("build/workbench.js");
 export const WORKBENCH_TEMPLATE_PATH = resolve(
   "skills/deliver-dual-audience-report/assets/review-workbench.template.html",
@@ -27,6 +32,51 @@ export const WORKBENCH_ESBUILD_OPTIONS = Object.freeze({
   target: ["es2023"],
   treeShaking: true,
 });
+
+function inputBytesInOutput(metafile, expectedPath) {
+  const normalizedExpected = expectedPath.replaceAll("\\", "/");
+  return Object.values(metafile.outputs).reduce((total, output) =>
+    total + Object.entries(output.inputs).reduce((outputTotal, [path, contribution]) => {
+      const normalizedPath = resolve(path).replaceAll("\\", "/");
+      return outputTotal + (normalizedPath === normalizedExpected ? contribution.bytesInOutput : 0);
+    }, 0), 0);
+}
+
+export function assertBrowserSchemaSubstitution(metafile) {
+  const browserBytes = inputBytesInOutput(metafile, BROWSER_SCHEMA_VALIDATORS_PATH);
+  const defaultBytes = inputBytesInOutput(metafile, DEFAULT_SCHEMA_VALIDATORS_PATH);
+  if (browserBytes <= 0 || defaultBytes !== 0) {
+    throw new Error(
+      `browser schema substitution drifted: browser=${browserBytes}, default=${defaultBytes}`,
+    );
+  }
+  return browserBytes;
+}
+
+export function createBrowserSchemaValidatorPlugin() {
+  return {
+    name: "browser-schema-validator-companion",
+    setup(buildContext) {
+      // Plugin objects may be reused by callers; every esbuild setup gets an
+      // independent exact-substitution counter.
+      let substitutions = 0;
+      buildContext.onResolve({ filter: /^\.\/schema\.generated\.js$/ }, (args) => {
+        if (resolve(args.importer) !== SCHEMA_FACADE_PATH) return undefined;
+        substitutions += 1;
+        return { path: BROWSER_SCHEMA_VALIDATORS_PATH };
+      });
+      buildContext.onEnd((result) => {
+        if (substitutions !== 1) {
+          throw new Error(`browser schema substitution count drifted: ${substitutions}`);
+        }
+        if (result.metafile === undefined) {
+          throw new Error("browser schema substitution requires an esbuild metafile");
+        }
+        assertBrowserSchemaSubstitution(result.metafile);
+      });
+    },
+  };
+}
 
 function countExact(input, value) {
   return input.split(value).length - 1;
@@ -56,6 +106,7 @@ function assertSafeInlineBytes(script, style) {
     /\bfetch\s*\(/u,
     /\bXMLHttpRequest\b/u,
     /\bWebSocket\b/u,
+    /\bEventSource\b/u,
     /\bsendBeacon\s*\(/u,
     /\bimport\s*\(/u,
     /\.innerHTML\b/u,
@@ -78,6 +129,8 @@ export async function buildWorkbenchScript() {
   const result = await build({
     ...WORKBENCH_ESBUILD_OPTIONS,
     entryPoints: [WORKBENCH_ENTRY],
+    metafile: true,
+    plugins: [createBrowserSchemaValidatorPlugin()],
     write: false,
   });
   const output = result.outputFiles[0];
