@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:deliver-dual-audience-report:schema:review-packet:1",
+  "title": "ReviewPacketV1",
+  "description": "Machine-authoritative approval receipt for review-packet/1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "packetId",
+    "semanticDigest",
+    "doc",
+    "reviewedAt",
+    "idHighWater",
+    "progress",
+    "frozenCarried",
+    "reopened",
+    "decisions",
+    "sideNotes",
+    "topics",
+    "stats"
+  ],
+  "properties": {
+    "format": { "const": "review-packet/1" },
+    "packetId": { "$ref": "#/$defs/PacketId" },
+    "semanticDigest": { "$ref": "#/$defs/Sha256Digest" },
+    "doc": { "$ref": "#/$defs/PacketDocumentIdentity" },
+    "reviewedAt": { "$ref": "#/$defs/ZonedDateTime" },
+    "idHighWater": { "$ref": "#/$defs/PacketIdHighWater" },
+    "progress": { "$ref": "#/$defs/PacketProgress" },
+    "frozenCarried": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/BlockId" },
+      "uniqueItems": true
+    },
+    "reopened": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/BlockId" },
+      "uniqueItems": true
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PacketDecision" }
+    },
+    "sideNotes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PacketSideNote" }
+    },
+    "topics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PacketTopic" }
+    },
+    "overall": { "$ref": "#/$defs/NonEmptyString" },
+    "stats": { "$ref": "#/$defs/PacketStats" }
+  },
+  "$defs": {
+    "NonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ZonedDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "PacketId": {
+      "type": "string",
+      "pattern": "^RP-[0-9A-F]{20}$"
+    },
+    "DocumentId": {
+      "type": "string",
+      "pattern": "^RD-[0-9A-F]{20}$"
+    },
+    "BlockId": {
+      "type": "string",
+      "pattern": "^B(?=0*[1-9])[0-9]{3,}$"
+    },
+    "NoteId": {
+      "type": "string",
+      "pattern": "^NOTE-(?=0*[1-9])[0-9]{3,}$"
+    },
+    "TopicId": {
+      "type": "string",
+      "pattern": "^TOP-(?=0*[1-9])[0-9]{3,}$"
+    },
+    "PacketDocumentIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "contentVersion", "round", "reviewDigest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/DocumentId" },
+        "title": { "$ref": "#/$defs/NonEmptyString" },
+        "contentVersion": { "type": "integer", "minimum": 1 },
+        "round": { "type": "integer", "minimum": 1 },
+        "reviewDigest": { "$ref": "#/$defs/Sha256Digest" }
+      }
+    },
+    "PacketIdHighWater": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block",
+        "source",
+        "fact",
+        "decision",
+        "glossary",
+        "note",
+        "topic"
+      ],
+      "properties": {
+        "block": { "type": "integer", "minimum": 0 },
+        "source": { "type": "integer", "minimum": 0 },
+        "fact": { "type": "integer", "minimum": 0 },
+        "decision": { "type": "integer", "minimum": 0 },
+        "glossary": { "type": "integer", "minimum": 0 },
+        "note": { "type": "integer", "minimum": 0 },
+        "topic": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "PacketProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decided", "total", "partial"],
+      "properties": {
+        "decided": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "partial": { "type": "boolean" }
+      }
+    },
+    "PacketDecision": {
+      "oneOf": [
+        { "$ref": "#/$defs/PassDecision" },
+        { "$ref": "#/$defs/EditDecision" },
+        { "$ref": "#/$defs/TopicDecision" },
+        { "$ref": "#/$defs/HoldDecision" }
+      ]
+    },
+    "PassDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockId", "action"],
+      "properties": {
+        "blockId": { "$ref": "#/$defs/BlockId" },
+        "action": { "const": "PASS" },
+        "quote": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "EditDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockId", "action", "note"],
+      "properties": {
+        "blockId": { "$ref": "#/$defs/BlockId" },
+        "action": { "const": "EDIT" },
+        "note": { "$ref": "#/$defs/NonEmptyString" },
+        "quote": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "TopicDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockId", "action", "topicId"],
+      "properties": {
+        "blockId": { "$ref": "#/$defs/BlockId" },
+        "action": { "const": "TOPIC" },
+        "topicId": { "$ref": "#/$defs/TopicId" },
+        "quote": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "HoldDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockId", "action", "note"],
+      "properties": {
+        "blockId": { "$ref": "#/$defs/BlockId" },
+        "action": { "const": "HOLD" },
+        "note": { "$ref": "#/$defs/NonEmptyString" },
+        "quote": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "PacketSideNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "blockId", "note"],
+      "properties": {
+        "id": { "$ref": "#/$defs/NoteId" },
+        "blockId": { "$ref": "#/$defs/BlockId" },
+        "note": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "PacketTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "$ref": "#/$defs/TopicId" },
+        "title": { "$ref": "#/$defs/NonEmptyString" },
+        "note": { "$ref": "#/$defs/NonEmptyString" },
+        "sourceBlockId": { "$ref": "#/$defs/BlockId" }
+      }
+    },
+    "PacketStats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PASS", "EDIT", "TOPIC", "HOLD"],
+      "properties": {
+        "PASS": { "type": "integer", "minimum": 0 },
+        "EDIT": { "type": "integer", "minimum": 0 },
+        "TOPIC": { "type": "integer", "minimum": 0 },
+        "HOLD": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

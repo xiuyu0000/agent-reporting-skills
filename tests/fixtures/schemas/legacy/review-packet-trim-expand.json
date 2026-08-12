@@ -1,0 +1,48 @@
+{
+  "format": "review-packet/1",
+  "packetId": "RP-AAAAAAAAAAAAAAAAAAAA",
+  "semanticDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "doc": {
+    "id": "RD-CCCCCCCCCCCCCCCCCCCC",
+    "title": "Approval workbench protocol",
+    "contentVersion": 1,
+    "round": 1,
+    "reviewDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "reviewedAt": "2026-08-12T16:30:00+08:00",
+  "idHighWater": {
+    "block": 4,
+    "source": 2,
+    "fact": 1,
+    "decision": 1,
+    "glossary": 1,
+    "note": 0,
+    "topic": 0
+  },
+  "progress": {
+    "decided": 2,
+    "total": 4,
+    "partial": true
+  },
+  "frozenCarried": [],
+  "reopened": [],
+  "decisions": [
+    {
+      "blockId": "B001",
+      "action": "TRIM",
+      "note": "Remove the redundant implementation detail.",
+      "quote": "The redundant implementation detail"
+    },
+    {
+      "blockId": "B002",
+      "action": "EXPAND",
+      "note": "Add one concrete dependency example."
+    }
+  ],
+  "sideNotes": [],
+  "topics": [],
+  "stats": {
+    "TRIM": 1,
+    "EXPAND": 1
+  }
+}

@@ -1,0 +1,678 @@
+{
+  "valid": [
+    { "schema": "review-document", "file": "valid/review-document.json" },
+    { "schema": "review-packet", "file": "valid/review-packet.json" },
+    { "schema": "review-state", "file": "valid/review-state.json" }
+  ],
+  "schemaNegative": [
+    {
+      "name": "document rejects unknown root fields",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "add", "path": "/validation", "value": { "passed": true } }],
+      "expected": { "code": "SCHEMA_ADDITIONAL_PROPERTIES", "path": "/validation" }
+    },
+    {
+      "name": "T2 requires ask",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "remove", "path": "/blocks/0/ask" }],
+      "expected": { "code": "SCHEMA_REQUIRED", "path": "/blocks/0/ask" }
+    },
+    {
+      "name": "T2 requires a decision reason",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "remove", "path": "/blocks/0/whyTier" }],
+      "expected": { "code": "SCHEMA_REQUIRED", "path": "/blocks/0/whyTier" }
+    },
+    {
+      "name": "a review document contains at least four blocks",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "remove", "path": "/blocks/3" }],
+      "expected": { "code": "SCHEMA_MIN_ITEMS", "path": "/blocks" }
+    },
+    {
+      "name": "a review document contains at most fifteen blocks",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" }
+      ],
+      "expected": { "code": "SCHEMA_MAX_ITEMS", "path": "/blocks" }
+    },
+    {
+      "name": "document rejects more than seven T2 blocks",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
+        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" }
+      ],
+      "expected": { "code": "SCHEMA_CONTAINS", "path": "/blocks" }
+    },
+    {
+      "name": "shared items require at least one source",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/evidence/facts/0/sourceRefs", "value": [] }],
+      "expected": { "code": "SCHEMA_MIN_ITEMS", "path": "/evidence/facts/0/sourceRefs" }
+    },
+    {
+      "name": "shared item sources are unique",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/evidence/facts/0/sourceRefs",
+          "value": ["SRC-001", "SRC-001"]
+        }
+      ],
+      "expected": { "code": "SCHEMA_UNIQUE_ITEMS", "path": "/evidence/facts/0/sourceRefs" }
+    },
+    {
+      "name": "flow node identifiers use the bounded local pattern",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/blocks/1/body/0/nodes/0/id", "value": "1 bad" }],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/blocks/1/body/0/nodes/0/id" }
+    },
+    {
+      "name": "split group identity is stable and opaque",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/delivery/splitGroup",
+          "value": { "groupId": "group-1", "part": 1, "total": 2, "reason": "Split review" }
+        }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/splitGroup/groupId" }
+    },
+    {
+      "name": "unsafe link schemes are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/continuation/currentState/0/content/4/href",
+          "value": "javascript:alert(1)"
+        }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/continuation/currentState/0/content/4/href" }
+    },
+    {
+      "name": "malformed bracketed URL hosts are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/continuation/currentState/0/content/4/href",
+          "value": "https://["
+        }
+      ],
+      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+    },
+    {
+      "name": "URL hosts containing markup delimiters are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/continuation/currentState/0/content/4/href",
+          "value": "https://exa<mple.com"
+        }
+      ],
+      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+    },
+    {
+      "name": "URL values containing NUL are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/continuation/currentState/0/content/4/href",
+          "value": "https://example.com/\u0000"
+        }
+      ],
+      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+    },
+    {
+      "name": "raw HTML is not a content node",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/blocks/3/body/0/type", "value": "rawHtml" }],
+      "expected": { "code": "SCHEMA_CONST", "path": "/blocks/3/body/0/type" }
+    },
+    {
+      "name": "converted feedback requires a target block",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/lineage/feedbackResolutions/-",
+          "value": {
+            "sourcePacketId": "RP-DDDDDDDDDDDDDDDDDDDD",
+            "feedbackId": "NOTE-001",
+            "feedbackDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "disposition": "converted-to-block",
+            "reason": "The note changes the plan."
+          }
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/lineage/feedbackResolutions/0/targetBlockId"
+      }
+    },
+    {
+      "name": "output paths cannot escape the contract root",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "../private.md" }],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "Windows drive-qualified output paths are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "C:/private.md" }],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "the current-directory output path is rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "." }],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing a newline are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\nname.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing NUL are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u0000name.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing a tab are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\tname.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing DEL are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u007fname.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing a C1 control are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u0085name.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "output paths containing a Unicode line separator are rejected",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u2028name.md" }
+      ],
+      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+    },
+    {
+      "name": "new packets never emit legacy actions",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/decisions/0/action", "value": "TRIM" }],
+      "expected": { "code": "SCHEMA_CONST", "path": "/decisions/0/action" }
+    },
+    {
+      "name": "new packets also reject the legacy EXPAND action",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/decisions/0/action", "value": "EXPAND" }],
+      "expected": { "code": "SCHEMA_CONST", "path": "/decisions/0/action" }
+    },
+    {
+      "name": "EDIT requires a note",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "remove", "path": "/decisions/1/note" }],
+      "expected": { "code": "SCHEMA_REQUIRED", "path": "/decisions/1/note" }
+    },
+    {
+      "name": "packet high water includes source",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "remove", "path": "/idHighWater/source" }],
+      "expected": { "code": "SCHEMA_REQUIRED", "path": "/idHighWater/source" }
+    },
+    {
+      "name": "state cannot claim packet progress authority",
+      "schema": "review-state",
+      "base": "valid/review-state.json",
+      "mutations": [{ "op": "add", "path": "/progress", "value": { "decided": 2, "total": 4 } }],
+      "expected": { "code": "SCHEMA_ADDITIONAL_PROPERTIES", "path": "/progress" }
+    },
+    {
+      "name": "state format is exact",
+      "schema": "review-state",
+      "base": "valid/review-state.json",
+      "mutations": [{ "op": "replace", "path": "/format", "value": "review-state/2" }],
+      "expected": { "code": "SCHEMA_CONST", "path": "/format" }
+    }
+  ],
+  "protocolNegative": [
+    {
+      "name": "duplicate block IDs fail in protocol validation",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/blocks/1/id", "value": "B001" }],
+      "expected": { "code": "DUPLICATE_ID", "path": "/blocks/1/id" }
+    },
+    {
+      "name": "dangling source refs fail in protocol validation",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/evidence/facts/0/sourceRefs/1", "value": "SRC-999" }],
+      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/evidence/facts/0/sourceRefs/1" }
+    },
+    {
+      "name": "conflict refs must resolve to evidence items",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/evidence/conflicts/0/itemRefs/2", "value": "D-999" }
+      ],
+      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/evidence/conflicts/0/itemRefs/2" }
+    },
+    {
+      "name": "next action IDs are unique",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "copy", "from": "/continuation/nextActions/0", "path": "/continuation/nextActions/-" }
+      ],
+      "expected": { "code": "DUPLICATE_ID", "path": "/continuation/nextActions/1/id" }
+    },
+    {
+      "name": "BCP-47 structure is checked after the coarse schema gate",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/document/language", "value": "en-abc" }],
+      "expected": { "code": "INVALID_LANGUAGE_TAG", "path": "/document/language" }
+    },
+    {
+      "name": "dependency cycles fail in protocol validation",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/blocks/0/dependencies", "value": ["B002"] }],
+      "expected": { "code": "DEPENDENCY_CYCLE", "path": "/blocks/0/dependencies/0" }
+    },
+    {
+      "name": "frozen blocks require approval history",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "add", "path": "/approvals/currentFrozen/-", "value": "B001" }],
+      "expected": { "code": "FROZEN_WITHOUT_APPROVAL", "path": "/approvals/currentFrozen/0" }
+    },
+    {
+      "name": "a frozen block approval digest must match its current content",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/approvals/history/-",
+          "value": {
+            "blockId": "B004",
+            "approvedRound": 1,
+            "approvedContentDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        { "op": "add", "path": "/approvals/currentFrozen/-", "value": "B004" }
+      ],
+      "expected": {
+        "code": "APPROVAL_DIGEST_MISMATCH",
+        "path": "/approvals/history/0/approvedContentDigest"
+      }
+    },
+    {
+      "name": "approval history cannot cite a future round",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/approvals/history/-",
+          "value": {
+            "blockId": "B004",
+            "approvedRound": 2,
+            "approvedContentDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        { "op": "add", "path": "/approvals/currentFrozen/-", "value": "B004" }
+      ],
+      "expected": { "code": "FUTURE_APPROVAL", "path": "/approvals/history/0/approvedRound" }
+    },
+    {
+      "name": "table rows must match header width",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "remove", "path": "/blocks/0/body/0/rows/0/1" }],
+      "expected": { "code": "TABLE_WIDTH_MISMATCH", "path": "/blocks/0/body/0/rows/0" }
+    },
+    {
+      "name": "flow edges must reference local nodes",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [{ "op": "replace", "path": "/blocks/1/body/0/edges/0/to", "value": "missing" }],
+      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/blocks/1/body/0/edges/0/to" }
+    },
+    {
+      "name": "term refs must reference the glossary",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/continuation/currentState/0/content/5/glossaryId", "value": "G-999" }
+      ],
+      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/continuation/currentState/0/content/5/glossaryId" }
+    },
+    {
+      "name": "packet progress is derived from decisions",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/progress/decided", "value": 3 }],
+      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/progress/decided" }
+    },
+    {
+      "name": "packet partial is derived from decided and total",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/progress/partial", "value": true }],
+      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/progress/partial" }
+    },
+    {
+      "name": "packet action stats are derived from decisions",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/stats/PASS", "value": 2 }],
+      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/stats/PASS" }
+    },
+    {
+      "name": "a block can have only one current packet decision",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [{ "op": "replace", "path": "/decisions/1/blockId", "value": "B001" }],
+      "expected": { "code": "DUPLICATE_DECISION", "path": "/decisions/1/blockId" }
+    },
+    {
+      "name": "frozen-carried and reopened packet sets are disjoint",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [
+        { "op": "add", "path": "/frozenCarried/-", "value": "B004" },
+        { "op": "add", "path": "/reopened/-", "value": "B004" }
+      ],
+      "expected": { "code": "FROZEN_REOPENED_OVERLAP", "path": "/reopened/0" }
+    },
+    {
+      "name": "packet review digest binds the exact source document",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/doc/reviewDigest",
+          "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "context": [
+        {
+          "role": "document",
+          "schema": "review-document",
+          "base": "valid/review-document.json",
+          "mutations": []
+        }
+      ],
+      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/reviewDigest" }
+    },
+    {
+      "name": "TOPIC decisions require one same-source topic",
+      "schema": "review-packet",
+      "base": "valid/review-packet.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/decisions/2/topicId",
+          "value": "TOP-999"
+        }
+      ],
+      "expected": { "code": "TOPIC_MAPPING_MISMATCH", "path": "/decisions/2/topicId" }
+    },
+    {
+      "name": "state identity must match the loaded document",
+      "schema": "review-state",
+      "base": "valid/review-state.json",
+      "mutations": [{ "op": "replace", "path": "/doc/id", "value": "RD-EEEEEEEEEEEEEEEEEEEE" }],
+      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/id" }
+    },
+    {
+      "name": "state review digest binds the exact source document",
+      "schema": "review-state",
+      "base": "valid/review-state.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/doc/reviewDigest",
+          "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "context": [
+        {
+          "role": "document",
+          "schema": "review-document",
+          "base": "valid/review-document.json",
+          "mutations": []
+        }
+      ],
+      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/reviewDigest" }
+    },
+    {
+      "name": "state high water cannot regress",
+      "schema": "review-state",
+      "base": "valid/review-state.json",
+      "mutations": [{ "op": "replace", "path": "/idHighWater/block", "value": 3 }],
+      "expected": { "code": "HIGH_WATER_REGRESSION", "path": "/idHighWater/block" }
+    },
+    {
+      "name": "consumed packet history preserves the prior append-only prefix",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/document/round", "value": 3 },
+        {
+          "op": "replace",
+          "path": "/lineage/previousReviewDigest",
+          "value": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "op": "add",
+          "path": "/lineage/consumedPackets/-",
+          "value": {
+            "packetId": "RP-EEEEEEEEEEEEEEEEEEEE",
+            "semanticDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        }
+      ],
+      "context": [
+        {
+          "role": "current",
+          "schema": "review-document",
+          "base": "valid/review-document.json",
+          "mutations": [
+            { "op": "replace", "path": "/document/round", "value": 2 },
+            {
+              "op": "replace",
+              "path": "/lineage/previousReviewDigest",
+              "value": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "op": "add",
+              "path": "/lineage/consumedPackets/-",
+              "value": {
+                "packetId": "RP-DDDDDDDDDDDDDDDDDDDD",
+                "semanticDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+              }
+            }
+          ]
+        }
+      ],
+      "expected": { "code": "APPEND_ONLY_VIOLATION", "path": "/lineage/consumedPackets/0" }
+    },
+    {
+      "name": "feedback resolution history preserves the prior append-only prefix",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        { "op": "replace", "path": "/document/round", "value": 3 },
+        {
+          "op": "add",
+          "path": "/lineage/consumedPackets/-",
+          "value": {
+            "packetId": "RP-DDDDDDDDDDDDDDDDDDDD",
+            "semanticDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        }
+      ],
+      "context": [
+        {
+          "role": "current",
+          "schema": "review-document",
+          "base": "valid/review-document.json",
+          "mutations": [
+            { "op": "replace", "path": "/document/round", "value": 2 },
+            {
+              "op": "add",
+              "path": "/lineage/consumedPackets/-",
+              "value": {
+                "packetId": "RP-DDDDDDDDDDDDDDDDDDDD",
+                "semanticDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+              }
+            },
+            {
+              "op": "add",
+              "path": "/lineage/feedbackResolutions/-",
+              "value": {
+                "sourcePacketId": "RP-DDDDDDDDDDDDDDDDDDDD",
+                "feedbackId": "NOTE-001",
+                "feedbackDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "disposition": "context-only",
+                "reason": "The note is informational."
+              }
+            }
+          ]
+        }
+      ],
+      "expected": { "code": "APPEND_ONLY_VIOLATION", "path": "/lineage/feedbackResolutions/0" }
+    },
+    {
+      "name": "feedback resolutions bind a consumed source packet",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/lineage/feedbackResolutions/-",
+          "value": {
+            "sourcePacketId": "RP-DDDDDDDDDDDDDDDDDDDD",
+            "feedbackId": "NOTE-001",
+            "feedbackDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "disposition": "context-only",
+            "reason": "The note is informational."
+          }
+        }
+      ],
+      "expected": {
+        "code": "UNKNOWN_PACKET_REFERENCE",
+        "path": "/lineage/feedbackResolutions/0/sourcePacketId"
+      }
+    },
+    {
+      "name": "consumed packet IDs bind their semantic digest prefix",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/lineage/consumedPackets/-",
+          "value": {
+            "packetId": "RP-DDDDDDDDDDDDDDDDDDDD",
+            "semanticDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        }
+      ],
+      "expected": {
+        "code": "PACKET_ID_DIGEST_MISMATCH",
+        "path": "/lineage/consumedPackets/0/packetId"
+      }
+    }
+  ],
+  "legacyNormalization": [
+    {
+      "name": "prototype TRIM and EXPAND migrate atomically to visible EDIT notes",
+      "profile": "prototype-v1",
+      "input": "legacy/review-packet-trim-expand.json",
+      "expected": "legacy/review-packet-trim-expand.normalized.json",
+      "preservedPrefixes": {
+        "TRIM": "【精简】",
+        "EXPAND": "【扩展】"
+      }
+    }
+  ]
+}
