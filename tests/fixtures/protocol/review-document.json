@@ -1,0 +1,156 @@
+{
+  "format": "review-document/1",
+  "delivery": {
+    "id": "RDL-11111111111111111111",
+    "baseName": "protocol_golden",
+    "repositoryStatus": "local-only",
+    "outputs": {
+      "agent": "protocol_golden_AGENT.md",
+      "approval": "protocol_golden_APPROVAL.html"
+    }
+  },
+  "document": {
+    "id": "RD-22222222222222222222",
+    "title": "Protocol digest golden",
+    "language": "en",
+    "uiLocale": "en",
+    "contentVersion": 1,
+    "asOf": "2026-08-12T09:00:00Z",
+    "round": 1,
+    "status": "in-review",
+    "summary": "Freeze the portable protocol-core behavior."
+  },
+  "continuation": {
+    "objective": "Continue from the same verified review facts.",
+    "scope": ["Protocol core"],
+    "exclusions": ["Transition decisions"],
+    "currentState": [
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "The public schemas are frozen." }]
+      }
+    ],
+    "nextActions": [
+      {
+        "id": "ACT-001",
+        "action": "Verify the digest golden.",
+        "verification": "Node and browser values match."
+      }
+    ],
+    "validationEvidence": ["Draft 2020-12 schemas compile."],
+    "evidenceGaps": []
+  },
+  "evidence": {
+    "sourceHierarchy": [
+      {
+        "id": "SRC-001",
+        "rank": 1,
+        "label": "Confirmed contract",
+        "reference": "contract-spec",
+        "freshness": { "kind": "static", "checkedAt": "2026-08-12T08:00:00Z" }
+      }
+    ],
+    "facts": [
+      {
+        "id": "C-001",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "strong", "text": "Runtime validation fails closed." }]
+          }
+        ],
+        "confidence": "high",
+        "sourceRefs": ["SRC-001"]
+      }
+    ],
+    "decisions": [],
+    "constraints": ["No runtime schema compiler."],
+    "risks": [],
+    "openQuestions": [],
+    "conflicts": []
+  },
+  "blocks": [
+    {
+      "id": "B001",
+      "tier": "T2",
+      "title": "Freeze facade",
+      "summary": "Expose one protocol facade to Node and browsers.",
+      "body": [
+        {
+          "type": "paragraph",
+          "content": [{ "type": "text", "text": "Callers share validation and digests." }]
+        }
+      ],
+      "whyTier": "The facade becomes a public engineering dependency.",
+      "ask": "Approve the protocol facade?",
+      "dependencies": [],
+      "claimRefs": ["C-001"],
+      "decisionRefs": []
+    },
+    {
+      "id": "B002",
+      "tier": "T1",
+      "title": "Canonical arrays",
+      "summary": "Normalize set-like arrays and preserve narrative arrays.",
+      "body": [
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [[{ "type": "text", "text": "JCS encodes the canonical copy." }]]
+        }
+      ],
+      "dependencies": ["B001"],
+      "claimRefs": ["C-001"],
+      "decisionRefs": []
+    },
+    {
+      "id": "B003",
+      "tier": "T0",
+      "title": "Graph closure",
+      "summary": "Provide upstream and downstream transitive closures.",
+      "body": [{ "type": "code", "language": "text", "text": "B001 -> B002 -> B003" }],
+      "dependencies": ["B002"],
+      "claimRefs": [],
+      "decisionRefs": []
+    },
+    {
+      "id": "B004",
+      "tier": "T0",
+      "title": "Legacy migration",
+      "summary": "Map prototype actions only with explicit identity.",
+      "body": [
+        {
+          "type": "callout",
+          "tone": "warning",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Unknown actions remain invalid." }]
+            }
+          ]
+        }
+      ],
+      "dependencies": [],
+      "claimRefs": [],
+      "decisionRefs": []
+    }
+  ],
+  "glossary": [],
+  "approvals": { "history": [], "currentFrozen": [] },
+  "lineage": {
+    "previousReviewDigest": null,
+    "idHighWater": {
+      "block": 4,
+      "source": 1,
+      "fact": 1,
+      "decision": 0,
+      "glossary": 0,
+      "note": 0,
+      "topic": 0
+    },
+    "consumedPackets": [],
+    "topicMappings": [],
+    "impactAssessments": [],
+    "feedbackResolutions": []
+  }
+}
