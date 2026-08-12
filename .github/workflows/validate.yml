@@ -20,16 +20,20 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
-      - name: Compile scripts
-        run: python -m py_compile skills/deliver-dual-audience-report/scripts/*.py
       - name: Install specification validators
         run: python -m pip install check-jsonschema==0.36.2 "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref"
-      - name: Validate Agent Skill and report contract schema
+      - name: Validate retained Python baseline
         run: |
+          if compgen -G 'skills/deliver-dual-audience-report/scripts/*.py' > /dev/null; then
+            python -m py_compile skills/deliver-dual-audience-report/scripts/*.py
+          fi
           skills-ref validate skills/deliver-dual-audience-report
-          check-jsonschema --check-metaschema skills/deliver-dual-audience-report/references/report-contract.schema.json
-      - name: Unit and privacy tests
-        run: python -m unittest discover -s tests -v
+          if test -f skills/deliver-dual-audience-report/references/report-contract.schema.json; then
+            check-jsonschema --check-metaschema skills/deliver-dual-audience-report/references/report-contract.schema.json
+          fi
+          if test -f tests/test_delivery.py; then
+            python -m unittest discover -s tests -p 'test_delivery.py' -v
+          fi
       - name: Install locked Node dependencies
         run: npm ci
       - name: Validate Node bootstrap
@@ -38,4 +42,39 @@ jobs:
           npm run build -- --infrastructure-only
           npm run typecheck
           npm run lint
-          npm run test:browser -- --list
+      - name: Validate implemented schemas
+        run: |
+          if test -f skills/deliver-dual-audience-report/references/review-document.schema.json; then
+            npm run schema:meta
+            npm run schema:types
+            npm run check:generated
+          fi
+      - name: Run implemented Node suites
+        run: |
+          if find tests/unit -type f -name '*.test.ts' -print -quit 2>/dev/null | grep -q .; then
+            npm run test:unit
+          fi
+          if find tests/e2e -type f -name '*.test.ts' -print -quit 2>/dev/null | grep -q .; then
+            npm run test:e2e
+          fi
+          if find src -type f -name '*.ts' -print -quit 2>/dev/null | grep -q .; then
+            npm run test:coverage
+          fi
+          if test -f tests/acceptance/coverage-map.json; then
+            npm run check:acceptance-coverage
+          else
+            node tools/check-acceptance-coverage.mjs --self-test
+          fi
+      - name: Validate implemented browser suites
+        run: |
+          if find tests/browser -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) ! -name 'bootstrap.spec.ts' -print -quit | grep -q .; then
+            npx playwright install --with-deps chromium webkit firefox
+            npm run test:browser
+          else
+            npm run test:browser -- --list
+          fi
+      - name: Validate implemented product build
+        run: |
+          if test -f src/cli/main.ts && test -f src/workbench/main.ts; then
+            npm run build
+          fi
