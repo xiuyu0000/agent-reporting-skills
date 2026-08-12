@@ -94,6 +94,7 @@ export {
 
 export {
   parseReviewPacketMarkdown,
+  parseReviewPacketMarkdownUnbound,
   serializeReviewPacketJson,
   serializeReviewPacketMarkdown,
 } from "./packet-markdown.js";
