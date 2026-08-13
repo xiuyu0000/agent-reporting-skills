@@ -226,6 +226,34 @@ describe("SKL-002 Skill workflow surface", () => {
     }
   });
 
+  it("makes the low-context final reply mechanically complete from the current handoff", async () => {
+    const skill = normalizeWhitespace(bodyOf(await readFile(skillPath, "utf8")));
+    const fixture = await loadFixture();
+    const handoff = getCase(fixture, "handoff-discloses-four-classes");
+
+    expect(skill).toMatch(/context is sparse or compacted.*final reply for each handed-off document.*single delivery.*every part in a batch.*that document's current successful `handoff`/iu);
+    expect(skill).toMatch(/For every document, state its `documentId`, `contentVersion`, `round`, and exact `asOf`/u);
+    expect(skill).toMatch(/For every document.*exactly two canonical artifact links.*one Agent Markdown link and one Approval HTML link/iu);
+    expect(skill).toMatch(/For that same document.*each non-empty uncertainty class.*class name, its exact count, and every `safeSummary`/iu);
+    expect(handoff.perDocumentScope).toEqual([
+      "single-delivery-document",
+      "each-batch-part",
+    ]);
+    expect(handoff.perDocumentIdentityFieldsFromCurrentSuccessfulHandoff).toEqual([
+      "documentId",
+      "contentVersion",
+      "round",
+      "asOf",
+    ]);
+    expect(handoff.perDocumentCanonicalArtifactLinks).toEqual([
+      "agentMarkdown",
+      "approvalHtml",
+    ]);
+    expect(handoff.perDocumentDiscloseClassName).toBe(true);
+    expect(handoff.perDocumentDiscloseExactCount).toBe(true);
+    expect(handoff.perDocumentDiscloseEverySafeSummary).toBe(true);
+  });
+
   it("keeps the Agent template continuation-complete and source-honest", async () => {
     const template = await readFile(agentTemplatePath, "utf8");
     const requiredSections = [
@@ -292,12 +320,16 @@ describe("SKL-002 Skill workflow surface", () => {
     expect(consume.cliAuthorsSemanticChange).toBe(false);
     expect(consume.cliExecutesApprovedWork).toBe(false);
     expect(consume.approvalGrantsExternalAuthority).toBe(false);
-    expect(handoff.uncertaintyClasses).toEqual([
+    expect(handoff.perDocumentScope).toEqual([
+      "single-delivery-document",
+      "each-batch-part",
+    ]);
+    expect(handoff.perDocumentUncertaintyClasses).toEqual([
       "evidenceGaps",
       "unresolvedNonblockingConflicts",
       "risks",
       "openQuestions",
     ]);
-    expect(handoff.discloseEveryNonemptyClass).toBe(true);
+    expect(handoff.perDocumentDiscloseEverySafeSummary).toBe(true);
   });
 });
