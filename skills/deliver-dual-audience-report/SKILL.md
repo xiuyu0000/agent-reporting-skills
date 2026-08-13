@@ -120,11 +120,16 @@ in the contract and rerender both views.
 
 ### 6. Deliver from the validated handoff
 
-Use paths and identity only from the current successful `handoff`; do not guess
-or cache them. Link both real files in the final reply and state the exact as-of
-time. Disclose each non-empty uncertainty class separately:
-`evidenceGaps`, `unresolvedNonblockingConflicts`, `risks`, and `openQuestions`.
-Include every safe summary returned for that class.
+Even when conversation context is sparse or compacted, compose the final reply
+for each handed-off document—one document in a single delivery or every part in
+a batch—only from that document's current successful `handoff`; do not guess,
+cache, or reconstruct it. For every document, state its `documentId`,
+`contentVersion`, `round`, and exact `asOf`, and include exactly two canonical
+artifact links from its handoff: one Agent Markdown link and one Approval HTML
+link. For that same document, disclose each non-empty uncertainty class
+separately: `evidenceGaps`, `unresolvedNonblockingConflicts`, `risks`, and
+`openQuestions`. For each one, state the class name, its exact count, and every
+`safeSummary` returned for that class.
 
 For a split group, first state the split reason, each part's judgment boundary,
 and the total number of parts. Then provide both Agent and Approval links for

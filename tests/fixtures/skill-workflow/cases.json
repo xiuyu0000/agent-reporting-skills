@@ -85,13 +85,29 @@
     {
       "id": "handoff-discloses-four-classes",
       "kind": "handoff",
-      "uncertaintyClasses": [
+      "perDocumentScope": [
+        "single-delivery-document",
+        "each-batch-part"
+      ],
+      "perDocumentIdentityFieldsFromCurrentSuccessfulHandoff": [
+        "documentId",
+        "contentVersion",
+        "round",
+        "asOf"
+      ],
+      "perDocumentCanonicalArtifactLinks": [
+        "agentMarkdown",
+        "approvalHtml"
+      ],
+      "perDocumentUncertaintyClasses": [
         "evidenceGaps",
         "unresolvedNonblockingConflicts",
         "risks",
         "openQuestions"
       ],
-      "discloseEveryNonemptyClass": true
+      "perDocumentDiscloseClassName": true,
+      "perDocumentDiscloseExactCount": true,
+      "perDocumentDiscloseEverySafeSummary": true
     }
   ]
 }
