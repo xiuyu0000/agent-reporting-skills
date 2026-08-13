@@ -9,10 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  node:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           cache: npm
@@ -20,61 +22,151 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
-      - name: Install specification validators
-        run: python -m pip install check-jsonschema==0.36.2 "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref"
-      - name: Validate retained Python baseline
-        run: |
-          if compgen -G 'skills/deliver-dual-audience-report/scripts/*.py' > /dev/null; then
-            python -m py_compile skills/deliver-dual-audience-report/scripts/*.py
-          fi
-          skills-ref validate skills/deliver-dual-audience-report
-          if test -f skills/deliver-dual-audience-report/references/report-contract.schema.json; then
-            check-jsonschema --check-metaschema skills/deliver-dual-audience-report/references/report-contract.schema.json
-          fi
-          if test -f tests/test_delivery.py; then
-            python -m unittest discover -s tests -p 'test_delivery.py' -v
-          fi
-      - name: Install locked Node dependencies
+      - name: Install locked dependencies
         run: npm ci
-      - name: Validate Node bootstrap
+      - name: Verify fixed runtimes
         run: |
-          node -e 'if (Number(process.versions.node.split(".")[0]) !== 24) process.exit(1)'
+          node -e 'if (process.versions.node !== "24.19.0") process.exit(1)'
+          python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 11) else 1)'
+      - name: Build product and reject generated drift
+        run: |
           npm run build -- --infrastructure-only
+          npm run build
+          npm run check:generated
+          git diff --exit-code -- skills/deliver-dual-audience-report
+      - name: Validate source, schemas, and requirements coverage
+        run: |
           npm run typecheck
           npm run lint
-      - name: Validate implemented schemas
+          npm run schema:meta
+          npm run schema:types -- --check
+          npm run check:acceptance-coverage
+          npm run check:bundle-size
+      - name: Run Node, acceptance, and numeric coverage gates
         run: |
-          if test -f skills/deliver-dual-audience-report/references/review-document.schema.json; then
-            npm run schema:meta
-            npm run schema:types
-            npm run check:generated
-          fi
-      - name: Run implemented Node suites
+          npm run test:unit
+          npm run test:e2e
+          npm run test:coverage
+          node tools/run-test-suite.mjs tests/acceptance
+      - name: Validate the fixed Skill distribution
         run: |
-          if find tests/unit -type f -name '*.test.ts' -print -quit 2>/dev/null | grep -q .; then
-            npm run test:unit
-          fi
-          if find tests/e2e -type f -name '*.test.ts' -print -quit 2>/dev/null | grep -q .; then
-            npm run test:e2e
-          fi
-          if find src -type f -name '*.ts' -print -quit 2>/dev/null | grep -q .; then
-            npm run test:coverage
-          fi
-          if test -f tests/acceptance/coverage-map.json; then
-            npm run check:acceptance-coverage
-          else
-            node tools/check-acceptance-coverage.mjs --self-test
-          fi
-      - name: Validate implemented browser suites
+          python -m pip install "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref"
+          npm run validate:skill
+          npm run test:e2e -- installed-skill legacy-interface
+      - name: Build and verify deterministic v0.2 release candidate
         run: |
-          if find tests/browser -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) ! -name 'bootstrap.spec.ts' -print -quit | grep -q .; then
-            npx playwright install --with-deps chromium webkit firefox
-            npm run test:browser
-          else
-            npm run test:browser -- --list
-          fi
-      - name: Validate implemented product build
+          git ls-files --error-unmatch \
+            dist/deliver-dual-audience-report-v0.2.0.zip \
+            dist/deliver-dual-audience-report-v0.2.0.manifest.json >/dev/null
+          npm run release:build -- --version 0.2.0
+          npm run verify:dist
+          npm run scan:legacy-surface
+          npm run test:e2e -- release-candidate
+          unzip -l dist/deliver-dual-audience-report-v0.2.0.zip
+          git diff --exit-code -- \
+            dist/deliver-dual-audience-report-v0.2.0.zip \
+            dist/deliver-dual-audience-report-v0.2.0.manifest.json
+          git diff --check
+      - name: Verify exact v0.1.0 rollback tag and release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if test -f src/cli/main.ts && test -f src/workbench/main.ts; then
-            npm run build
+          set -euo pipefail
+          test "$(git rev-parse --verify 'refs/tags/v0.1.0^{commit}')" = \
+            '03fc1185aee022e6bc08c596bcb5dfc8eecfb637'
+          test "$(git tag --list 'v0.1.0')" = "v0.1.0"
+          test "$(gh release view v0.1.0 \
+            --repo xiuyu0000/agent-reporting-skills \
+            --json tagName \
+            --jq '.tagName')" = "v0.1.0"
+          test "$(gh release view v0.1.0 \
+            --repo xiuyu0000/agent-reporting-skills \
+            --json assets \
+            --jq '[.assets[] | select(.name == "deliver-dual-audience-report-v0.1.0.zip" and .digest == "sha256:3f7f22465c26b8eb88776ce5dcd5c7863c0763cb855464a463b0b7f5fa4f855b" and .size == 18026)] | length')" -eq 1
+          rollback_dir="$(mktemp -d)"
+          cleanup() {
+            if test -n "${rollback_dir:-}" && test -d "$rollback_dir"; then
+              find "$rollback_dir" -xdev -depth -delete
+            fi
+          }
+          trap cleanup EXIT
+          gh release download v0.1.0 \
+            --repo xiuyu0000/agent-reporting-skills \
+            --pattern 'deliver-dual-audience-report-v0.1.0.zip' \
+            --dir "$rollback_dir"
+          rollback_archive="$rollback_dir/deliver-dual-audience-report-v0.1.0.zip"
+          test -f "$rollback_archive"
+          test ! -L "$rollback_archive"
+          test "$(find "$rollback_dir" -mindepth 1 -maxdepth 1 -type f -print | wc -l)" -eq 1
+          (
+            cd "$rollback_dir"
+            printf '%s  %s\n' \
+              '3f7f22465c26b8eb88776ce5dcd5c7863c0763cb855464a463b0b7f5fa4f855b' \
+              'deliver-dual-audience-report-v0.1.0.zip' \
+              | shasum -a 256 -c -
+          )
+
+  browser:
+    name: browser (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          cache: npm
+          node-version: "24.19.0"
+      - name: Require the implemented browser suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find tests/browser -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) ! -name 'bootstrap.spec.ts' -print -quit | grep -q .; then
+            echo "blocking browser suite is missing" >&2
+            exit 1
           fi
+      - name: Install locked dependencies and browser
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps "${{ matrix.project }}"
+      - name: Run blocking browser suite
+        run: npm run test:browser -- --project="${{ matrix.project }}"
+
+  firefox-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          cache: npm
+          node-version: "24.19.0"
+      - name: Require the implemented browser suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find tests/browser -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) ! -name 'bootstrap.spec.ts' -print -quit | grep -q .; then
+            echo "Firefox smoke inputs are missing" >&2
+            exit 1
+          fi
+      - name: Install locked dependencies and Firefox
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps firefox
+      - name: Select a nonempty Firefox smoke lane including A20
+        shell: bash
+        run: |
+          set -euo pipefail
+          selector='@bootstrap|protocol digest golden|@A01|@A19|@A20'
+          list_output="$(npm run test:browser -- --project=firefox --grep "$selector" --list)"
+          printf '%s\n' "$list_output"
+          printf '%s\n' "$list_output" \
+            | grep -Eq '^Total: [1-9][0-9]* tests? in [1-9][0-9]* files?$'
+      - name: Run blocking Firefox smoke lane
+        run: npm run test:browser -- --project=firefox --grep '@bootstrap|protocol digest golden|@A01|@A19|@A20'
