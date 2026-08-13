@@ -167,3 +167,7 @@ console.log(
 
 const workbenchBytes = await checkTrackedWorkbenchTemplate();
 console.log(`generated review workbench template is current; shell ${workbenchBytes}/358400 bytes`);
+
+const { checkTrackedCliBundle } = await import("./build-cli.mjs");
+const cliBytes = await checkTrackedCliBundle();
+console.log(`generated installed CLI bundle is current; bundle ${cliBytes} bytes`);

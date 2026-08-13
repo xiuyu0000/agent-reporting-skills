@@ -1,8 +1,8 @@
 import { access, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import process from "node:process";
-import { build } from "esbuild";
 import { assertSupportedNode } from "../tests/helpers/runtime.ts";
+import { writeCliArtifacts } from "./build-cli.mjs";
 import {
   writeWorkbenchArtifacts,
 } from "./build-workbench.mjs";
@@ -26,15 +26,4 @@ try {
 }
 
 await mkdir("build", { recursive: true });
-await Promise.all([
-  build({
-    bundle: true,
-    entryPoints: [cliEntry],
-    format: "esm",
-    outfile: "build/review-delivery.mjs",
-    platform: "node",
-    sourcemap: true,
-    target: "node24",
-  }),
-  writeWorkbenchArtifacts(),
-]);
+await Promise.all([writeCliArtifacts(), writeWorkbenchArtifacts()]);
