@@ -1,90 +1,162 @@
 # Agent Reporting Skills
 
-Open Agent Skills for turning one verified evidence set into reports that work
-for different readers.
+Open Agent Skills for turning one verified evidence set into precise continuation
+context and an offline approval workspace.
 
 ## Included Skill
 
 ### `deliver-dual-audience-report`
 
-Use this Skill when a task explicitly requires both:
+Use this Skill for a single approver with a clear approval goal when the initial
+plan naturally contains at least four independently decidable items and the
+task needs both default artifacts:
 
-- an Agent-facing Markdown document for precise continuation; and
-- a human-facing, self-contained HTML document for zero-context understanding.
+- Agent Markdown for exact continuation without hidden chat context; and
+- self-contained Approval HTML for reading, deciding, recovery, and exporting
+  a structured `review-packet/1` receipt.
 
-The Skill keeps semantic writing flexible. Two Python standard-library scripts
-make the delivery contract deterministic: they create both files early and
-check that both are complete, aligned, private, linkable, and ready to hand off.
+The canonical input is `review-document/1`. The Approval HTML works offline and
+the Agent Markdown and Approval HTML are generated together from the same
+validated snapshot. Do not use this Skill for multi-reviewer work, fewer than
+four natural decisions, free-form reading, a single report, a chat-only answer,
+or a code-only task without a separate approval deliverable.
 
-Do not use it for a single report, a chat-only answer, or a code-only task.
+## Requirements and install
 
-## Install
+- Node.js 24.x (`>=24 <25`) is required to run the installed CLI.
+- The v0.2 ZIP contains the complete 11-file Skill and needs no `npm install` or
+  `node_modules` at runtime.
+- Development from this repository uses the committed npm lockfile and
+  `npm ci`.
 
-Clone this repository, then link or copy the Skill directory.
+Install the release candidate ZIP:
 
 ```bash
-# Codex / open Agent Skills location
-ln -s "$PWD/skills/deliver-dual-audience-report" \
-  "$HOME/.agents/skills/deliver-dual-audience-report"
-
-# Claude Code personal Skill location
-ln -s "$PWD/skills/deliver-dual-audience-report" \
-  "$HOME/.claude/skills/deliver-dual-audience-report"
+unzip dist/deliver-dual-audience-report-v0.2.0.zip -d /path/to/skills
+node /path/to/skills/deliver-dual-audience-report/scripts/review-delivery.mjs --help
 ```
 
-Codex installations that use `~/.codex/skills` may link the same directory
-there. Claude Cowork users can upload the ZIP attached to each release.
-
-Invoke it explicitly with `$deliver-dual-audience-report` when you need the
-two-artifact contract.
-
-## Quick start
+Or clone this repository and link the complete Skill directory:
 
 ```bash
-python3 skills/deliver-dual-audience-report/scripts/init_delivery.py \
-  --output-dir ./report \
+ln -s "$PWD/skills/deliver-dual-audience-report" \
+  "$HOME/.agents/skills/deliver-dual-audience-report"
+```
+
+Codex installations that use `~/.codex/skills` may link the same directory.
+Claude Code may use `~/.claude/skills`. Invoke the Skill explicitly with
+`$deliver-dual-audience-report` when the trigger contract applies.
+
+## v0.2 CLI workflow
+
+The only installed entry point is:
+
+```bash
+node /path/to/deliver-dual-audience-report/scripts/review-delivery.mjs <command>
+```
+
+It exposes five commands:
+
+- `init` creates a safe draft `review-document/1` contract.
+- `render` validates an `in-review` document and atomically generates Agent
+  Markdown plus Approval HTML.
+- `validate` checks delivery, batch, packet, state, or transition inputs without
+  modifying them.
+- `consume` validates a receipt and Agent-authored next-round candidates before
+  atomically publishing their contracts and paired artifacts.
+- `record-usage` appends or summarizes content-free local workflow metrics.
+
+For example:
+
+```bash
+CLI=/path/to/deliver-dual-audience-report/scripts/review-delivery.mjs
+
+node "$CLI" init \
+  --output-dir ./review \
   --base-name project-review \
   --title "Project Review" \
   --language en \
-  --as-of 2026-07-21T16:00:00+08:00
+  --ui-locale en \
+  --as-of 2026-08-13T09:00:00Z
 
-# Complete report-contract.json and both documents, then validate.
-python3 skills/deliver-dual-audience-report/scripts/validate_delivery.py \
-  --contract ./report/report-contract.json
+# Replace every draft slot, add verified evidence, and set status to in-review.
+node "$CLI" render --document ./review/review-document.json
+node "$CLI" validate delivery --document ./review/review-document.json
 ```
 
-The validator writes `delivery-receipt.json` and `delivery-receipt.md` only
-after all checks pass.
+Before passing `--confirm-output-scope tracked` or `public`, obtain explicit
+current approval for that destination and, for public output, explain the
+disclosure risk. CLI success does not authorize external execution.
 
-Optionally record a content-free local workflow outcome after validation:
+Protocol details and exact options live in
+[`review-protocols.md`](skills/deliver-dual-audience-report/references/review-protocols.md).
+
+## Release candidate verification
+
+The checked-in v0.2 candidate is accompanied by an external manifest containing
+the archive digest, byte length, Node range, exact sorted inventory, and each
+file digest. Rebuild and verify it with Node 24:
 
 ```bash
-python3 skills/deliver-dual-audience-report/scripts/record_usage.py \
-  --eligible yes --triggered yes --correct yes \
-  --validation passed --result success
+npm ci
+npm run build
+npm run release:build -- --version 0.2.0
+npm run verify:dist
+npm run scan:legacy-surface
 ```
 
-The receipt contains only the Skill content hash, a local HMAC scenario
-identifier, trigger/terminal labels, validation status, and human-burden counts.
-Monitoring failure does not invalidate a verified report.
+The build uses a stable bytewise path order, stored entries, the ZIP epoch
+timestamp, mode `0644`, and no archive comments or extra fields. Verification
+rebuilds from distinct physical roots, parses and checks every ZIP field,
+extracts to a private temporary directory, and runs the installed CLI from an
+unrelated working directory without npm state.
+
+## Breaking migration and v0.1.0 rollback
+
+v0.2 is intentionally incompatible with `dual-audience-report-contract-v1` and
+does not silently convert that contract. The old static `*_HUMAN.html` output is
+not an Approval workspace, and the v0.2 CLI rejects the old contract before
+producing a seemingly valid delivery. Recreate the plan from its original facts
+as `review-document/1`; historical packet/state prototype migration is available
+only through the documented explicit identity-confirmation path.
+
+For an unchanged old workflow, install the GitHub
+[`v0.1.0` release](https://github.com/xiuyu0000/agent-reporting-skills/releases/tag/v0.1.0)
+asset `deliver-dual-audience-report-v0.1.0.zip`. Its expected SHA-256 is
+`3f7f22465c26b8eb88776ce5dcd5c7863c0763cb855464a463b0b7f5fa4f855b`.
+Rollback does not convert v0.2 review documents into the old format; regenerate
+from the original evidence. Other repository archives are historical evidence,
+not the documented rollback baseline.
 
 ## Privacy
 
-This repository contains only generic workflow guidance and synthetic tests.
-It contains no chat transcripts, real project reports, Session identifiers,
-credentials, or personal absolute paths.
+This repository contains generic workflow guidance and synthetic tests. CI scans
+tracked public text for credential patterns, personal paths, session identifiers,
+and retired active interfaces. The release verifier rejects unexpected or
+development-only inventory and requires every v0.2 archive entry to be
+byte-identical to its scanned Skill source. Do not place real proposals, private
+approval receipts, or user captures in this repository.
 
 ## Compatibility
 
 The Skill follows the open [Agent Skills specification](https://agentskills.io/specification).
-Its Markdown workflow is portable across Codex, Claude Code, and Claude Cowork;
-`agents/openai.yaml` adds optional Codex UI metadata.
+Its Markdown workflow is portable across compatible hosts;
+`agents/openai.yaml` adds optional Codex UI metadata. The CLI runtime contract is
+Node 24.x.
 
 ## Development
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 skills/deliver-dual-audience-report/scripts/validate_delivery.py --help
+npm ci
+npm run build
+npm run check:generated
+npm run typecheck
+npm run lint
+npm run test:unit
+npm run test:e2e
+npm run test:browser
+npm run test:coverage
+npm run validate:skill
 ```
 
 ## License

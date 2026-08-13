@@ -1,0 +1,81 @@
+{
+  "format": "deliver-dual-audience-report-release/1",
+  "version": "0.2.0",
+  "skill": "deliver-dual-audience-report",
+  "node": ">=24 <25",
+  "archive": {
+    "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
+    "byteLength": 952704,
+    "digest": "sha256:ae207e27643390b2b02ff7e8bc56cd49fe7031b1e71a9678fc4b2384f2290b59",
+    "entryCount": 11,
+    "compression": "store",
+    "timestamp": "1980-01-01T00:00:00Z",
+    "mode": "0644",
+    "root": "deliver-dual-audience-report"
+  },
+  "files": [
+    {
+      "path": "deliver-dual-audience-report/SKILL.md",
+      "byteLength": 11624,
+      "digest": "sha256:9af6349fb4e317f1ee6f0e67b05d2250225d306984fc031f3b7ccd64538ee82c"
+    },
+    {
+      "path": "deliver-dual-audience-report/agents/openai.yaml",
+      "byteLength": 474,
+      "digest": "sha256:719ec80ea716e3a6932c1442053fd99cbcf6c281a58e2823fc81ea4eb9608c96"
+    },
+    {
+      "path": "deliver-dual-audience-report/assets/agent-context.template.md",
+      "byteLength": 1773,
+      "digest": "sha256:10b60d7d37ea0264ff150f898d4bd5b7315062f3b3a187ab3ce490a027cdd54a"
+    },
+    {
+      "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
+      "byteLength": 351955,
+      "digest": "sha256:902bd1f3ca87fb5e3cd757f5e638ff1f45a78b47c17025650b8314a7f9e51f41"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/audience-contracts.md",
+      "byteLength": 5495,
+      "digest": "sha256:bb11ae68acc3e9e306aabe235330d7723b95fc767c1e0b2437af46ee3a2b14f1"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/evidence-and-privacy.md",
+      "byteLength": 7086,
+      "digest": "sha256:d176480d1a720e2edf93dac916a5b786413838bde4d8487382d67ecc838bb461"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/review-document.schema.json",
+      "byteLength": 26325,
+      "digest": "sha256:c08db5778e712983392dc1ae0f8223a499b4ada9abfefc2afb561275c1c8516d"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/review-packet.schema.json",
+      "byteLength": 6508,
+      "digest": "sha256:99b05636a4afeea40739fd1a347acabb23f155fb116c4e1d3978e644a65beda6"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/review-protocols.md",
+      "byteLength": 16194,
+      "digest": "sha256:c0c16c026ed1d34453b7d2bc1c2eeab3fb2d72c7d1425dcc6aaf5d469ba27039"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/review-state.schema.json",
+      "byteLength": 5334,
+      "digest": "sha256:b7dacda6acd5b953b5fa3955b13a3cfc31618aaea21c68fef804c6e67d658d0c"
+    },
+    {
+      "path": "deliver-dual-audience-report/scripts/review-delivery.mjs",
+      "byteLength": 517786,
+      "digest": "sha256:0be56db25ef964d37ce8be753745b35d5cb5999e6b7e5dd3f6510c468958e095"
+    }
+  ],
+  "reproducibility": {
+    "order": "bytewise-path-ascending",
+    "timestamp": "1980-01-01T00:00:00Z",
+    "compression": "store",
+    "mode": "0644",
+    "extraFields": false,
+    "comments": false
+  }
+}
