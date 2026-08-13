@@ -1,0 +1,27 @@
+{
+  "format": "acceptance-coverage/1",
+  "cases": [
+    { "id": "A01", "primaryTask": "GEN-001", "testId": "A01_complete_review" },
+    { "id": "A02", "primaryTask": "UI-003", "testId": "A02_partial_packet" },
+    { "id": "A03", "primaryTask": "UI-002", "testId": "A03_bulk_excludes_t2" },
+    { "id": "A04", "primaryTask": "RND-001", "testId": "A04_edit_incremental" },
+    { "id": "A05", "primaryTask": "RND-001", "testId": "A05_hold_answer" },
+    { "id": "A06", "primaryTask": "RND-001", "testId": "A06_topic_derivation" },
+    { "id": "A07", "primaryTask": "RND-001", "testId": "A07_finalize_unchanged" },
+    { "id": "A08", "primaryTask": "UI-003", "testId": "A08_reopen_frozen" },
+    { "id": "A09", "primaryTask": "CTR-002", "testId": "A09_legacy_actions" },
+    { "id": "A10", "primaryTask": "UI-003", "testId": "A10_storage_degrade" },
+    { "id": "A11", "primaryTask": "UI-003", "testId": "A11_clipboard_fallback" },
+    { "id": "A12", "primaryTask": "CTR-002", "testId": "A12_fail_closed" },
+    { "id": "A13", "primaryTask": "GEN-001", "testId": "A13_split_or_block" },
+    { "id": "A14", "primaryTask": "SKL-001", "testId": "A14_trigger_boundary" },
+    { "id": "A15", "primaryTask": "VAL-001", "testId": "A15_artifact_drift" },
+    { "id": "A16", "primaryTask": "RND-001", "testId": "A16_transitive_hold" },
+    { "id": "A17", "primaryTask": "RND-001", "testId": "A17_reapprove_reopened" },
+    { "id": "A18", "primaryTask": "CTR-002", "testId": "A18_state_identity" },
+    { "id": "A19", "primaryTask": "UI-001", "testId": "A19_untrusted_content" },
+    { "id": "A20", "primaryTask": "UI-002", "testId": "A20_keyboard_complete" },
+    { "id": "A21", "primaryTask": "RND-001", "testId": "A21_global_topic_idempotent" },
+    { "id": "A22", "primaryTask": "UI-003", "testId": "A22_export_dirty_again" }
+  ]
+}
