@@ -2,10 +2,10 @@
 
 > - 文档状态：已确认，执行中
 > - 计划版本：0.2-execution
-> - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；仅 W7 真实使用门未完成
-> - 当前波次：W7 · 真实试点与指标验证（PIL-001 `blocked`、MET-001 `deferred`）
+> - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
+> - 当前波次：W7 · 真实试点与指标验证（PIL-001 `blocked`、MET-001 `deferred`）；W8 · 发布门回归修复（REL-002 `done`）与 W7 无依赖，可独立收口
 > - 协调者：主实施 Agent
-> - 最后更新：2026-08-17（文档整合：波次状态、跟踪规则与运行事实源对齐；任务卡内容与验收口径未变更）
+> - 最后更新：2026-08-17（新增 W8 / REL-002：修复规划文档跟踪化引入的 `scan:legacy-surface` 回归，补齐回归测试与候选分支 CI 触发面；需求、设计与既有任务验收口径未变更）
 > - Spec 基线：`docs/spec.md` · SHA-256 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`
 > - Design 基线：`docs/design.md` · SHA-256 `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b`
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
@@ -150,6 +150,7 @@ flowchart TD
     REL["REL-001 v0.2 发布候选"]
     PIL["PIL-001 真实方案试点"]
     MET["MET-001 3–5 份指标"]
+    REL2["REL-002 发布门回归修复"]
 
     PLN --> QA0
     QA0 --> QA
@@ -198,6 +199,7 @@ flowchart TD
     INT --> REL
     REL --> PIL
     PIL --> MET
+    REL --> REL2
 ```
 
 ### 3.2 波次
@@ -212,8 +214,11 @@ flowchart TD
 | W5 | INT-001 先执行；真实 fresh final reply 发现产品合同缺口后，冻结 INT 并串行完成 PRQ-INT-SKL-001，再回到 INT | prerequisite 期间只有 Skill body/test 窄写权；INT acceptance 写域保持冻结 | prerequisite fixed-SHA/CI 合入，随后同协议 fresh reply 与 A01–A22 全量回归通过 |
 | W6 | REL-001 | 独占 README/CI/dist | 集成门通过 |
 | W7 | PIL-001；MET-001 deferred | 真实使用 | 发布候选完成；指标等样本 |
+| W8 | REL-002 | 单线程；与 W7 无写入交集 | 候选 HEAD 全量门（含 `scan:legacy-surface`）恢复全绿 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
+
+W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品行为。它只修复 2026-08-17 规划文档跟踪化在候选分支上引入的发布门回归：`docs/{spec,design,task}.md` 记录了已退役的 v0.1 实现与迁移口径，被 `scan:legacy-surface` 当作当前公开承诺而阻断。W8 恢复该门，并补上一条能在 `npm run test:unit` 中复现同类回归的测试。
 
 ## 4. 任务总表
 
@@ -248,6 +253,7 @@ W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次�
 | REL-001 | README/CI/v0.2 ZIP 与新接口一致、可回滚 | INT-001 | release | `done` | w6_release Agent | README、CI、dist、专属 release E2E | Release gate |
 | PIL-001 | 一份真实业务方案完成闭环 | REL-001 | pilot | `blocked` | 用户 + 协调者 | 脱敏本地证据 | Pilot gate |
 | MET-001 | 3–5 份真实方案验证时间/轮次/负担指标 | PIL-001 | metrics | `deferred` | 未分配 | 内容无关指标摘要 | Spec §6.3 |
+| REL-002 | 恢复候选 HEAD 的 `scan:legacy-surface` 门并防止同类回归复发 | REL-001 | release | `done` | w8_release_gate Agent | legacy-surface scanner、专属回归测试、CI 触发面 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -923,6 +929,34 @@ W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次�
 - **Completion evidence**：尚无。
 - **Blocker / unblock**：GitHub Issue #62 已登记于 W7；累计至少 3 份真实方案后从 deferred 切 ready。
 
+### REL-002 · 发布门回归修复与规划记录边界
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w8_release_gate Agent / 2026-08-17
+- **Outcome**：候选分支 HEAD 重新通过全部发布门；退役合同扫描获得显式的“规划记录”边界；同类回归可由 `npm run test:unit` 直接复现，不再依赖只在 PR 上运行的 CI。
+- **Depends on / unlocks**：REL-001 / 无（不解锁 PIL-001，也不改变 W7 阻塞条件）。
+- **Parallel / conflicts**：与 W7 无写入交集；不触碰 `src/**`、Skill 分发面、dist ZIP/manifest 与 `package.json`。
+- **Write scope**：`tools/scan-legacy-surface.mjs`、新增 `tests/unit/legacy-surface.test.ts`、`.github/workflows/validate.yml` 的 push 触发分支、`docs/{task,claude-code-handoff,README}.md` 的状态同步；不修改 `docs/spec.md`、`docs/design.md` 与 `.gitignore`。
+- **Refs**：Spec §15.2；Design §14.3、§15；本文 §8.4 Release gate；REL-001 完成证据。
+- **Implementation contract**：退役合同扫描保留全部既有断言，只新增一个**显式路径清单**边界 `docs/{design,spec,task}.md`，不得使用 `docs/` 前缀或通配；边界内路径必须仍被 Git 跟踪，否则扫描失败关闭；边界外的任何新增文档（含 `docs/README.md`、`docs/claude-code-handoff.md`）继续全量扫描。回归测试必须调用真实扫描器扫描真实工作树，而不是复制断言或断言夹具。CI 的 push 触发面必须覆盖候选集成分支，使直接推送不再绕过发布门。
+- **Failure rules**：不得通过删除断言、放宽 `RETIRED_PROMISE_PATTERNS` 或整目录排除 `docs/` 取绿；不得修改 spec/design 的需求或设计条款来迁就工具；不得改动 dist ZIP/manifest 字节或候选摘要。
+- **Validation**：
+
+  ```bash
+  npm run scan:legacy-surface -- --self-test
+  npm run scan:legacy-surface
+  npm run test:unit -- legacy-surface
+  npm run test:unit
+  npm run test:e2e
+  npm run typecheck
+  npm run lint
+  npm run verify:dist
+  git diff --check
+  ```
+
+  预期：全部退出 0；扫描输出的 `allowedLegacyHits` 仍恰好只落在 README 迁移段、SKILL、review-protocols、`src/cli/validate/text.ts` 与安装态 CLI 的固定拒绝上下文内；移除边界后回归测试必须复现与发布门相同的失败信息；`verify:dist` 摘要与 REL-001 记录一致。
+- **Completion evidence**：修复前，候选 HEAD `04e8f59` 上 `npm run scan:legacy-surface` 以 rc=3 失败于 `docs/design.md: legacy contract escaped an exact rejection or migration context`；`docs/{spec,design,task}.md` 分别命中退役合同标记 2/3/1 次、`_HUMAN.html` 0/2/2 次、退役文件名 0/6/4 次，并触发两条 `RETIRED_PROMISE_PATTERNS`。原因是该门只在 `pull_request` 与 `push: main` 上运行，而 `04e8f59` 直接推送到 `codex/v0.2.0`，未经任何 CI。修复后 Node 24.19.0 下 self-test、全量扫描（118 个当前面 + 13 个发布面）、新增 7 个 legacy-surface 回归断言、unit 515/515、e2e 157 pass + 2 skip、typecheck、lint 与 `verify:dist`（`ae207e27…2f2290b59`，952704 bytes）全部通过；移除边界的变异测试复现了发布门的同一条失败信息。dist ZIP/manifest 字节未变。
+- **Blocker / unblock**：无；发布门已恢复，W7 的阻塞条件不受影响。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -973,8 +1007,9 @@ W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次�
 | Agent template/references | SKL-002 | schemas 仍归 CTR-001 |
 | usage module | TEL-001 | 其他任务只调用 |
 | acceptance tests/evidence | INT-001 | 不修产品缺陷；退回责任任务 |
-| CI workflow | QA-000 bootstrap → QA-001 按组件存在性接通渐进门 → REL-001 final | 中间波次只运行已实现且可证明的门；REL 收敛完整发布矩阵 |
+| CI workflow | QA-000 bootstrap → QA-001 按组件存在性接通渐进门 → REL-001 final → REL-002 只扩 push 触发分支 | 中间波次只运行已实现且可证明的门；REL 收敛完整发布矩阵；REL-002 不改任何 job、矩阵或固定版本 |
 | README/release manifest/dist | REL-001 | 其他任务禁止提前写；package version 保持 QA-000 的 0.2.0 |
+| legacy-surface scanner + 其专属回归测试 | REL-001 → REL-002 | REL-002 只加显式规划记录边界与回归测试，不删既有断言；其他任务只读 |
 
 ## 8. 集成、发布与试点门
 
@@ -1021,6 +1056,8 @@ ASM-001 必须在组件门之后通过 installed-skill gate，确认唯一公开
 - v0.1 tag/zip 仍可定位；
 - 每波次 feature/integration branch push 已由本轮用户授权；本地候选完成不自动授权 tag 或 GitHub Release。
 
+发布门必须在候选集成分支的当前 HEAD 上成立，而不只是在最后一次 REL PR 的提交上成立。2026-08-17 的文档跟踪化直接推送到 `codex/v0.2.0`，绕过了只在 `pull_request` 与 `push: main` 触发的 CI，使 `scan:legacy-surface` 在候选 HEAD 上失败而无人察觉。REL-002 已把候选集成分支纳入 push 触发面，并把该门的核心断言下沉到 `npm run test:unit`，因此任何后续文档或工具改动都会在本地测试阶段暴露同类回归。
+
 PIL-001 是候选完成后的独立真实使用门；REL-001 已 done，PIL 当前只因尚未收到用户真实方案、审批目标和私有输出授权而 blocked。MET-001 保持 deferred；二者都不阻断本地 v0.2 发布候选，但会限制可对外声称的真实场景与长期指标结论。
 
 ### 8.5 Pilot gate
@@ -1045,3 +1082,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 本施工单已完成 W6 本地发布候选并进入真实 PIL 等待。W1 最终集成提交为 `920f5f416fc9b86d4c444761affe2c6235dd276a`；W2 最终集成提交为 `19adb0bc1a4c279ce3cc7b68d752fb7295fee798`。W3 的 RND-001、CLI-001、UI-002 均经独立 fixed-SHA 复核与各自远端 CI，按 RND → CLI → UI 的固定顺序合入，最终 W3 集成提交为 `6dbf0bf59dd1c3017b9b1c6e3f1c331ce524139c`，W3 milestone 已关闭。W4 初始并行预检发现既有 protocol/browser topology 无法让 UI3 同时完整校验 packet/state 并稳定通过体积门，且 write-only I/O facade 会使 validate 产生可观察写入；因此先从该精确提交分出 PRQ-PRO-001 与 PRQ-IO-001 两个互斥前置分支。两个 prerequisite 均经独立 fixed-SHA review 与远端 CI，已按 protocol → read-I/O 顺序合入；UI-003 随后经同样门禁合入并冻结 template/workbench。VAL-001 收口期间发现 transition Markdown 历史 replay 必须在 current 身份绑定前解析，故以 PRQ-PKT-001 窄扩唯一 core parser；该 prerequisite 也已审查、CI 并合入。VAL-001 随后完成静态产物、隐私、legacy、transition 与 handoff 全门并合入。GEN 收口又发现跨轮 replace 需要 paired 旧快照验证与安全标题编码，PRQ-GEN-VAL-001 经独立审查、PR #45 CI 后合入；GEN-001 随后经独立审查和 PR #47 全门合入。CON 的 fresh-output 前置 PRQ-CON-IO-001 经独立审查与 PR #48 CI 合入。随后的 CON 组合预检确认 legacy receipt 跨轮 replay 与 VAL public composition 仍各缺一条公开 facade，因此并行登记 PRQ-CON-PRO-001 与 PRQ-CON-VAL-001；两者均经 fixed-SHA 终审与远端 CI 后依次合入。CON-001 又经双 fixed-SHA 终审及 PR #53 全门合入；ASM-001 随后完成唯一公开 CLI、安装 bundle、旧运行面退役及回滚证据，并经双 fixed-SHA 终审和 PR #54 全门合入。INT-001 首次 fresh final reply 忠实暴露身份/count 指令缺口后，由 Issue #56 / PRQ-INT-SKL-001 窄修 Skill handoff 语义并经双审/CI 合入；INT 随后以同协议重跑 fresh evidence、A01–A22 与全量门，提交 `f8cc60a17a6fbaeb46f0b18d4b9649ce3932cb33` 经 PR #58 CI 合入。REL-001 又以两路 floating 与两路 fixed-SHA 审查收口 README、最终 CI、release tools、v0.2 ZIP/manifest 和唯一 release E2E，PR #60 CI 全绿后合入；当前 integration 为 `dae53e5b76e6507592b37c1a241e7ad6c6e22905`，Issue #59 已关闭。W4、W5、W6 milestones 均已关闭；W7 保持开放，并以 Issue #61 / #62 分别追踪真实试点与 3–5 份真实案例指标验证。v0.2 tag/GitHub Release 未创建且仍不在本轮授权内；PIL-001 正等待用户真实业务输入与私有输出授权。
 
 2026-08-17 的后续记录：`codex/claude-code-handoff` 以提交 `12cf429` 新增 [claude-code-handoff.md](claude-code-handoff.md)（PIL-001 验证交接），经 PR #63 合入 `codex/v0.2.0`，当前候选分支 HEAD 为 `fe734f7`；发布候选基线 `dae53e5b76e6507592b37c1a241e7ad6c6e22905` 与 ZIP/manifest 摘要不变。同日按用户决定完成规划文档整合：spec/design/task 由本地忽略改为随仓库跟踪，`docs/调研/` 加入 `.gitignore` 保持私有，handoff 从候选分支收入 `docs/`，并新增 [README.md](README.md) 作为目录索引。该次整合只对齐状态元数据、跟踪规则、交叉引用与摘要，未改变任何需求条款、设计决定、任务验收口径或已记录的完成证据；PIL-001 与 MET-001 的阻塞条件不受影响。
+
+同日更晚的一次候选 HEAD 全量复验发现：上述整合提交 `04e8f59` 直接推送到 `codex/v0.2.0`，未经过 PR，因此没有触发任何 CI，而它让 `scan:legacy-surface` 在候选 HEAD 上以 rc=3 失败——三份规划记录为了描述迁移而必须提及已退役的 v0.1 合同、`_HUMAN.html` 与旧脚本文件名，被该门当作当前公开承诺。除此之外，同一次复验在 Node 24.19.0 上确认其余全部门仍然全绿：build、check:generated、typecheck、lint、schema meta/types、unit 508/508、e2e 157 pass + 2 skip、acceptance 30/30 + 2 skip、coverage 695 pass + 4 skip（91.48/85.42/97.30/94.70）、Chromium/WebKit/Firefox 88 pass + 2 designed skip、A01–A22 checker 22/22、bundle size 351962/358400、固定版 Skill validator、`verify:dist` 与 `release:build` 复现同一 ZIP 摘要、`git diff --check`。因此新增 W8 / REL-002 只修复该门与其触发面，不改动任何产品代码、Skill 分发面或候选 ZIP。

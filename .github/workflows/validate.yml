@@ -3,7 +3,10 @@ name: validate
 on:
   pull_request:
   push:
-    branches: [main]
+    # `codex/v0.2.0` is the release-candidate integration branch. Without it, a
+    # direct push there lands unvalidated, which is how a tracked-documentation
+    # commit silently broke `scan:legacy-surface` after the v0.2 candidate froze.
+    branches: [main, codex/v0.2.0]
 
 permissions:
   contents: read

@@ -35,6 +35,8 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **PIL-001**（`blocked`，Issue #61）：等待用户提供符合触发边界的真实业务方案、真实审批目标与私有输出根授权。
 - **MET-001**（`deferred`，Issue #62）：等待累计 3–5 份真实案例。
 
+此外，W8 / **REL-002**（`done`）是候选冻结后的维护波次：它修复了本次文档跟踪化在候选分支上引入的 `scan:legacy-surface` 发布门回归，并把该门的核心断言下沉到单元测试。它不改变产品行为、发布候选字节或 W7 的阻塞条件。
+
 绿色 CI、fixture、演示内容与 replay no-op 都不能关闭这两项。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 
 ## 4. 分支上下文
