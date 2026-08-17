@@ -12,6 +12,12 @@ order:
 4. The stage-appropriate reference in
    [`skills/deliver-dual-audience-report/references/`](skills/deliver-dual-audience-report/references/)
 
+For requirement, design, or task detail, read [the docs index](docs/README.md)
+and the tracked planning sources it lists: [spec](docs/spec.md),
+[design](docs/design.md), and [task](docs/task.md). They are tracked as of
+2026-08-17, so the same version is available in every worktree and branch;
+`docs/调研/` remains local, private, and `.gitignore`-excluded.
+
 The v0.2 candidate is on `codex/v0.2.0`; do not use the older root `main`
 worktree for this workflow. The handoff records the exact baseline, release
 evidence, remaining PIL-001/MET-001 work, required user authorization, and

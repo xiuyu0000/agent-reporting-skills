@@ -15,6 +15,9 @@ this repository.
    [the Skill references](skills/deliver-dual-audience-report/references/)
    before collecting evidence, creating a contract, importing a packet, or
    consuming a round.
+5. Read [the docs index](docs/README.md), then the tracked planning sources
+   [spec](docs/spec.md), [design](docs/design.md), and [task](docs/task.md),
+   before changing scope, acceptance criteria, or wave status.
 
 `AGENTS.md` in a parent directory belongs to another project and is not an
 instruction source for this repository.
@@ -27,8 +30,17 @@ instruction source for this repository.
   `git status`, branch, parent SHA, and `git worktree list --porcelain` before
   mutating files.
 - Preserve unrelated dirty files, worktrees, branches, historical release
-  artifacts, and ignored local planning material. Never reset, clean, or
-  delete them without explicit user approval.
+  artifacts, and ignored local material. Never reset, clean, or delete them
+  without explicit user approval.
+- The planning sources `docs/spec.md`, `docs/design.md`, `docs/task.md`, and
+  `docs/README.md` are tracked as of 2026-08-17 so that every worktree and
+  branch reads the same version. Keep them synchronized with
+  `docs/claude-code-handoff.md`, refresh the bound SHA-256 values after any
+  change, and treat them as public-tree text: no business body, proposal title,
+  document ID, approver identity, personal absolute path, or credential.
+- `docs/调研/` stays local, private, and `.gitignore`-excluded. Never commit it
+  or copy its body into a tracked file; tracked documents keep only provenance
+  references to it.
 - Recheck live GitHub/CI/release state before describing it as current. A
   historical handoff value is evidence, not a substitute for a live check.
 

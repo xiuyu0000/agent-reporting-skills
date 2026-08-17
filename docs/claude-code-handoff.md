@@ -2,9 +2,10 @@
 
 This is the portable operational handoff for continuing validation after the
 v0.2 release candidate. It is detailed enough for Claude Code to work without
-hidden chat context or locally ignored planning drafts. It is not permission to
-publish, tag, create a GitHub Release, disclose a pilot, or operate an external
-system.
+hidden chat context. Since 2026-08-17 the planning sources it summarizes are
+tracked alongside it under [`docs/`](README.md), so read them directly when you
+need requirement, design, or task detail. It is not permission to publish, tag,
+create a GitHub Release, disclose a pilot, or operate an external system.
 
 ## 1. Exact baseline and authority
 
@@ -53,21 +54,30 @@ Resolve conflicts in this order:
 
 1. A fresh, user-authorized fact or explicit current instruction.
 2. Current candidate code, public Skill files, schemas, and executed validation.
-3. Locally supplied planning sources: `docs/spec.md`, `docs/design.md`, and
-   `docs/task.md`.
+3. The tracked planning sources: [`docs/spec.md`](spec.md),
+   [`docs/design.md`](design.md), and [`docs/task.md`](task.md).
 4. This handoff, which is an operational snapshot.
 5. Generic tool knowledge or inferred convention.
 
-The locally ignored planning sources had these SHA-256 values at handoff time:
+On 2026-08-17 the user decided that these planning sources are tracked with the
+repository instead of staying locally ignored. Their current SHA-256 values are:
 
-| Source | SHA-256 |
-|---|---|
-| `spec.md` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
-| `design.md` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| Source | SHA-256 | Value at 2026-08-17 handoff time |
+|---|---|---|
+| `spec.md` | `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
+| `design.md` | `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
+| `task.md` | `cf028b4c8a3f7587ad46d1c3c036029d9544013c265f7cc01fd4ef52392a3a5b` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
-Those files were intentionally local/ignored and must not be recreated from
-memory or published merely to simplify a workflow. This handoff preserves the
+The digest change is documentation consolidation only — status metadata,
+tracking rules, cross-references, and refreshed digests. No requirement clause,
+design decision, acceptance criterion, or recorded completion evidence changed,
+so every contract value in this handoff still holds. Read the tracked files
+directly rather than reconstructing them from memory, and verify a digest before
+treating a planning source as current.
+
+`docs/调研/` remains local, private, and `.gitignore`-excluded. It must never be
+committed, and its body must never be copied into a tracked file; the tracked
+documents keep only provenance references to it. This handoff preserves the
 contract needed for PIL-001 and MET-001.
 
 ## 2. Research basis and accepted product decisions
@@ -529,8 +539,14 @@ exactly:
 
 ```bash
 git add -N -- AGENTS.md CLAUDE.md docs/claude-code-handoff.md \
-  tests/unit/claude-handoff.test.ts
+  tests/unit/claude-handoff.test.ts \
+  docs/README.md docs/spec.md docs/design.md docs/task.md
 ```
+
+The four `docs/` planning files joined that list on 2026-08-17 when they became
+tracked. Stage only the ones you actually changed. `docs/调研/` is never staged:
+it stays `.gitignore`-excluded, and `npm run test:unit -- public-tree` fails if
+any path under it becomes tracked.
 
 Inspect the resulting paths, then verify local Markdown links, refresh stated
 remote facts, scan changed tracked text for privacy leaks, run
@@ -573,6 +589,7 @@ separate authorization.
 | Stage | Read before acting |
 |---|---|
 | Any repository operation | [AGENTS.md](../AGENTS.md), this handoff, current Git/worktree state |
+| Planning context, scope, or acceptance question | [docs index](README.md), then [spec.md](spec.md), [design.md](design.md), [task.md](task.md) |
 | Source collection/output scope | [evidence and privacy](../skills/deliver-dual-audience-report/references/evidence-and-privacy.md) |
 | Contract, packet, split, consume | [review protocols](../skills/deliver-dual-audience-report/references/review-protocols.md) and the public schemas |
 | Agent/Approval isolation | [audience contracts](../skills/deliver-dual-audience-report/references/audience-contracts.md) |
