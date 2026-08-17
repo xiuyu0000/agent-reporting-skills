@@ -1,0 +1,91 @@
+{
+  "format": "int-001-external-evidence/1",
+  "recordedAt": "2026-08-13",
+  "privacy": {
+    "containsCredentials": false,
+    "containsThreadIds": false,
+    "containsUserBusinessContent": false,
+    "rawEventsCommitted": false,
+    "rawEvidenceDisposition": "private temporary roots retained only through independent review, then removed"
+  },
+  "candidate": {
+    "integrationCommit": "21e500c4b24bed0c7b42772445b469fa3bb12817",
+    "prerequisiteCommit": "f06bec008b35248860011ec7cf55c2eed6def8aa",
+    "skillSha256": "9af6349fb4e317f1ee6f0e67b05d2250225d306984fc031f3b7ccd64538ee82c",
+    "codexCli": "0.147.0",
+    "model": "gpt-5.6-sol"
+  },
+  "isolation": {
+    "freshProcessPerRun": true,
+    "ephemeral": true,
+    "ignoreUserConfig": true,
+    "ignoreRules": true,
+    "sandbox": "read-only",
+    "privateHomeAndCodexHome": true,
+    "candidateSkillWasOnlyNonSystemProjectSkill": true,
+    "schemaPreflightFailuresBeforeModelInference": 3
+  },
+  "evidence": {
+    "a14Positive": {
+      "resultSha256": "ca5a8ca678905fd1db44829e78fada46ad8824ca0fee8b8141f6e75ff921ca1d",
+      "eligible": true,
+      "workflow": "single-reviewer-approval",
+      "candidateSkillBodyRead": true,
+      "verdict": "pass"
+    },
+    "a14ArtificialPadding": {
+      "resultSha256": "56d1de92cc486c4f413e3ac9926963a67389ab362c8adba4110844030a37c834",
+      "eligible": false,
+      "workflow": "lighter-response",
+      "candidateSkillBodyRead": true,
+      "verdict": "pass"
+    },
+    "a14ParallelReviewers": {
+      "resultSha256": "9df3bcef761c855966a4c95718c897233c50f4463e22a27fe178eca3767554af",
+      "eligible": false,
+      "workflow": "lighter-response",
+      "candidateSkillBodyRead": false,
+      "note": "the non-trigger path stopped at routing metadata and did not execute the Skill body",
+      "verdict": "pass"
+    },
+    "packetMarkdownReader": {
+      "inputBusinessFileCount": 1,
+      "captureSha256": "e15ca8778e7383d3440de1a4c338558a4717029ab57b1b5a6d22e6d587fbb64e",
+      "packetCount": 1,
+      "semanticDigest": "sha256:1633603a5eb0c65d292225cea12b84ffc7bd7a5e24360c2a7f6c92f2c8d8a7c4",
+      "enabledHook": "pass",
+      "verdict": "pass"
+    },
+    "agentOnlyReader": {
+      "inputBusinessFileCount": 1,
+      "captureSha256": "a1a453deb65dae8fc505e57e5f0ab83f2111cb3f4fd911f388dcadb00936ba29",
+      "reconstructedCurrentState": true,
+      "nextActionCount": 5,
+      "blockingGapCount": 3,
+      "verdict": "pass"
+    },
+    "approvalOnlyReader": {
+      "inputBusinessFileCount": 1,
+      "captureSha256": "225a528a9d1383f5c8439392e1356b527f11148e78dcff2093a17c54ef69bedb",
+      "decisionBlockCount": 4,
+      "actions": ["HOLD", "HOLD", "HOLD", "HOLD"],
+      "sufficientWithoutAnotherReport": true,
+      "verdict": "pass"
+    },
+    "freshFinalReply": {
+      "handoffSha256": "e0f1bb279f77b45585b5ced098903678287262fe332b78bb383e15b10a63126a",
+      "preFixFailureReplySha256": "c268df258aed296a40d7259487ab73774dd76bfc34b3edf3253cc14bc1f7b295",
+      "postFixReplySha256": "4b2cd22a798cf18efb6b57d94003a2a2f13340ead6e39cf6370cc67ec0a23acc",
+      "candidateSkillBodyRead": true,
+      "documentIdentityPresent": true,
+      "contentVersionPresent": true,
+      "roundPresent": true,
+      "exactAsOfPresent": true,
+      "canonicalArtifactLinkCount": 2,
+      "nonemptyUncertaintyClassesWithExactCountAndAllSummaries": 4,
+      "enabledHook": "pass",
+      "note": "the captured reply was preserved while an over-specific test-only line-format matcher was relaxed",
+      "verdict": "pass"
+    }
+  }
+}
