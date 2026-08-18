@@ -238,6 +238,18 @@ perform destructive work without fresh user approval.
 | W1–W3 | Contract, protocol, I/O, Skill, workbench, rounds, CLI, and installed distribution complete |
 | W4–W5 | Consumption, assembly, A01–A22 integration, browser/security/privacy, and reader-isolation gates complete |
 | W6 | Deterministic v0.2 ZIP/manifest, installed runtime, CI, rollback proof, and exact-SHA reviews complete |
+| W8 | REL-002 restored the `scan:legacy-surface` release gate on the candidate HEAD; no product code, Skill surface, or release byte changed |
+
+W8 is a post-freeze maintenance wave, not progress on W7. The 2026-08-17 documentation
+consolidation was pushed straight to `codex/v0.2.0`, where CI runs on neither
+`pull_request` nor `push: main`, so nothing validated it: the newly tracked
+`docs/{spec,design,task}.md` describe the retired v0.1 contract, its retired
+static human-narrative artifact suffix, and the retired Python filenames, which
+`scan:legacy-surface` read as current public promises and rejected with rc=3. REL-002 gave the scanner an
+explicit three-path planning-record boundary (never a `docs/` prefix), added
+`tests/unit/legacy-surface.test.ts` so `npm run test:unit` reproduces that class of
+regression, and put the candidate integration branch on the CI push trigger. The
+candidate ZIP and manifest digests in section 1 are unchanged and still verify.
 
 ### Historical task sequence and remaining dependency
 
@@ -565,9 +577,16 @@ npm run test:unit
 npm run test:browser
 npm run test:e2e
 npm run validate:skill
+npm run scan:legacy-surface
 npm run verify:dist
 git diff --check
 ```
+
+`validate:skill` needs the external validator pinned by
+`.github/workflows/validate.yml`; without it the command exits 3 with
+`unable to execute pinned Skill validator`, which is a missing local tool, not a
+Skill defect. `scan:legacy-surface` is listed because a documentation-only commit
+already broke it once — run it on the branch you actually intend to merge.
 
 Use a dedicated branch/worktree. Do not overwrite the candidate branch. Push or
 open a PR only with current user authorization. Do not tag v0.2, create a

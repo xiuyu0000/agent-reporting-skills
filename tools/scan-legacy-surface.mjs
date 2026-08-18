@@ -39,6 +39,15 @@ const LEGACY_FILENAMES = Object.freeze([
 ]);
 
 const README_PATH = "README.md";
+// Tracked planning records describe the retired v0.1 implementation and the exact
+// migration away from it, so their legacy narrative is historical evidence rather
+// than a current public promise. The boundary is an explicit path list, never a
+// `docs/` prefix: every other tracked document stays fully scanned.
+export const PLANNING_RECORD_PATHS = Object.freeze([
+  "docs/design.md",
+  "docs/spec.md",
+  "docs/task.md",
+]);
 const SKILL_PATH = `skills/${SKILL_NAME}/SKILL.md`;
 const PROTOCOLS_PATH = `skills/${SKILL_NAME}/references/review-protocols.md`;
 const INSTALLED_CLI_PATH = `skills/${SKILL_NAME}/scripts/review-delivery.mjs`;
@@ -262,7 +271,7 @@ function assertKnownLegacyContexts(logicalPath, displayPath, text) {
   return [];
 }
 
-function scanLogicalText(logicalPath, text, displayPath = logicalPath) {
+export function scanLogicalText(logicalPath, text, displayPath = logicalPath) {
   const allowedHits = assertKnownLegacyContexts(logicalPath, displayPath, text);
   for (const filename of LEGACY_FILENAMES) {
     assert(!logicalPath.includes(filename), `${displayPath}: retired filename remains in an active path`);
@@ -280,23 +289,32 @@ function scanLogicalText(logicalPath, text, displayPath = logicalPath) {
   return allowedHits;
 }
 
-function trackedCurrentFiles() {
+export function trackedCurrentFiles() {
   const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
     .split("\0")
     .filter(Boolean);
   return [...new Set([...tracked, ...REQUIRED_WORKTREE_SURFACES])].sort();
 }
 
-function isHistoricalTestPath(path) {
+export function isHistoricalTestPath(path) {
   return path === "tests" || path.startsWith("tests/");
 }
 
-async function scanRepositorySurfaces() {
+export function isPlanningRecordPath(path) {
+  return PLANNING_RECORD_PATHS.includes(path);
+}
+
+export async function scanRepositorySurfaces() {
   const allowedHits = [];
   const scanned = [];
-  for (const path of trackedCurrentFiles()) {
+  const tracked = trackedCurrentFiles();
+  for (const path of PLANNING_RECORD_PATHS) {
+    assert(tracked.includes(path), `planning record boundary covers an untracked path: ${path}`);
+  }
+  for (const path of tracked) {
     if (
       isHistoricalTestPath(path)
+      || isPlanningRecordPath(path)
       || path === HISTORICAL_ARCHIVE_PATH
       || path === RELEASE_ZIP_PATH
       || path === RELEASE_MANIFEST_PATH
@@ -372,7 +390,7 @@ function expectSelfTestRejection(label, action) {
   assert(rejected, `scanner self-test accepted ${label}`);
 }
 
-function runSelfTests() {
+export function runSelfTests() {
   const readme = [
     README_MIGRATION_HEADING,
     "",
@@ -405,6 +423,22 @@ function runSelfTests() {
   expectSelfTestRejection("a hostile retired filename in added context", () =>
     scanLogicalText("README-extra.md", `run ${LEGACY_FILENAMES[0]}`));
   assert(isHistoricalTestPath("tests/unit/historical.test.ts"), "scanner self-test lost the historical test boundary");
+  for (const path of PLANNING_RECORD_PATHS) {
+    assert(isPlanningRecordPath(path), `scanner self-test lost the planning record boundary for ${path}`);
+  }
+  for (const path of [
+    "docs/README.md",
+    "docs/claude-code-handoff.md",
+    "docs/spec.md.bak",
+    "docs/archive/spec.md",
+    "spec.md",
+  ]) {
+    assert(!isPlanningRecordPath(path), `scanner self-test widened the planning record boundary to ${path}`);
+  }
+  expectSelfTestRejection("a legacy marker in a document outside the planning record boundary", () =>
+    scanLogicalText("docs/claude-code-handoff.md", `carrier: ${LEGACY_CONTRACT}`));
+  expectSelfTestRejection("a retired artifact suffix in a document outside the planning record boundary", () =>
+    scanLogicalText("docs/README.md", `output ${LEGACY_HUMAN_SUFFIX}`));
 }
 
 async function main() {
@@ -425,6 +459,7 @@ async function main() {
     currentSurfaceFiles: repository.scanned.length,
     releaseSurfaceFiles: release.scanned.length,
     historicalTestsExcluded: true,
+    planningRecordsExcluded: [...PLANNING_RECORD_PATHS],
     historicalArchive: HISTORICAL_ARCHIVE_PATH,
     allowedLegacyHits: [...repository.allowedHits, ...release.allowedHits],
   }));
