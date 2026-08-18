@@ -3,9 +3,19 @@ import type { ValidationResult } from "./types.js";
 
 const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const SEMVER = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/u;
+/**
+ * The one frozen unreplaced-placeholder grammar. Both generated artifacts and
+ * the authored review-document content are measured against this single
+ * pattern so `PLACEHOLDER_REMAINS` keeps one meaning across every surface.
+ */
+const PLACEHOLDER = /@@DAR_[A-Z0-9_]+@@|\{\{[A-Z][A-Z0-9_]*\}\}|\b(?:TODO|TBD|REPLACE_[A-Z0-9_]+)\b|待填写|待补充/u;
 
 export function isSemver(value: string): boolean {
   return SEMVER.test(value);
+}
+
+export function hasUnreplacedPlaceholder(value: string): boolean {
+  return typeof value === "string" && PLACEHOLDER.test(value);
 }
 
 export function decodeStrictUtf8(bytes: Uint8Array, path: string): ValidationResult<string> {

@@ -399,7 +399,8 @@ describe("review interaction controller", () => {
     const dialog = workbench.ownerDocument.querySelector("dialog") as TestDialog;
     expect(dialog.open).toBe(true);
     button(dialog, "Save").click();
-    expect(dialog.querySelector(".dialog-error")?.textContent).toBe("DECISION_NOTE_REQUIRED");
+    expect(dialog.querySelector(".dialog-error")?.textContent)
+      .toBe("Not saved: this action needs your written instruction or question");
     const note = dialog.querySelector("textarea");
     if (note === null) throw new Error("note missing");
     note.value = "Change the closure.";
@@ -694,9 +695,9 @@ describe("review interaction controller", () => {
     if (noteInput === null || topicTitle === null) throw new Error("rail controls missing");
 
     button(workbench.rail, "Add note").click();
-    expect(workbench.status.textContent).toBe("NOTE_REQUIRED");
+    expect(workbench.status.textContent).toBe("Not saved: the note text cannot be empty");
     button(workbench.rail, "Add global topic").click();
-    expect(workbench.status.textContent).toBe("TOPIC_TITLE_REQUIRED");
+    expect(workbench.status.textContent).toBe("Not saved: a new topic needs a title");
 
     const bulk = workbench.header.querySelector("button.bulk-pass-button");
     if (bulk === null) throw new Error("bulk missing");
@@ -706,7 +707,8 @@ describe("review interaction controller", () => {
     button(article(workbench, "B002"), "1 · Pass").click();
     oldConfirm.click();
     expect(dialog.open).toBe(true);
-    expect(workbench.status.textContent).toBe("BULK_SELECTION_INVALID");
+    expect(workbench.status.textContent)
+      .toBe("Not saved: the pending T0/T1 selection changed. Reopen bulk pass to see the current blocks");
     button(dialog, "Cancel").click();
 
     const staleSave = oldConfirm;

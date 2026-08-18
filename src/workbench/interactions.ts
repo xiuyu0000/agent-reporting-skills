@@ -2,7 +2,7 @@ import type {
   ReviewDecision,
   ReviewDocumentV1,
 } from "../protocol/index.js";
-import type { WorkbenchStrings } from "./i18n.js";
+import { reducerErrorMessage, type WorkbenchStrings } from "./i18n.js";
 import {
   cloneWorkbenchReviewState,
   createInitialReviewState,
@@ -214,7 +214,11 @@ export function mountReviewInteractions({
   let search = "";
   let currentBlockId = activeBlockIds(documentValue, state)[0] ?? documentValue.blocks[0]?.id;
   let editorContext: EditorContext | undefined;
-  let editingNoteId: string | undefined;
+  // A side note being edited keeps its own source block. `currentBlockId` is the
+  // moving review cursor: j/k, n, a block click, and auto-advance after a decision
+  // all reassign it, so reading the block from it at save time would rewrite the
+  // note onto whichever block happened to be focused.
+  let editingNote: { readonly id: string; readonly blockId: string } | undefined;
   let editingGlobalTopicId: string | undefined;
 
   const blockControls = new Map<string, BlockControls>();
@@ -453,7 +457,7 @@ export function mountReviewInteractions({
   }
 
   function resetNoteEditor(): void {
-    editingNoteId = undefined;
+    editingNote = undefined;
     rail.noteInput.value = "";
     rail.noteSubmit.textContent = strings.addSideNote;
     rail.noteCancel.hidden = true;
@@ -560,7 +564,7 @@ export function mountReviewInteractions({
         const edit = buttonWithText(document, strings.edit, "secondary-action");
         edit.addEventListener("click", () => {
           currentBlockId = note.blockId;
-          editingNoteId = note.id;
+          editingNote = { id: note.id, blockId: note.blockId };
           rail.noteInput.value = note.note;
           rail.noteSubmit.textContent = strings.save;
           rail.noteCancel.hidden = false;
@@ -570,7 +574,7 @@ export function mountReviewInteractions({
         const remove = buttonWithText(document, strings.delete, "secondary-action");
         remove.addEventListener("click", () => {
           dispatch({ type: "DELETE_SIDE_NOTE", noteId: note.id }, strings.delete);
-          if (editingNoteId === note.id) resetNoteEditor();
+          if (editingNote?.id === note.id) resetNoteEditor();
         });
         actions.append(edit, remove);
         item.append(text, actions);
@@ -699,7 +703,7 @@ export function mountReviewInteractions({
     mode: "apply" | "clear" = "apply",
   ): boolean {
     if (!result.ok) {
-      announce(`${result.code}`);
+      announce(reducerErrorMessage(result.code, strings));
       return false;
     }
     const hook = mode === "clear" ? stateHooks?.clear : stateHooks?.apply;
@@ -891,7 +895,7 @@ export function mountReviewInteractions({
     if (!result.ok) {
       const error = dialog.querySelector<HTMLElement>(".dialog-error");
       if (error !== null) {
-        error.textContent = result.code;
+        error.textContent = reducerErrorMessage(result.code, strings);
         error.hidden = false;
       }
       dialog.querySelector<HTMLElement>("input,textarea")?.focus();
@@ -926,13 +930,14 @@ export function mountReviewInteractions({
     render();
   });
   rail.noteSubmit.addEventListener("click", () => {
-    if (currentBlockId === undefined) return;
-    const action: ReviewAction = editingNoteId === undefined
-      ? { type: "SET_SIDE_NOTE", blockId: currentBlockId, note: rail.noteInput.value }
+    const target = editingNote?.blockId ?? currentBlockId;
+    if (target === undefined) return;
+    const action: ReviewAction = editingNote === undefined
+      ? { type: "SET_SIDE_NOTE", blockId: target, note: rail.noteInput.value }
       : {
         type: "SET_SIDE_NOTE",
-        blockId: currentBlockId,
-        noteId: editingNoteId,
+        blockId: target,
+        noteId: editingNote.id,
         note: rail.noteInput.value,
       };
     if (dispatch(action, strings.save)) resetNoteEditor();

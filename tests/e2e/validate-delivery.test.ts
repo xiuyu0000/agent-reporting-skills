@@ -206,6 +206,59 @@ describe("validate delivery subprocess", () => {
     expect(await snapshotTree(root)).toEqual(before);
   });
 
+  it("rejects an authored placeholder that both generated artifacts hide", async () => {
+    const parent = await temporaryDirectory("validate-placeholder");
+    const root = await makeInputRoot(parent);
+    // Assembled so the fixture text is a placeholder only at runtime.
+    const token = ["@@DAR", "_OWNER@@"].join("");
+    const braces = ["{{", "PROJECT}}"].join("");
+
+    const clean = reviewDocumentFixture();
+    const contract = await writeDelivery(root, clean);
+    const accepted = await runValidate(["delivery", "--document", contract]);
+    expect(accepted.status).toBe(0);
+    expect(accepted.result).toEqual(expect.objectContaining({ status: "ok" }));
+
+    const cases: [string, (document: ReviewDocumentV1) => void, string][] = [
+      ["document title", (document) => {
+        document.document.title = `${token} 交付报告`;
+      }, "/document/title"],
+      ["document summary", (document) => {
+        document.document.summary = `${braces} 的评审摘要。`;
+      }, "/document/summary"],
+      ["block summary", (document) => {
+        document.blocks[0]!.summary = `${token} 需要在发布前替换。`;
+      }, "/blocks/0/summary"],
+      ["paragraph inline text", (document) => {
+        const paragraph = document.blocks[0]?.body[0];
+        if (paragraph?.type !== "paragraph") throw new Error("fixture drift");
+        const inline = paragraph.content[0];
+        if (inline?.type !== "text") throw new Error("fixture drift");
+        inline.text = `${braces} 仍未替换。`;
+      }, "/blocks/0/body/0/content/0/text"],
+    ];
+
+    for (const [label, mutate, path] of cases) {
+      const document = reviewDocumentFixture();
+      mutate(document);
+      await writePrivateFile(contract, `${JSON.stringify(document)}\n`);
+      const before = await snapshotTree(root);
+
+      const outcome = await runValidate(["delivery", "--document", contract]);
+
+      expect(outcome.status, label).toBe(5);
+      expect(outcome.result, label).toEqual(expect.objectContaining({
+        status: "failed",
+        phase: "validate",
+        mutated: false,
+        recoveryRequired: false,
+        errors: [expect.objectContaining({ code: "PLACEHOLDER_REMAINS", path })],
+      }));
+      expect(outcome.result, label).not.toHaveProperty("handoff");
+      expect(await snapshotTree(root), label).toEqual(before);
+    }
+  });
+
   it("runs the business gate before touching absent generated artifacts", async () => {
     const parent = await temporaryDirectory("validate-draft");
     const root = await makeInputRoot(parent);

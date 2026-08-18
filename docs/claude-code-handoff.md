@@ -14,22 +14,26 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Item | Verified value |
 |---|---|
 | Candidate branch | `codex/v0.2.0` |
-| Candidate integration SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` |
-| Release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a` |
-| Release PR | [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), merged |
-| Release CI | [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641), Node/Chromium/WebKit/Firefox smoke green |
+| Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
+| Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
+| Current artifact source | W9 (UI-004, VAL-002, RND-002, DOC-001), re-cut by REL-003 on 2026-08-18 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `952704` bytes / `ae207e27643390b2b02ff7e8bc56cd49fe7031b1e71a9678fc4b2384f2290b59` |
-| Manifest SHA-256 | `9d520f3d4c50a24e1d9303109f075775cdd3547b4df5c14858c4a00fd458eb85` |
+| ZIP size / SHA-256 | `958943` bytes / `712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539` |
+| Manifest SHA-256 | `c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6` |
 | Runtime | Node `>=24 <25` |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
-`dae53e5b76e6507592b37c1a241e7ad6c6e22905` is the immutable release-artifact
-baseline, not a requirement that every later documentation worktree have that
-exact `HEAD`. This handoff may itself be committed as a descendant. Use an
-isolated v0.2 worktree where that baseline is an ancestor, inspect the diff from
-it, and stop if a source or release-artifact change makes the verified ZIP no
-longer match the values above. The root `main` branch is an older v0.1 line and
+`dae53e5b76e6507592b37c1a241e7ad6c6e22905` is the original release baseline and
+the ancestor gate used by §6.2, not a requirement that every later worktree have
+that exact `HEAD`. This handoff may itself be committed as a descendant. The
+candidate ZIP is no longer that commit's ZIP: on 2026-08-18 the user chose to
+re-cut v0.2 rather than open a v0.2.1 line, so W9's four contract fixes are in
+the shipped runtime and REL-003 rebuilt the archive. `952704` bytes /
+`ae207e27…2f2290b59` and manifest `9d520f3d…d458eb85` are now historical values
+that survive only in the REL-001 and REL-002 completion evidence. Use an isolated
+v0.2 worktree where the baseline is an ancestor, inspect the diff from it, and
+stop if a source or release-artifact change makes the verified ZIP no longer
+match the values above. The root `main` branch is an older v0.1 line and
 must not be used to run a v0.2 pilot. Refresh remote branch, PR, CI, issues,
 milestones, release metadata, and worktree state before claiming any value
 above is current.
@@ -65,15 +69,18 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 | Source | SHA-256 | Value at 2026-08-17 handoff time |
 |---|---|---|
 | `spec.md` | `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
-| `design.md` | `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `cf028b4c8a3f7587ad46d1c3c036029d9544013c265f7cc01fd4ef52392a3a5b` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `design.md` | `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
+| `task.md` | `0ad5aad99f088b2e242fa5aeffe9217b88c04de358492c1e6382d243063e49e2` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
-The digest change is documentation consolidation only — status metadata,
-tracking rules, cross-references, and refreshed digests. No requirement clause,
-design decision, acceptance criterion, or recorded completion evidence changed,
-so every contract value in this handoff still holds. Read the tracked files
-directly rather than reconstructing them from memory, and verify a digest before
-treating a planning source as current.
+`spec.md` is unchanged: no requirement clause has moved since the 2026-08-17
+consolidation. `design.md` changed once, on 2026-08-18, when DOC-001 corrected
+DES-017 — the row still claimed the planning sources stay gitignored and out of
+CI, which the same consolidation had already falsified and which REL-002 then
+turned into an executable CI assertion. That is the only DES wording change since
+the design was confirmed; no other engineering decision moved. `task.md` changes
+whenever wave status or completion evidence changes, which is its normal role.
+Read the tracked files directly rather than reconstructing them from memory, and
+verify a digest before treating a planning source as current.
 
 `docs/调研/` remains local, private, and `.gitignore`-excluded. It must never be
 committed, and its body must never be copied into a tracked file; the tracked
@@ -239,6 +246,24 @@ perform destructive work without fresh user approval.
 | W4–W5 | Consumption, assembly, A01–A22 integration, browser/security/privacy, and reader-isolation gates complete |
 | W6 | Deterministic v0.2 ZIP/manifest, installed runtime, CI, rollback proof, and exact-SHA reviews complete |
 | W8 | REL-002 restored the `scan:legacy-surface` release gate on the candidate HEAD; no product code, Skill surface, or release byte changed |
+| W9 | UI-004, VAL-002, RND-002 closed three verified contract gaps; DOC-001 corrected DES-017; REL-003 re-cut the candidate and rebound every recorded digest |
+
+W9 closed four gaps that an adversarial re-audit of the frozen candidate
+confirmed against `spec.md`: a workbench note edit was keyed to the moving review
+cursor so an ordinary block click silently discarded it, and every rejected action
+announced a raw reducer enum into the aria-live region (§9.3, §13.5); the privacy
+scan missed a personal absolute path unless the user-name segment was followed by
+a separator *and* preceded by whitespace, a quote, or a bracket, so a bare home
+directory and the CJK-adjacent form normal in this Chinese-first product both
+passed (§13.2); an author-left `@@DAR_*@@` or `{{UPPER}}` placeholder in document
+prose was invisible to `validate delivery` because Markdown escaping encodes those
+characters and the Approval HTML carries the document as base64 (§14.1, §7.4); and
+`permittedChanges` admitted the candidate's own `lineage.impactAssessments`, so one
+reviewer `EDIT` authorized rewriting any pending block — with the impact closure
+unioning the current and candidate dependency graphs, a candidate could even
+manufacture the edge it then cited (§11.3). Each fix carries a mutation-verified
+regression test. Tightening the transition broke no existing round, consume, or
+acceptance test, which is itself the finding: that gap had no coverage at all.
 
 W8 is a post-freeze maintenance wave, not progress on W7. The 2026-08-17 documentation
 consolidation was pushed straight to `codex/v0.2.0`, where CI runs on neither
@@ -331,8 +356,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  'ae207e27643390b2b02ff7e8bc56cd49fe7031b1e71a9678fc4b2384f2290b59' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  '9d520f3d4c50a24e1d9303109f075775cdd3547b4df5c14858c4a00fd458eb85' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  '712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  'c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 

@@ -1,3 +1,5 @@
+import type { ReviewReducerErrorCode } from "./reducer.js";
+
 export const SUPPORTED_UI_LOCALES = ["zh-CN", "en"] as const;
 
 export type UiLocale = (typeof SUPPORTED_UI_LOCALES)[number];
@@ -63,6 +65,24 @@ const en = {
   eligibilityEligible: "Approval and dependency conditions met; no external action is authorized",
   eligibilitySuspended: "Execution eligibility suspended",
   eligibilityUnavailable: "Execution eligibility could not be derived",
+  errorBlockAlreadyReopened: "this block is already reopened",
+  errorBlockFrozen: "this block is frozen. Reopen it before deciding",
+  errorBlockNotFrozen: "this block is not frozen, so it cannot be reopened",
+  errorBlockNotFound: "that block is no longer part of this document",
+  errorBulkSelectionInvalid: "the pending T0/T1 selection changed. Reopen bulk pass to see the current blocks",
+  errorDecisionNoteRequired: "this action needs your written instruction or question",
+  errorDecisionRequired: "choose an action for this block first",
+  errorIdExhausted: "no identifiers remain for new records this round. Export your packet",
+  errorNoteIdInvalid: "that note no longer matches its source block. Reopen it from the note list",
+  errorNoteNotFound: "that note was already removed",
+  errorNoteRequired: "the note text cannot be empty",
+  errorNotSaved: "Not saved",
+  errorTopicIdCollision: "a topic already uses that identifier",
+  errorTopicIdInvalid: "that topic no longer matches this review. Reopen it from the topic list",
+  errorTopicNotFound: "that topic was already removed",
+  errorTopicPairInvalid: "a block topic decision and its topic entry must stay paired",
+  errorTopicTitleRequired: "a new topic needs a title",
+  errorUnknown: "the review is unchanged",
   evidence: "Evidence snapshot",
   evidenceGaps: "Evidence gaps",
   evidenceNotice:
@@ -240,6 +260,24 @@ const zhCN = {
   eligibilityEligible: "已满足审批与依赖条件；不构成外部执行授权",
   eligibilitySuspended: "执行资格已暂停",
   eligibilityUnavailable: "无法派生执行资格",
+  errorBlockAlreadyReopened: "该块已经重新打开",
+  errorBlockFrozen: "该块已冻结，请先重新打开再表态",
+  errorBlockNotFrozen: "该块不是冻结块，无法重新打开",
+  errorBlockNotFound: "该块已不在当前文档中",
+  errorBulkSelectionInvalid: "待处理的 T0/T1 范围已变化，请重新打开整批通过查看当前块",
+  errorDecisionNoteRequired: "该动作必须填写可执行的意见或需要先回答的问题",
+  errorDecisionRequired: "请先为该块选择一个动作",
+  errorIdExhausted: "本轮新记录的标识已用尽，请先导出回执",
+  errorNoteIdInvalid: "该随手记与其来源块不再匹配，请从随手记清单中重新打开",
+  errorNoteNotFound: "该随手记已被删除",
+  errorNoteRequired: "随手记内容不能为空",
+  errorNotSaved: "未保存",
+  errorTopicIdCollision: "已有主题使用该标识",
+  errorTopicIdInvalid: "该主题与当前审阅不再匹配，请从主题清单中重新打开",
+  errorTopicNotFound: "该主题已被删除",
+  errorTopicPairInvalid: "块级新主题决定必须与其主题条目一一对应",
+  errorTopicTitleRequired: "新主题必须填写标题",
+  errorUnknown: "当前审阅保持不变",
   evidence: "证据快照",
   evidenceGaps: "证据缺口",
   evidenceNotice: "本工作台是对所列证据的综合，不是新的事实源；续作前请按来源层级复核易变事实。",
@@ -362,6 +400,39 @@ export function isUiLocale(value: string): value is UiLocale {
 
 export function stringsFor(locale: UiLocale): LocaleTable {
   return LOCALE_TABLES[locale];
+}
+
+// A rejected review action must tell the reviewer what happened and what to do
+// next, not a machine code. The record is exhaustive over `ReviewReducerErrorCode`,
+// so a new code fails typecheck until it has a message in every locale.
+const REDUCER_ERROR_KEYS: { readonly [Code in ReviewReducerErrorCode]: LocaleKey } = {
+  BLOCK_ALREADY_REOPENED: "errorBlockAlreadyReopened",
+  BLOCK_FROZEN: "errorBlockFrozen",
+  BLOCK_NOT_FOUND: "errorBlockNotFound",
+  BLOCK_NOT_FROZEN: "errorBlockNotFrozen",
+  BULK_SELECTION_INVALID: "errorBulkSelectionInvalid",
+  DECISION_NOTE_REQUIRED: "errorDecisionNoteRequired",
+  DECISION_REQUIRED: "errorDecisionRequired",
+  ID_HIGH_WATER_EXHAUSTED: "errorIdExhausted",
+  NOTE_ID_INVALID: "errorNoteIdInvalid",
+  NOTE_NOT_FOUND: "errorNoteNotFound",
+  NOTE_REQUIRED: "errorNoteRequired",
+  TOPIC_ID_COLLISION: "errorTopicIdCollision",
+  TOPIC_ID_INVALID: "errorTopicIdInvalid",
+  TOPIC_NOT_FOUND: "errorTopicNotFound",
+  TOPIC_PAIR_INVALID: "errorTopicPairInvalid",
+  TOPIC_TITLE_REQUIRED: "errorTopicTitleRequired",
+};
+
+export function reducerErrorMessage(
+  code: ReviewReducerErrorCode,
+  strings: LocaleTable,
+): string {
+  const key = REDUCER_ERROR_KEYS[code];
+  // A hostile or future state file can carry an unknown code; degrade to the
+  // neutral hint rather than echoing raw input into the live region.
+  const hint = key === undefined ? strings.errorUnknown : strings[key];
+  return `${strings.errorNotSaved}: ${hint}`;
 }
 
 export function assertCompleteLocaleTables(): void {

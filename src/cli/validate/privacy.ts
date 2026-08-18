@@ -9,8 +9,22 @@ const PRIVATE_PATTERNS = [
   /\b(?:authorization\s*[:=]\s*(?:bearer|basic)|api[_ -]?key\s*[:=]|access[_ -]?token\s*[:=]|secret\s*[:=]|password\s*[:=]|cookie\s*[:=])\s*["']?[A-Za-z0-9._~+/=-]{8,}/iu,
   /\bhttps?:\/\/[^\s/@:]+:[^\s/@]+@/iu,
   /(?:^|[\s("'])file:\/\//iu,
-  /(?:^|[\s("'])\/(?:Users|home)\/[^/\s]+\//u,
-  /\b[A-Za-z]:\\Users\\[^\\\s]+\\/u,
+  // A personal absolute home path stays personal wherever it is written, so
+  // neither pattern requires a leading delimiter or a trailing separator:
+  // `path=/Users/example/notes.md`, `**/Users/example/notes.md**` and the
+  // CJK-adjacent `见/Users/example/notes.md` of this Chinese-first product all
+  // lack a leading delimiter, and a bare `/Users/example`, `/home/example` or
+  // `C:\Users\example` home directory never reaches a trailing separator. The
+  // lookbehind only keeps the match at an absolute-path position, so an
+  // ordinary relative path or URL segment such as `docs/home/index.md` or
+  // `https://example.test/home/pricing` is not a personal path and is not
+  // reported. Each pattern is a fixed-width lookbehind plus one literal prefix
+  // and a single greedy character class, so matching stays linear with no
+  // backtracking. Unlike the tracked-tree scanner this one intentionally has
+  // no `example` exemption: a delivery must not publish a documentation
+  // placeholder home path either.
+  /(?<![\w.~/-])\/(?:Users|home)\/[^/\s]+/u,
+  /\b[A-Za-z]:\\Users\\[^\\\s]+/u,
   /\b(?:session|thread|conversation)[ _-]?id\s*[:=]\s*["']?[0-9a-f]{8}-[0-9a-f-]{27,}/iu,
   /\b(?:raw (?:chat|conversation)|private (?:chat|prompt)|system prompt transcript)\b/iu,
 ] as const;

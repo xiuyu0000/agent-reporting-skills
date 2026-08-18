@@ -14,8 +14,9 @@ import {
   validationSuccess,
 } from "./errors.js";
 import { validateDeliverableDocument } from "./business.js";
+import { visitReviewDocumentContent } from "./document-content.js";
 import { validatePrivateData, validatePrivateText } from "./privacy.js";
-import { decodeStrictUtf8, isSemver, parseStrictJson } from "./text.js";
+import { decodeStrictUtf8, hasUnreplacedPlaceholder, isSemver, parseStrictJson } from "./text.js";
 import { snapshotSafeInput } from "./safe-input.js";
 import type {
   GeneratedArtifactByteVerifier,
@@ -69,7 +70,6 @@ const REQUIRED_H3 = [
 const DELIVERY_ID = /^RDL-[0-9A-F]{20}$/u;
 const DOCUMENT_ID = /^RD-[0-9A-F]{20}$/u;
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
-const PLACEHOLDER = /@@DAR_[A-Z0-9_]+@@|\{\{[A-Z][A-Z0-9_]*\}\}|\b(?:TODO|TBD|REPLACE_[A-Z0-9_]+)\b|待填写|待补充/u;
 const GENERATOR_TOKENS = [
   "@@DAR_GENERATOR_VERSION@@",
   "@@DAR_DOCUMENT_ID@@",
@@ -388,7 +388,7 @@ function parseAgentArtifactSnapshot(
   if (!decoded.ok) return decoded;
   const text = decoded.value;
   const errors: ValidationError[] = [];
-  if (PLACEHOLDER.test(text)) errors.push(validationError("PLACEHOLDER_REMAINS", "/agent"));
+  if (hasUnreplacedPlaceholder(text)) errors.push(validationError("PLACEHOLDER_REMAINS", "/agent"));
   const privacy = validatePrivateText(text, "/agent");
   if (!privacy.ok) errors.push(...privacy.errors);
   if (expectedDocument !== undefined) {
@@ -662,29 +662,14 @@ function documentInternalLinkErrors(document: ReviewDocumentV1): ValidationError
     ...document.evidence.decisions.map((decision) => `#evidence-decision-${decision.id}`),
   ]);
   const errors: ValidationError[] = [];
-  const inspectInline = (nodes: readonly { type: string; href?: string }[], path: string): void => {
-    for (const [index, node] of nodes.entries()) {
-      if (node.type === "link" && node.href?.startsWith("#") && !allowed.has(node.href)) {
-        errors.push(validationError("INTERNAL_LINK_INVALID", `${path}/${index}/href`));
+  visitReviewDocumentContent(document, {
+    inline: (node, path) => {
+      if (node.type === "link" && typeof node.href === "string"
+        && node.href.startsWith("#") && !allowed.has(node.href)) {
+        errors.push(validationError("INTERNAL_LINK_INVALID", `${path}/href`));
       }
-    }
-  };
-  const inspectContent = (nodes: readonly ReviewDocumentV1["blocks"][number]["body"][number][], path: string): void => {
-    for (const [index, node] of nodes.entries()) {
-      const nodePath = `${path}/${index}`;
-      if (node.type === "paragraph") inspectInline(node.content, `${nodePath}/content`);
-      else if (node.type === "list") node.items.forEach((item, itemIndex) => inspectInline(item, `${nodePath}/items/${itemIndex}`));
-      else if (node.type === "table") {
-        node.headers.forEach((header, headerIndex) => inspectInline(header, `${nodePath}/headers/${headerIndex}`));
-        node.rows.forEach((row, rowIndex) => row.forEach((cell, cellIndex) => inspectInline(cell, `${nodePath}/rows/${rowIndex}/${cellIndex}`)));
-      } else if (node.type === "callout") inspectContent(node.content, `${nodePath}/content`);
-      else if (node.type === "steps") node.items.forEach((step, stepIndex) => inspectContent(step.content, `${nodePath}/items/${stepIndex}/content`));
-    }
-  };
-  inspectContent(document.continuation.currentState, "/continuation/currentState");
-  document.evidence.facts.forEach((item, index) => inspectContent(item.content, `/evidence/facts/${index}/content`));
-  document.evidence.decisions.forEach((item, index) => inspectContent(item.content, `/evidence/decisions/${index}/content`));
-  document.blocks.forEach((block, index) => inspectContent(block.body, `/blocks/${index}/body`));
+    },
+  });
   return errors;
 }
 
@@ -709,7 +694,7 @@ function parseApprovalArtifactSnapshot(input: ApprovalArtifactCoreInput): Valida
   if (!templateDecoded.ok) return templateDecoded;
   const text = decoded.value;
   const errors: ValidationError[] = [];
-  if (PLACEHOLDER.test(text)) errors.push(validationError("PLACEHOLDER_REMAINS", "/approval"));
+  if (hasUnreplacedPlaceholder(text)) errors.push(validationError("PLACEHOLDER_REMAINS", "/approval"));
   errors.push(...externalResourceErrors(text));
   errors.push(...approvalShellLinkErrors(text));
   errors.push(...approvalLandmarkErrors(text, "/approval/shell"));

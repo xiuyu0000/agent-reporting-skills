@@ -286,6 +286,77 @@ describe("block ordering, ledger, high-water, and decision application", () => {
     );
   });
 
+  it("refuses candidate-declared impact as authorization to rewrite a pending untouched block", () => {
+    // Spec §11.3: 待处理但未表态的块必须原样保持活动. `lineage.impactAssessments` is
+    // authored by the candidate, so it must never widen what the packet permits.
+    const current = reviewFixture();
+    const packet = makePacket(current, {
+      decisions: [{ blockId: "B001", action: "EDIT", note: "Change the root block only." }],
+    });
+
+    // B002 depends on B001 and B003 on B002, so the closure of B001 is {B002, B003}.
+    // The reviewer decided nothing about B002; only the candidate claims it is affected.
+    const selfAuthorized = candidateBase(current, packet);
+    mutateBlock(selfAuthorized, 0, "Root rewritten as the reviewer asked.");
+    mutateBlock(selfAuthorized, 1, "Downstream rewritten without any reviewer decision.");
+    selfAuthorized.lineage.impactAssessments.push(
+      {
+        upstreamBlockId: "B001",
+        changedAtRound: 2,
+        affectedDownstreamIds: ["B002", "B003"],
+        reason: "Root contract changed, so both downstream blocks lose eligibility.",
+        usedConservativeClosure: true,
+      },
+      {
+        upstreamBlockId: "B002",
+        changedAtRound: 2,
+        affectedDownstreamIds: ["B003"],
+        reason: "Downstream rewrite propagates to its own dependant.",
+        usedConservativeClosure: true,
+      },
+    );
+    setContentVersion(current, selfAuthorized);
+    expectCode(
+      validateTransition({ current, packet, candidate: selfAuthorized }),
+      "UNTOUCHED_BLOCK_CHANGED",
+    );
+
+    // Sharper variant: the impact closure unions the current and candidate dependency
+    // graphs, so a candidate could otherwise manufacture the very edge it then cites to
+    // authorize rewriting an unrelated pending block.
+    const manufacturedEdge = candidateBase(current, packet);
+    mutateBlock(manufacturedEdge, 0, "Root rewritten as the reviewer asked.");
+    manufacturedEdge.blocks[3]!.dependencies = ["B001"];
+    mutateBlock(manufacturedEdge, 3, "Unrelated pending block rewritten via a new edge.");
+    manufacturedEdge.lineage.impactAssessments.push({
+      upstreamBlockId: "B001",
+      changedAtRound: 2,
+      affectedDownstreamIds: ["B002", "B003", "B004"],
+      reason: "Root contract changed and now reaches the newly linked block.",
+      usedConservativeClosure: true,
+    });
+    setContentVersion(current, manufacturedEdge);
+    expectCode(
+      validateTransition({ current, packet, candidate: manufacturedEdge }),
+      "UNTOUCHED_BLOCK_CHANGED",
+    );
+
+    // The legitimate shape still applies: declare the impact, leave the bodies alone.
+    const eligibilityOnly = candidateBase(current, packet);
+    mutateBlock(eligibilityOnly, 0, "Root rewritten as the reviewer asked.");
+    eligibilityOnly.lineage.impactAssessments.push({
+      upstreamBlockId: "B001",
+      changedAtRound: 2,
+      affectedDownstreamIds: ["B002", "B003"],
+      reason: "Root contract changed, so both downstream blocks lose eligibility.",
+      usedConservativeClosure: true,
+    });
+    setContentVersion(current, eligibilityOnly);
+    expect(validateTransition({ current, packet, candidate: eligibilityOnly })).toEqual(
+      expect.objectContaining({ ok: true }),
+    );
+  });
+
   it("accepts an explicit new block and rejects approval snapshots that do not apply PASS", () => {
     const current = reviewFixture();
     const packet = makePacket(current);

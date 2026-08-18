@@ -532,7 +532,14 @@ function blockAndApprovalErrors(
   }
   const feedback = feedbackErrors(current, packet, candidate, changedIds, newIds);
   errors.push(...feedback.errors);
-  const permittedChanges = new Set([...impact.affectedIds, ...feedback.convertedTargets]);
+  // Spec §11.3: only what the packet actually touched may change. `impact.affectedIds`
+  // is derived from the candidate's own `lineage.impactAssessments`, so admitting it
+  // here would let a candidate authorize its own rewrites — and because the closure at
+  // `impactErrors` unions the current and candidate dependency graphs, a candidate could
+  // even manufacture the edge it then cites. Impact assessments still suspend execution
+  // eligibility and still force an explicit reopen for frozen downstream blocks; they
+  // never grant write permission.
+  const permittedChanges = new Set([...feedback.convertedTargets]);
   for (const decision of packet.decisions) {
     if (decision.action === "EDIT" || decision.action === "HOLD") permittedChanges.add(decision.blockId);
   }
