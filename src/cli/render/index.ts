@@ -29,6 +29,7 @@ import {
   createGeneratedReplacementByteVerifiers,
   decodeStrictUtf8,
   parseStrictJson,
+  rejectLegacyStaticContract,
   validateDeliverableDocument,
   validateDeliveryAndBuildHandoff,
   validatePrivateData,
@@ -160,6 +161,12 @@ async function readDocument(
   if (!parsed.ok) return { ok: false, errors: parsed.errors, exitCode: validationExit(parsed.errors) };
   const privacy = validatePrivateData(parsed.value, "/document");
   if (!privacy.ok) return { ok: false, errors: privacy.errors, exitCode: validationExit(privacy.errors) };
+  // Spec §10.5: the retired static contract must be reported as an incompatible
+  // interface, never guessed into a review document. Without this gate render is
+  // the one document-reading entry point that answers a v0.1 file with generic
+  // schema errors instead of the exact diagnostic every other command gives.
+  const legacy = rejectLegacyStaticContract(parsed.value);
+  if (!legacy.ok) return { ok: false, errors: legacy.errors, exitCode: validationExit(legacy.errors) };
   const validated = validateDeliverableDocument(parsed.value);
   if (!validated.ok) return { ok: false, errors: validated.errors, exitCode: validationExit(validated.errors) };
   if (containsDraftDecisionSlot(validated.value)) {

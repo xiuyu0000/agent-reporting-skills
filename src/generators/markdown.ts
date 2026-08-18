@@ -112,8 +112,13 @@ function renderContentNode(node: ContentNode): string[] {
     }
     case "steps":
       return node.items.flatMap((item, index) => {
+        // `indentedCode` emits its text verbatim and relies solely on indentation
+        // to make it inert. Directly after the step title, with no blank line,
+        // those lines are lazy paragraph continuation instead of a code block, so
+        // untrusted code text would be parsed as Markdown. A leading code entry
+        // therefore gets the same blank separator `callout` already emits.
         const body = item.content.flatMap((entry, entryIndex) => [
-          ...(entryIndex === 0 ? [] : [""]),
+          ...(entryIndex === 0 && entry.type !== "code" ? [] : [""]),
           ...renderSimpleContent(entry),
         ]);
         return [

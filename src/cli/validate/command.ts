@@ -422,7 +422,11 @@ async function runTransition(arguments_: ParsedArguments): Promise<ValidateComma
   const candidate = await readTransitionDocumentValue(arguments_.candidate!);
   if (!candidate.ok) return outcomeFailure(candidate.errors);
   const derived = [];
-  for (const item of arguments_.derived) {
+  // Same index space as `validateTransition`, which sorts derived entries by
+  // topicId before reporting `/derived/N`.
+  const derivedInput = [...arguments_.derived]
+    .sort((left, right) => compareUnicodeCodePoints(left.topicId, right.topicId));
+  for (const item of derivedInput) {
     const document = await readTransitionDocumentValue(item.path);
     if (!document.ok) return outcomeFailure(document.errors);
     derived.push({ topicId: item.topicId, document: document.value });

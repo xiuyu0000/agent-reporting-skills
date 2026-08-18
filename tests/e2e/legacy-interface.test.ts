@@ -79,6 +79,37 @@ describe("legacy interface hard cut", () => {
     });
   });
 
+  it("gives render the same exact legacy diagnostic as every other document reader", async () => {
+    // Spec §10.5: an old static contract must be reported as incompatible, not
+    // answered with generic schema errors that read like an ordinary bad file.
+    const root = await temporaryDirectory("static-contract-render");
+    const skill = join(root, "skill");
+    const cwd = join(root, "cwd");
+    const { mkdir } = await import("node:fs/promises");
+    await cp(resolve("skills/deliver-dual-audience-report"), skill, { recursive: true });
+    await mkdir(cwd, { mode: 0o700 });
+    const entry = join(skill, "scripts", "review-delivery.mjs");
+
+    for (const legacy of [
+      { schema_version: "dual-audience-report-contract-v1", title: "Old report", sections: [] },
+      { format: "dual-audience-report-contract-v1" },
+    ]) {
+      const contract = join(root, `legacy-${Object.keys(legacy)[0]}.json`);
+      await writePrivate(contract, `${JSON.stringify(legacy)}\n`);
+      const rendered = await run(entry, cwd, ["render", "--document", contract]);
+
+      expect(rendered, JSON.stringify(legacy)).toMatchObject({ code: 3, stderr: "" });
+      const parsed = JSON.parse(rendered.stdout);
+      expect(parsed, JSON.stringify(legacy)).toMatchObject({
+        status: "failed",
+        mutated: false,
+        errors: [{ code: "LEGACY_CONTRACT_INCOMPATIBLE", path: "/format" }],
+      });
+      // Exactly one error: the generic schema pile must not leak alongside it.
+      expect(parsed.errors, JSON.stringify(legacy)).toHaveLength(1);
+    }
+  });
+
   it("normalizes explicit prototype actions without requiring the Approval asset", async () => {
     const root = await temporaryDirectory("prototype-actions");
     const skill = join(root, "skill");

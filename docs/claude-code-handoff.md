@@ -16,10 +16,10 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Candidate branch | `codex/v0.2.0` |
 | Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
 | Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
-| Current artifact source | W9 (UI-004, VAL-002, RND-002, DOC-001), re-cut by REL-003 on 2026-08-18 |
+| Current artifact source | W9 (UI-004, VAL-002, RND-002, DOC-001) then W10 (IO-001, VAL-003, GEN-002, TEL-002), re-cut by REL-004 on 2026-08-18 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `958943` bytes / `712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539` |
-| Manifest SHA-256 | `c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6` |
+| ZIP size / SHA-256 | `959266` bytes / `5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34` |
+| Manifest SHA-256 | `59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02` |
 | Runtime | Node `>=24 <25` |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
@@ -27,8 +27,8 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 the ancestor gate used by §6.2, not a requirement that every later worktree have
 that exact `HEAD`. This handoff may itself be committed as a descendant. The
 candidate ZIP is no longer that commit's ZIP: on 2026-08-18 the user chose to
-re-cut v0.2 rather than open a v0.2.1 line, so W9's four contract fixes are in
-the shipped runtime and REL-003 rebuilt the archive. `952704` bytes /
+re-cut v0.2 rather than open a v0.2.1 line, so the W9 and W10 contract fixes are
+in the shipped runtime and REL-004 rebuilt the archive. `952704` bytes /
 `ae207e27…2f2290b59` and manifest `9d520f3d…d458eb85` are now historical values
 that survive only in the REL-001 and REL-002 completion evidence. Use an isolated
 v0.2 worktree where the baseline is an ancestor, inspect the diff from it, and
@@ -70,7 +70,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `0ad5aad99f088b2e242fa5aeffe9217b88c04de358492c1e6382d243063e49e2` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `9cef96554c41f2c7826b3a08aa707f13d38828b3c5d24c77815b5b6aac849809` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` is unchanged: no requirement clause has moved since the 2026-08-17
 consolidation. `design.md` changed once, on 2026-08-18, when DOC-001 corrected
@@ -247,6 +247,25 @@ perform destructive work without fresh user approval.
 | W6 | Deterministic v0.2 ZIP/manifest, installed runtime, CI, rollback proof, and exact-SHA reviews complete |
 | W8 | REL-002 restored the `scan:legacy-surface` release gate on the candidate HEAD; no product code, Skill surface, or release byte changed |
 | W9 | UI-004, VAL-002, RND-002 closed three verified contract gaps; DOC-001 corrected DES-017; REL-003 re-cut the candidate and rebound every recorded digest |
+| W10 | A second audit round over the I/O, consume, generator, telemetry, and Skill surfaces confirmed five more defects; IO-001, VAL-003, GEN-002, and TEL-002 closed them and REL-004 re-cut the candidate |
+
+W10 came from a second adversarial round aimed at the modules the first sweep had
+only reached indirectly. Its most serious finding is a data-loss path: a `replace`
+whose new bytes equal the installed bytes produced a manifest with equal old and
+new digests, and every recovery-cursor predicate is digest-only, so the states
+aliased. Re-running `render --replace-generated` on an unchanged document — an
+ordinary retry, since generation is deterministic — exited 70 and left the output
+root permanently unwritable, and a crash in the staging window deleted the user's
+delivered file instead of restoring it. IO-001 excludes such a target from the
+transaction entirely, so the ambiguous manifest can no longer be created. VAL-003
+gave `render` the legacy-contract gate that every other document reader already
+had, and aligned the `/derived/N` pointer index space between the CLI and the
+protocol, which sorts by topicId. GEN-002 restored the blank line that keeps a
+step's leading code block an indented code block rather than lazy paragraph
+continuation of untrusted text. TEL-002 stopped the content-free metric
+summary from silently truncating an eligible cohort to the sample window, which
+could report `通过` for a cohort that is actually `未达标` — precisely what spec
+§6.3 forbids. Its authorization gate is unchanged and still governs section 6.6.
 
 W9 closed four gaps that an adversarial re-audit of the frozen candidate
 confirmed against `spec.md`: a workbench note edit was keyed to the moving review
@@ -356,8 +375,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  '712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  'c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  '5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  '59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 
