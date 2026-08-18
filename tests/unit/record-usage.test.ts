@@ -786,4 +786,43 @@ describe("real-use summary", () => {
     expect(await runRecordUsageCommand(["summarize", "--min-samples", "3", "--min-samples", "4"])).toMatchObject({ status: "unavailable", conclusion: "尚未验证" });
     expect(await runRecordUsageCommand(["summarize", "--min-samples", "3", "--max-samples", "5"], { stateDirectory: join(root, "state") })).toMatchObject({ status: "summarized" });
   });
+
+  it("never concludes from a truncated cohort when eligible cases exceed the window", async () => {
+    // Spec 6.3 forbids writing a target as achieved fact. Keeping only the first
+    // `--max-samples` cases would hide every later case from the aggregate, the
+    // per-case table, and the conclusion.
+    const stateDirectory = join(await makeTemporaryDirectory(), "state");
+    for (const sequence of [1, 2, 3]) {
+      expect(await appendUsageMetrics(pilotMetrics(sequence), { stateDirectory })).toEqual({ status: "recorded" });
+    }
+    expect(await summarizeUsageMetrics(3, 5, { stateDirectory })).toMatchObject({
+      status: "summarized",
+      sampleCount: 3,
+      conclusion: "通过",
+    });
+
+    // Two further real cases blow every per-case threshold.
+    for (const sequence of [4, 5]) {
+      expect(await appendUsageMetrics(pilotMetrics(sequence, {
+        totalActiveReviewMs: 86_400_000,
+        sourceRevisionRounds: 90,
+        burdenScore: 2,
+      }), { stateDirectory })).toEqual({ status: "recorded" });
+    }
+    const withFailures = await summarizeUsageMetrics(3, 5, { stateDirectory });
+    expect(withFailures).toMatchObject({ status: "summarized", sampleCount: 5, conclusion: "未达标" });
+
+    // A narrower window must not turn the same store into a pass by dropping them.
+    expect(await summarizeUsageMetrics(3, 3, { stateDirectory })).toMatchObject({
+      status: "summarized",
+      sampleCount: 5,
+      conclusion: "尚未验证",
+    });
+
+    // A sixth eligible case stays visible instead of silently vanishing.
+    expect(await appendUsageMetrics(pilotMetrics(6), { stateDirectory })).toEqual({ status: "recorded" });
+    const beyondWindow = await summarizeUsageMetrics(3, 5, { stateDirectory });
+    expect(beyondWindow).toMatchObject({ status: "summarized", sampleCount: 6, conclusion: "尚未验证" });
+    expect(beyondWindow.status === "summarized" && beyondWindow.cases).toHaveLength(6);
+  });
 });

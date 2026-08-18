@@ -39,6 +39,7 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 
 - **W8 / REL-002**（`done`）：修复文档跟踪化在候选分支上引入的 `scan:legacy-surface` 发布门回归，并把该门的核心断言下沉到单元测试。不改变产品行为或候选字节。
 - **W9 / UI-004、VAL-002、RND-002、DOC-001、REL-003**（`done`）：以 spec 条款为准的对抗式复审确认了四个契约缺口——随手记编辑绑定活动游标、被拒动作回显机器码（§9.3/§13.5），个人绝对路径与作者占位符漏检（§13.2/§14.1），候选自声明影响集可授权改写未触及待处理块（§11.3），以及 DES-017 与已跟踪现状相反。四项均已修复并各有变异验证的回归测试；由于修复进入了分发运行时，候选 ZIP 按用户 2026-08-18 的决定重切，新摘要见 [claude-code-handoff.md](claude-code-handoff.md) §1。
+- **W10 / IO-001、VAL-003、GEN-002、TEL-002、REL-004**（`done`）：第二轮对抗式复审覆盖首轮只间接触及的 I/O、consume、生成器、telemetry 与 Skill 表面，确认并修复了五个缺口，其中最严重的一个会在重复写入相同字节时永久卡死输出根，并在崩溃窗口内删除用户已交付的文件。
 
 绿色 CI、fixture、演示内容与 replay no-op 都不能关闭这两项。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 

@@ -702,6 +702,99 @@ describe("file transaction facade", () => {
     await emptyTransactionContainer(output);
   });
 
+  it("treats a byte-identical replace as already current instead of a wedging transaction", async () => {
+    // Every recovery-cursor predicate is digest-only, so a manifest whose old and
+    // new digests are equal cannot be told apart from its own successor states.
+    // Re-rendering an unchanged document produces exactly those bytes, so this is
+    // an ordinary action, not a corner case.
+    const { output, root } = await existingRoot();
+    const artifact = target("artifact.txt");
+    const same = (): { ok: true } => valid();
+    expect((await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{ target: artifact, bytes: bytes("stable"), disposition: "create", verifyStaged: valid }],
+    })).ok).toBe(true);
+
+    const identical = await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target: artifact,
+        bytes: bytes("stable"),
+        disposition: "replace",
+        verifyStaged: valid,
+        verifyExisting: same,
+      }],
+    });
+    expect(identical).toMatchObject({ ok: true });
+    expect(identical.ok && identical.value.targets).toEqual([
+      { relativePath: "artifact.txt", digest: expect.any(String), disposition: "replace" },
+    ]);
+    expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("stable");
+    // No transaction may be left behind: a leftover ambiguous manifest is what
+    // permanently blocks every later write into this root.
+    await emptyTransactionContainer(output);
+
+    // The root stays usable afterwards, both for another identical write and for
+    // a genuinely different one.
+    expect((await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target: artifact,
+        bytes: bytes("stable"),
+        disposition: "replace",
+        verifyStaged: valid,
+        verifyExisting: same,
+      }],
+    })).ok).toBe(true);
+    expect((await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target: artifact,
+        bytes: bytes("moved on"),
+        disposition: "replace",
+        verifyStaged: valid,
+        verifyExisting: same,
+      }],
+    })).ok).toBe(true);
+    expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("moved on");
+    await emptyTransactionContainer(output);
+  });
+
+  it("never loses the installed file when an identical replace is interrupted", async () => {
+    const { output, root } = await existingRoot();
+    const artifact = target("artifact.txt");
+    expect((await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{ target: artifact, bytes: bytes("precious"), disposition: "create", verifyStaged: valid }],
+    })).ok).toBe(true);
+
+    // Interrupt at the same point that used to delete the original: with equal
+    // digests the rollback could not tell the installed file from the new one.
+    const interrupted = await commitFileTransactionWithAdapter({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target: artifact,
+        bytes: bytes("precious"),
+        disposition: "replace",
+        verifyStaged: valid,
+        verifyExisting: () => valid(),
+      }],
+    }, checkpointAdapter("manifest-published:staged"));
+
+    // There is no crash window left to hit: the identical replace short-circuits
+    // before any transaction directory exists, so the injected failure never fires.
+    expect(interrupted).toMatchObject({ ok: true });
+    expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("precious");
+    expect((await readdir(output)).sort()).toEqual([".review-txn", "artifact.txt"]);
+    await emptyTransactionContainer(output);
+  });
+
   it("rejects missing and cross-device replacement targets before staging", async () => {
     const { output, root } = await existingRoot();
     const missing = await commitFileTransaction({

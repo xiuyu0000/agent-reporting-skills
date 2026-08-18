@@ -193,3 +193,45 @@ describe("replace-generated E2E", () => {
     expect(await readFile(external, "utf8")).toBe("outside");
   });
 });
+
+describe("replace-generated identical bytes", () => {
+  it("stays a healthy no-op and leaves the root writable for the next real replacement", async () => {
+    // Re-running a replace after a retry, or after a source edit that does not
+    // change generated output, produces exactly the installed bytes. Generation is
+    // deterministic, so this is the ordinary repeat path rather than a corner case.
+    const { output, root, target } = await setup();
+    const identical = encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.0");
+
+    const first = await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target,
+        bytes: identical,
+        disposition: "replace",
+        verifyStaged: () => ({ ok: true }),
+        verifyExisting: expectedExisting,
+      }],
+    });
+    expect(first).toMatchObject({ ok: true });
+    expect(await readFile(join(output, "approval.html"), "utf8"))
+      .toBe("delivery=RDL-OLD document=RD-OLD generator=0.2.0");
+
+    // The decisive property: the root is not wedged. Before the fix this second
+    // command failed with TRANSACTION_RECOVERY_BLOCKED and stayed blocked forever.
+    const next = await commitFileTransaction({
+      root,
+      generatorVersion: "0.2.0",
+      targets: [{
+        target,
+        bytes: encoder.encode("delivery=RDL-NEW document=RD-NEW generator=0.2.0"),
+        disposition: "replace",
+        verifyStaged: () => ({ ok: true }),
+        verifyExisting: expectedExisting,
+      }],
+    });
+    expect(next).toMatchObject({ ok: true });
+    expect(await readFile(join(output, "approval.html"), "utf8"))
+      .toBe("delivery=RDL-NEW document=RD-NEW generator=0.2.0");
+  });
+});

@@ -5,8 +5,8 @@
   "node": ">=24 <25",
   "archive": {
     "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
-    "byteLength": 958943,
-    "digest": "sha256:712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539",
+    "byteLength": 959266,
+    "digest": "sha256:5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34",
     "entryCount": 11,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
@@ -66,8 +66,8 @@
     },
     {
       "path": "deliver-dual-audience-report/scripts/review-delivery.mjs",
-      "byteLength": 520105,
-      "digest": "sha256:414fa5af34ee58411cf37e0272291f448c5a61ff57d873dc39e2613263d61a30"
+      "byteLength": 520428,
+      "digest": "sha256:fc783e0e6034ddba1e40923d81cb5feaa65db0391ea40ea281fb9a16231dee8f"
     }
   ],
   "reproducibility": {

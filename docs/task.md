@@ -216,6 +216,7 @@ flowchart TD
 | W7 | PIL-001；MET-001 deferred | 真实使用 | 发布候选完成；指标等样本 |
 | W8 | REL-002 | 单线程；与 W7 无写入交集 | 候选 HEAD 全量门（含 `scan:legacy-surface`）恢复全绿 |
 | W9 | UI-004、VAL-002、RND-002 三 lane 并行；DOC-001 独立；全部合入后由 REL-003 重切候选 | 三 lane 写域互斥（workbench / cli-validate / transition）；REL-003 串行收口 | 四项契约缺口各有失败-通过变异证明；候选重建且全部门全绿 |
+| W10 | IO-001、VAL-003、GEN-002、TEL-002；REL-004 收口重切 | 单线程；四个缺口分属 CLI I/O、validate/consume、generators 与 telemetry | 五项缺口各有失败-通过变异证明；候选重建且全部门全绿 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -260,6 +261,11 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | RND-002 | 未触及待处理块不得被候选自声明的影响集改写 | REL-002 | protocol | `done` | w9_transition Agent | `src/protocol/transition/transition.ts`、rounds-invariants 测试 | A04/A16；Spec §11.3 |
 | DOC-001 | DES-017 与已跟踪现状及发布门断言一致 | REL-002 | control | `done` | 协调者 | `docs/design.md` DES-017 行与变更说明 | 基线门 |
 | REL-003 | 按修复后的源码重切 v0.2 候选并重新绑定全部已记录摘要 | UI-004、VAL-002、RND-002、DOC-001 | release | `done` | w9_release Agent | `dist/**`、生成分发面、handoff §1、task/handoff 摘要、claude-handoff 测试 | Release gate |
+| IO-001 | 字节相同的 replace 不再制造无法判读的事务，也不再丢失既有交付文件 | REL-003 | cli-core | `done` | w10_io Agent | `src/cli/io/transaction.ts`、cli-io 与 replace-generated 测试 | atomic I/O gate |
+| VAL-003 | render 具备退役合同诊断；`/derived/N` 指针索引空间统一 | REL-003 | cli | `done` | w10_validate Agent | `src/cli/render/index.ts`、`src/cli/{consume,validate}/**`、legacy-interface 测试 | A12/A15；Spec §10.5、§11.1 |
+| GEN-002 | 步骤中的首个代码块保持惰性，不被解析为文档结构 | REL-003 | generators | `done` | w10_generators Agent | `src/generators/markdown.ts`、generators 测试 | A19；Spec §13.3 |
+| TEL-002 | summarize 不再静默截断合规样本 | REL-003 | telemetry | `done` | w10_telemetry Agent | `src/cli/record-usage.ts`、record-usage 测试 | Spec §6.3 |
+| REL-004 | 按 W10 修复重切候选并重新绑定摘要 | IO-001、VAL-003、GEN-002、TEL-002 | release | `done` | w10_release Agent | `dist/**`、生成分发面、handoff §1、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1078,6 +1084,72 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
   预期：全部退出 0；`verify:dist` 与 `tests/unit/claude-handoff.test.ts` 报告同一个新摘要；连续两次 `release:build` 得到相同 ZIP 摘要。
 - **Completion evidence**：新候选 ZIP 为 958943 bytes、SHA-256 `712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539`；manifest SHA-256 `c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6`；entryCount 仍为 11。连续两次 `release:build` 得到同一 ZIP 摘要，确定性成立。摘要已同步到 [claude-code-handoff.md](claude-code-handoff.md) §1 候选表、§6.2 预检的 `shasum -c` 常量与 `tests/unit/claude-handoff.test.ts` 的两个固定值，四处一致。旧值 `ae207e27…2f2290b59` / `9d520f3d…d458eb85` 只保留在 REL-001、REL-002 的历史证据中作为当时事实。用户于 2026-08-18 明确选择“重切 v0.2 候选”而非另开 v0.2.1；PIL-001 从未开始，因此没有依赖旧 ZIP 的真实试点。未创建 v0.2 tag 或 GitHub Release。
 - **Blocker / unblock**：无。W7 的阻塞条件不变；PIL-001 若开始，必须以本卡记录的新摘要执行 §6.2 预检。
+
+### IO-001 · 字节相同的 replace 不得制造歧义事务
+
+- **状态 / owner_role / owner / last_updated**：`done` / cli-core engineer / w10_io Agent / 2026-08-18
+- **Outcome**：`expectedOldDigest === expectedNewDigest` 的事务记录不再产生；重复写入同样字节是健康的 no-op，输出根保持可写，崩溃窗口内也不会删除既有交付文件。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/io/transaction.ts`、`tests/unit/cli-io.test.ts`、`tests/e2e/replace-generated.test.ts`。
+- **Refs**：Spec §7.4「没有静默覆盖既有文件」；Design §12.5 事务与恢复状态机；A15。
+- **Implementation contract**：恢复游标的全部判据都是纯摘要比较，因此两个摘要相等时 final/stage/backup 状态互相混淆。修复必须在事务开始前消除该状态，而不是在恢复端增加特例：preflight 已完成身份、父目录与 verifier 校验后，若既有字节等于请求字节，则该目标不进入事务，也不写入 manifest。全部目标都无需写入时不创建事务目录。既有的身份校验、权限约束与跨设备拒绝不得放宽。
+- **Failure rules**：不得靠删除 `finalOld && backupOld` 判据取绿；不得让未变更目标从 `CommitValue` 中消失，调用方仍须看到它的最终状态。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- cli-io
+  npm run test:e2e -- replace-generated
+  npm run test:unit
+  npm run test:e2e
+  ```
+
+  预期：全部退出 0；移除 preflight 的相等判断后，两条新单元断言必须失败。
+- **Completion evidence**：修复前实测：对未修改的文档重跑 `render --replace-generated` 退出 70、`recoveryRequired:true`，留下 `phase:"committed"` 且两个摘要相等的 manifest，此后该输出根的任何 render/consume 都返回 `TRANSACTION_RECOVERY_BLOCKED`，只能由人手动删除私有事务目录；在 `manifest-published:staged` 注入失败时，既有交付文件被 unlink 且无法恢复，而同样注入下字节不同的对照组文件完好。修复后 Node 24.19.0 下 cli-io 66/66（新增 2 条）、replace-generated 6/6（新增 1 条）、unit 532/532、e2e 158 pass + 2 skip 全通过。变异证明：移除相等判断后两条新断言同时失败，还原后通过。
+
+### VAL-003 · render 的退役合同诊断与统一的派生索引空间
+
+- **状态 / owner_role / owner / last_updated**：`done` / validation engineer / w10_validate Agent / 2026-08-18
+- **Outcome**：`render` 对旧静态合同给出与其他入口一致的单条 `LEGACY_CONTRACT_INCOMPATIBLE`；`/derived/N` 指针在 CLI 与协议两侧指向同一条目。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/render/index.ts`、`src/cli/consume/index.ts`、`src/cli/validate/command.ts`、`tests/e2e/legacy-interface.test.ts`。
+- **Refs**：Spec §10.5、§11.1「可定位的错误」；A12/A15。
+- **Implementation contract**：render 复用已导出的 `rejectLegacyStaticContract`，位置与 validate 相同（隐私校验之后、结构校验之前），不新增错误码也不改退出码映射。`validateTransition` 按 topicId 排序后再报告 `/derived/N`，因此 CLI 必须以同一顺序读取派生文档，使读取期错误与协议错误共用一个索引空间；下游本就消费排序后的数组，顺序不变。
+- **Failure rules**：不得在 render 里复制 validate 的诊断逻辑；不得为对齐索引而改动协议的排序或公开错误路径格式。
+- **Completion evidence**：修复前 `render --document <legacy.json>` 返回 12 条通用 schema 错误且不含 `LEGACY_CONTRACT_INCOMPATIBLE`，而同一文件经 `validate delivery` 返回唯一正确诊断；`/derived/N` 在协议侧按排序索引、在 CLI preflight 侧按 argv 索引，同一指针指向不同条目。修复后两种旧合同形态（`schema_version` 与 `format`）都返回退出 3 与恰好一条 `LEGACY_CONTRACT_INCOMPATIBLE /format`。Node 24.19.0 下 legacy-interface 3/3（新增 1 条）、unit 532/532、e2e 158 pass + 2 skip 通过。变异证明：移除 render 的 legacy 判据后新断言失败，还原后通过。
+
+### GEN-002 · 步骤首个代码块必须保持惰性
+
+- **状态 / owner_role / owner / last_updated**：`done` / generator engineer / w10_generators Agent / 2026-08-18
+- **Outcome**：步骤标题与其首个代码块之间恢复空行，使缩进真正构成代码块，而不是把未转义正文当作段落续行解析。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/generators/markdown.ts`、`tests/unit/generators.test.ts`。
+- **Refs**：Spec §13.3 不可信内容；A19。
+- **Implementation contract**：`indentedCode` 逐字输出代码文本，仅靠缩进使其惰性，因此前置空行是安全前提。`callout` 已经输出该空行，`steps` 缺失。修复只在首个条目是代码节点时补空行，段落开头的既有输出保持字节不变。
+- **Failure rules**：不得改为转义代码正文（会破坏代码块语义）；不得对全部步骤无条件加空行而改动既有产物字节。
+- **Completion evidence**：修复前，步骤首个代码节点的内容紧随 `1. **标题**` 输出且无空行，含 `## Injected heading` 与链接语法的不可信文本被解析为文档结构；同一文本位于第二个条目时因既有空行而正确惰性化，二者对照精确定位了成因。修复后两处代码行均缩进 ≥7 空格且各自前置空行。Node 24.19.0 下 generators 18/18（新增 1 条）通过。变异证明：还原为无条件跳过空行后新断言失败，还原修复后通过。
+
+### TEL-002 · summarize 不得静默截断合规样本
+
+- **状态 / owner_role / owner / last_updated**：`done` / telemetry engineer / w10_telemetry Agent / 2026-08-18
+- **Outcome**：全部合规案例都参与聚合与逐案例阈值表；样本数超出声明窗口时报告真实样本数并拒绝下结论，而不是用前 N 条得出 `通过`。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/record-usage.ts`、`tests/unit/record-usage.test.ts`。
+- **Refs**：Spec §6.3「测量时必须记录所用口径与样本数…不得将目标写成已达成事实」；Design §13.4。
+- **Implementation contract**：删除 `slice(0, maximumSamples)`；聚合、中位数与逐案例布尔表覆盖全部合规案例。样本数低于下限或高于上限都返回 `尚未验证` 并带真实 `sampleCount`，只有落在 `[min, max]` 内才给出 `通过`/`未达标`。不改记录格式、不改字段、不放宽合规判据。
+- **Failure rules**：不得在超窗口时给出 `通过` 或 `未达标`；不得为凑窗口丢弃案例或改写 `sampleSequence`。
+- **Completion evidence**：修复前实测：7 个合规案例（后 2 个主动时长 24 小时、返工 90 轮、负担 +2）经 `summarize --min-samples 3 --max-samples 5` 得到 `通过`、`sampleCount: 5`，两个灾难性真实案例完全不可见；同一存储用 `--max-samples 3` 得到 `通过`、用 `--max-samples 5` 得到 `未达标`，结论随窗口翻转。修复后同样数据分别返回 `未达标`（5 例）与 `尚未验证`（6 例，`cases` 长度 6）。Node 24.19.0 下 record-usage 40/40（新增 1 条）通过。变异证明：恢复截断后新断言失败，还原后通过。
+- **Blocker / unblock**：MET-001 仍为 `deferred`；spec §6.3 只为 3–5 份定义验收口径，超过 5 份时本命令按上述规则拒绝下结论。若要对更大样本量下结论，属于需求变更，须先修改 spec。
+
+### REL-004 · W10 修复后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w10_release Agent / 2026-08-18
+- **Outcome**：候选按 W10 修复重建，源码、生成分发面与 ZIP/manifest 再次一致，全部已记录摘要指向同一候选。
+- **Depends on / unlocks**：IO-001、VAL-003、GEN-002、TEL-002 / 无。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Refs**：Spec §15.1；Design DES-014；本文 §8.4 Release gate。
+- **Implementation contract**：与 REL-003 相同——只重建、可复现、不手改字节、不创建 tag 或 Release；REL-001/REL-002/REL-003 的历史摘要保持不变。
+- **Completion evidence**：新候选 ZIP 为 959266 bytes、SHA-256 `5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34`；manifest SHA-256 `59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02`；entryCount 仍为 11。连续两次 `release:build` 得到相同摘要。摘要已同步到 handoff §1 候选表、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。REL-003 记录的 `712c1f21…` 与 REL-001 的 `ae207e27…` 保留为各自时点的历史事实。
+- **Blocker / unblock**：无。W7 阻塞条件不变；PIL-001 若开始，必须以本卡摘要执行 §6.2 预检。
 
 ## 6. A01–A22 覆盖矩阵
 
