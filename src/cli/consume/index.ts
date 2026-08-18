@@ -482,7 +482,13 @@ async function preflight(argv: unknown): Promise<StepResult<ReadyPreflight>> {
     const candidate = await readTransitionValue(arguments_.value.candidate, "/candidate");
     if (!candidate.ok) return candidate;
     const derived: Array<{ topicId: string; document: unknown }> = [];
-    for (const [index, item] of arguments_.value.derived.entries()) {
+    // `validateTransition` sorts derived entries by topicId and reports
+    // `/derived/N` against that order, so reading them in argv order would make
+    // the same pointer mean two different entries depending on which layer
+    // rejected. Ordering the input the same way gives one index space.
+    const derivedInput = [...arguments_.value.derived]
+      .sort((left, right) => compareUnicodeCodePoints(left.topicId, right.topicId));
+    for (const [index, item] of derivedInput.entries()) {
       const document = await readTransitionValue(item.path, `/derived/${index}/document`);
       if (!document.ok) return document;
       derived.push({ topicId: item.topicId, document: document.value });

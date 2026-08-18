@@ -98,6 +98,15 @@ interface PreparedTransactionTarget {
   guard: TargetParentGuard;
   stageRelativePath: string;
   backupRelativePath?: string;
+  /**
+   * A replace whose new bytes already equal the installed bytes. Such a target
+   * carries no work, and staging it would make the recovery cursor ambiguous:
+   * every predicate in `validateCursorState` is digest-only, so `expectedOldDigest
+   * === expectedNewDigest` aliases final/backup/stage states that must stay
+   * distinguishable. It is excluded from the transaction entirely and reported
+   * as already current.
+   */
+  unchanged?: true;
 }
 
 type TransactionTargetSnapshot = Omit<PreparedTransactionTarget,
@@ -485,6 +494,11 @@ async function preflightTargets(
         const old = await inspectExistingForReplacement(adapter, prepared, index);
         prepared.oldDigest = old.digest;
         prepared.existingMetadata = old.metadata;
+        // The installed bytes already equal the requested bytes. Identity and
+        // parent guards above have passed, so the target is current and needs no
+        // write; staging it would build a manifest whose old and new digests are
+        // equal, which the recovery cursor cannot tell apart.
+        if (old.digest === prepared.newDigest) prepared.unchanged = true;
       }
       preparedTargets.push(prepared);
     }
@@ -686,15 +700,20 @@ async function commitFileTransactionUnderClaimWithAdapter(
     const preflight = await preflightTargets({ root: input.root, targets: snapshots.value }, adapter);
     if (!preflight.ok) return preflight;
     preparedTargets = preflight.value;
+    // Targets already holding the requested bytes carry no work. Excluding them
+    // keeps every manifest record's old and new digest distinct, which the
+    // recovery cursor relies on to tell its phases apart.
+    const writtenTargets = preparedTargets.filter((target) => target.unchanged !== true);
     await assertWriterClaim(adapter, claim);
     if (options.requireFreshBeforeTransaction) {
       const fresh = await assertFreshResolvedRootWithAdapter(input.root, adapter);
       if (!fresh.ok) return fresh;
       await assertWriterClaim(adapter, claim);
     }
+    if (writtenTargets.length === 0) return cliIoSuccess(commitValue(preparedTargets));
     transactionDirectory = await createTransactionDirectory(adapter, input.root);
     await adapter.checkpoint("transaction-directory-created");
-    for (const [index, target] of preparedTargets.entries()) {
+    for (const [index, target] of writtenTargets.entries()) {
       await assertWriterClaim(adapter, claim);
       await assertPrivateDirectoryIdentity(adapter, transactionDirectory.path, transactionDirectory.metadata);
       const stagePath = join(transactionDirectory.path, target.stageRelativePath);
@@ -710,11 +729,11 @@ async function commitFileTransactionUnderClaimWithAdapter(
       await adapter.checkpoint(`stage-written:${index}`);
     }
     await syncDirectory(adapter, transactionDirectory.path);
-    for (const [index, target] of preparedTargets.entries()) {
+    for (const [index, target] of writtenTargets.entries()) {
       await revalidatePreCommitTarget(adapter, target, index);
     }
 
-    const manifest = buildManifest(transactionDirectory.transactionId, input.generatorVersion, preparedTargets);
+    const manifest = buildManifest(transactionDirectory.transactionId, input.generatorVersion, writtenTargets);
     await assertWriterClaim(adapter, claim);
     manifestIdentity = await writeTransactionManifest(
       adapter,
@@ -732,7 +751,7 @@ async function commitFileTransactionUnderClaimWithAdapter(
       transactionDirectory.metadata,
       manifestIdentity,
     );
-    for (const [index, target] of preparedTargets.entries()) {
+    for (const [index, target] of writtenTargets.entries()) {
       const record = manifest.targets[index] as TransactionManifestTarget;
       if (target.disposition !== "replace") continue;
       await assertWriterClaim(adapter, claim);
@@ -768,7 +787,7 @@ async function commitFileTransactionUnderClaimWithAdapter(
       transactionDirectory.metadata,
       manifestIdentity,
     );
-    for (const [index, target] of preparedTargets.entries()) {
+    for (const [index, target] of writtenTargets.entries()) {
       const record = manifest.targets[index] as TransactionManifestTarget;
       await assertWriterClaim(adapter, claim);
       await assertTargetParentGuard(target.guard, adapter);
@@ -814,7 +833,7 @@ async function commitFileTransactionUnderClaimWithAdapter(
         manifestIdentity,
       );
     }
-    for (const [index, target] of preparedTargets.entries()) {
+    for (const [index, target] of writtenTargets.entries()) {
       await assertTargetParentGuard(target.guard, adapter);
       const installed = await readRegularFile(adapter, target.guard.finalAbsolutePath);
       if (sha256Bytes(installed.bytes) !== target.newDigest) {
@@ -851,7 +870,7 @@ async function commitFileTransactionUnderClaimWithAdapter(
     }
     const published = await publishedManifestPhase(adapter, transactionDirectory.path, transactionDirectory.metadata);
     if (published === "none") {
-      const cleaned = await safeCleanupBeforeManifest(adapter, input.root, transactionDirectory, preparedTargets);
+      const cleaned = await safeCleanupBeforeManifest(adapter, input.root, transactionDirectory, preparedTargets.filter((target) => target.unchanged !== true));
       if (!cleaned) {
         return cliIoFailure([cliIoError("TRANSACTION_RECOVERY_BLOCKED", "/transaction")], true);
       }

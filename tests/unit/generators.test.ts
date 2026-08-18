@@ -120,6 +120,46 @@ describe("deterministic review artifact generators", () => {
     expect(parseAgentArtifact(generated.value, document, GENERATOR_VERSION).ok).toBe(true);
   });
 
+
+  it("keeps a leading step code block inert instead of lazy paragraph continuation", async () => {
+    // `indentedCode` emits code text verbatim and relies only on indentation to
+    // make it inert, so the blank line before it is load-bearing.
+    const document = await fixture();
+    const hostile = "## Injected heading\n[link](https://example.test) **bold**";
+    document.continuation.currentState.push({
+      type: "steps",
+      items: [
+        { title: "Leading code", content: [{ type: "code", text: hostile, language: "text" }] },
+        {
+          title: "Trailing code",
+          content: [
+            { type: "paragraph", content: [{ type: "text", text: "Run this." }] },
+            { type: "code", text: hostile, language: "text" },
+          ],
+        },
+      ],
+    });
+
+    const generated = generateAgentMarkdownBytes(document, GENERATOR_VERSION);
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+    const text = new TextDecoder().decode(generated.value);
+    const lines = text.split("\n");
+
+    // Every rendered code line must be indented far enough to be a code block AND
+    // be preceded by a blank line; without the blank line the indent is lazy
+    // paragraph continuation and the verbatim text becomes document structure.
+    const codeLines = lines
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => line.includes("Injected heading"));
+    expect(codeLines).toHaveLength(2);
+    for (const { line, index } of codeLines) {
+      expect(line).toMatch(/^\s{7,}/u);
+      expect(lines[index - 1]?.trim(), line).toBe("");
+    }
+    expect(parseAgentArtifact(generated.value, document, GENERATOR_VERSION).ok).toBe(true);
+  });
+
   it("uses the public reversible heading encoder for hostile but representable titles", async () => {
     for (const title of [
       "Tail#",

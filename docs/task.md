@@ -5,9 +5,9 @@
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
 > - 当前波次：W7 · 真实试点与指标验证（PIL-001 `blocked`、MET-001 `deferred`）；W8 · 发布门回归修复（REL-002 `done`）与 W7 无依赖，可独立收口
 > - 协调者：主实施 Agent
-> - 最后更新：2026-08-17（新增 W8 / REL-002：修复规划文档跟踪化引入的 `scan:legacy-surface` 回归，补齐回归测试与候选分支 CI 触发面；需求、设计与既有任务验收口径未变更）
+> - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
 > - Spec 基线：`docs/spec.md` · SHA-256 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`
-> - Design 基线：`docs/design.md` · SHA-256 `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b`
+> - Design 基线：`docs/design.md` · SHA-256 `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52`（2026-08-18 DOC-001 订正 DES-017 后重算；此前为 `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -215,6 +215,8 @@ flowchart TD
 | W6 | REL-001 | 独占 README/CI/dist | 集成门通过 |
 | W7 | PIL-001；MET-001 deferred | 真实使用 | 发布候选完成；指标等样本 |
 | W8 | REL-002 | 单线程；与 W7 无写入交集 | 候选 HEAD 全量门（含 `scan:legacy-surface`）恢复全绿 |
+| W9 | UI-004、VAL-002、RND-002 三 lane 并行；DOC-001 独立；全部合入后由 REL-003 重切候选 | 三 lane 写域互斥（workbench / cli-validate / transition）；REL-003 串行收口 | 四项契约缺口各有失败-通过变异证明；候选重建且全部门全绿 |
+| W10 | IO-001、VAL-003、GEN-002、TEL-002；REL-004 收口重切 | 单线程；四个缺口分属 CLI I/O、validate/consume、generators 与 telemetry | 五项缺口各有失败-通过变异证明；候选重建且全部门全绿 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -254,6 +256,16 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | PIL-001 | 一份真实业务方案完成闭环 | REL-001 | pilot | `blocked` | 用户 + 协调者 | 脱敏本地证据 | Pilot gate |
 | MET-001 | 3–5 份真实方案验证时间/轮次/负担指标 | PIL-001 | metrics | `deferred` | 未分配 | 内容无关指标摘要 | Spec §6.3 |
 | REL-002 | 恢复候选 HEAD 的 `scan:legacy-surface` 门并防止同类回归复发 | REL-001 | release | `done` | w8_release_gate Agent | legacy-surface scanner、专属回归测试、CI 触发面 | Release gate |
+| UI-004 | 随手记编辑绑定自身来源块；被拒动作给出可理解的本地化提示 | REL-002 | ui | `done` | w9_ui_feedback Agent | `src/workbench/{interactions,i18n}.ts`、i18n/reducer-interactions/actions 测试 | A20；Spec §9.3、§13.5 |
+| VAL-002 | 个人绝对路径与作者遗留占位符不再漏检 | REL-002 | cli | `done` | w9_validate Agent | `src/cli/validate/**`、privacy/parsers 测试 | A15；Spec §13.2、§14.1 |
+| RND-002 | 未触及待处理块不得被候选自声明的影响集改写 | REL-002 | protocol | `done` | w9_transition Agent | `src/protocol/transition/transition.ts`、rounds-invariants 测试 | A04/A16；Spec §11.3 |
+| DOC-001 | DES-017 与已跟踪现状及发布门断言一致 | REL-002 | control | `done` | 协调者 | `docs/design.md` DES-017 行与变更说明 | 基线门 |
+| REL-003 | 按修复后的源码重切 v0.2 候选并重新绑定全部已记录摘要 | UI-004、VAL-002、RND-002、DOC-001 | release | `done` | w9_release Agent | `dist/**`、生成分发面、handoff §1、task/handoff 摘要、claude-handoff 测试 | Release gate |
+| IO-001 | 字节相同的 replace 不再制造无法判读的事务，也不再丢失既有交付文件 | REL-003 | cli-core | `done` | w10_io Agent | `src/cli/io/transaction.ts`、cli-io 与 replace-generated 测试 | atomic I/O gate |
+| VAL-003 | render 具备退役合同诊断；`/derived/N` 指针索引空间统一 | REL-003 | cli | `done` | w10_validate Agent | `src/cli/render/index.ts`、`src/cli/{consume,validate}/**`、legacy-interface 测试 | A12/A15；Spec §10.5、§11.1 |
+| GEN-002 | 步骤中的首个代码块保持惰性，不被解析为文档结构 | REL-003 | generators | `done` | w10_generators Agent | `src/generators/markdown.ts`、generators 测试 | A19；Spec §13.3 |
+| TEL-002 | summarize 不再静默截断合规样本 | REL-003 | telemetry | `done` | w10_telemetry Agent | `src/cli/record-usage.ts`、record-usage 测试 | Spec §6.3 |
+| REL-004 | 按 W10 修复重切候选并重新绑定摘要 | IO-001、VAL-003、GEN-002、TEL-002 | release | `done` | w10_release Agent | `dist/**`、生成分发面、handoff §1、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -957,6 +969,188 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：修复前，候选 HEAD `04e8f59` 上 `npm run scan:legacy-surface` 以 rc=3 失败于 `docs/design.md: legacy contract escaped an exact rejection or migration context`；`docs/{spec,design,task}.md` 分别命中退役合同标记 2/3/1 次、`_HUMAN.html` 0/2/2 次、退役文件名 0/6/4 次，并触发两条 `RETIRED_PROMISE_PATTERNS`。原因是该门只在 `pull_request` 与 `push: main` 上运行，而 `04e8f59` 直接推送到 `codex/v0.2.0`，未经任何 CI。修复后 Node 24.19.0 下 self-test、全量扫描（118 个当前面 + 13 个发布面）、新增 7 个 legacy-surface 回归断言、unit 515/515、e2e 157 pass + 2 skip、typecheck、lint 与 `verify:dist`（`ae207e27…2f2290b59`，952704 bytes）全部通过；移除边界的变异测试复现了发布门的同一条失败信息。dist ZIP/manifest 字节未变。
 - **Blocker / unblock**：无；发布门已恢复，W7 的阻塞条件不受影响。
 
+### UI-004 · 随手记绑定与可理解的失败提示
+
+- **状态 / owner_role / owner / last_updated**：`done` / ui engineer / w9_ui_feedback Agent / 2026-08-18
+- **Outcome**：编辑中的随手记始终写回它自己的来源块；任何被 reducer 拒绝的动作都以本地化、可操作的提示出现在 aria-live 状态区和对话框错误区，不再回显机器码。
+- **Depends on / unlocks**：REL-002 / REL-003。
+- **Parallel / conflicts**：与 VAL-002、RND-002 并行，写域互斥；只写 workbench 源与其专属测试。
+- **Write scope**：`src/workbench/interactions.ts`、`src/workbench/i18n.ts`、`tests/unit/{i18n,reducer-interactions}.test.ts`、`tests/browser/workbench-actions.spec.ts`；生成的 workbench 模板由 build 重建。
+- **Refs**：Spec §9.3、§9.6、§13.5；Design DES-016；A20。
+- **Implementation contract**：随手记编辑期捕获 `{noteId, blockId}`，保存时使用捕获值而非活动审阅游标；游标由 focusin、pointerdown、决定按钮、`focusBlock()` 与筛选回退五条路径改写，任一条都不得改变编辑目标。reducer 的 16 个错误码必须在 `zh-CN` 与 `en` 下各有唯一、可区分且不含机器码的提示，映射对 `ReviewReducerErrorCode` 穷尽（新增码不加提示则类型检查失败）；未知或敌意码降级为中性提示而不是回显输入。两个失败出口（`acceptResult` 的 announce 与决定对话框的 `.dialog-error`）必须使用同一映射。
+- **Failure rules**：不得通过在游标变化时静默丢弃编辑来“修复”；不得把提示写成单一通用文案而失去可区分性；不得超出 workbench 体积预算。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- i18n reducer-interactions
+  npm run test:browser -- --grep "note edit stays bound|rejected action reports"
+  npm run check:bundle-size
+  npm run typecheck
+  npm run lint
+  ```
+
+  预期：全部退出 0；变异测试中，把保存目标改回活动游标、或把 announce 改回 `result.code`，两条浏览器断言必须失败。
+- **Completion evidence**：Node 24.19.0 下 unit 518/518（i18n 新增 3 条穷尽/降级断言，reducer-interactions 的 4 处原始枚举断言改为本地化文案）、三浏览器 94 pass + 2 designed skip（新增 2 条 × 3 引擎）。变异证明：保存目标改回 `currentBlockId` 且 announce 改回 `result.code` 后，两条新浏览器断言同时失败；还原后通过。workbench shell 355882/358400 字节，仍在预算内。
+- **Blocker / unblock**：无。
+
+### VAL-002 · 隐私路径与作者占位符的漏检修复
+
+- **状态 / owner_role / owner / last_updated**：`done` / validation engineer / w9_validate Agent / 2026-08-18
+- **Outcome**：个人绝对路径在裸家目录形式与非空白前缀（含中文紧邻）下同样被拒绝；作者遗留在文档正文字段中的 `@@DAR_*@@` / `{{UPPER}}` 占位符不再通过 `validate delivery`。
+- **Depends on / unlocks**：REL-002 / REL-003。
+- **Parallel / conflicts**：与 UI-004、RND-002 并行；只写 `src/cli/validate/**` 与其专属测试。
+- **Write scope**：`src/cli/validate/**`、`tests/unit/{privacy,parsers}.test.ts`；生成的安装态 CLI 由 build 重建。
+- **Refs**：Spec §13.2、§14.1、§7.4；Design §12.4；A15。
+- **Implementation contract**：复用既有 PLACEHOLDER 正则与既有错误码/退出分类，不新增第二套占位符模式或新错误码；正则保持线性时间，不得引入灾难性回溯；既有合法内容与 `/Users/example/` 类文档占位必须继续不误报。
+- **Failure rules**：不得以放宽既有负例换取新命中；不得只在测试里断言而不在产品路径上强制。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- privacy
+  npm run test:e2e -- validate-delivery
+  npm run test:unit
+  npm run typecheck
+  npm run lint
+  ```
+
+  预期：全部退出 0；把两条路径正则或 `visitReviewDocumentContent` 的占位符钩子任一还原，新增断言必须失败。
+- **Completion evidence**：修复前实测：`/Users/example`、`/home/example`、`C:\Users\example`、`path=/Users/example/notes.md`、`**/Users/example/notes.md**` 与中文紧邻的 `见/Users/example/notes.md` 全部不报隐私违规；带 `@@DAR_OWNER@@` 标题与 `{{PROJECT}}` 正文的文档在 `render` 与 `validate delivery` 均返回 `ok`，且 Agent Markdown 因数字实体转义不含原始 token。修复后 POSIX 模式改为负向后顾 `(?<![\w.~/-])` 并去掉尾部分隔符要求，Windows 模式只去掉尾部分隔符；后顾断言把 `docs/home/index.md`、`src/home/page.tsx` 与 `https://…/home/…`、`https://…/Users/…` 等相对路径与 URL 段继续排除在外，`file://` 仍由独立规则覆盖；两条模式均为定宽后顾 + 字面前缀 + 单个贪婪字符类，20 万字符敌意输入 0.35 ms 完成。占位符检查复用既有 PLACEHOLDER 语法与既有 `PLACEHOLDER_REMAINS`/exit 5 分类，挂在 `validateDeliverableSnapshot` 上并覆盖 `validate delivery`、`validate batch`、`render` 与 fresh exact-byte verifier；内容遍历由新增的唯一 walker `src/cli/validate/document-content.ts` 提供，内部链接检查改为消费同一 walker，其路径与覆盖范围逐字节不变。Node 24.19.0 下 unit 528/528、e2e 158 pass + 2 skip、typecheck、lint、`check:generated`、`check:acceptance-coverage` 22/22 全绿。变异证明：还原两条正则后 8 条新正例中 7 条失败（第 8 条 `见C:\Users\…` 在旧 Windows 正则下也通过，保留为回归护栏）；移除 `business.ts` 的占位符钩子后新 e2e 断言在第一例即失败。
+- **Blocker / unblock**：无。
+
+### RND-002 · 未触及待处理块的写权限收紧
+
+- **状态 / owner_role / owner / last_updated**：`done` / protocol engineer / w9_transition Agent / 2026-08-18
+- **Outcome**：`permittedChanges` 不再包含候选自声明的 `impact.affectedIds`，因此一次 EDIT 不能授权改写任何未被回执触及的待处理块。
+- **Depends on / unlocks**：REL-002 / REL-003。
+- **Parallel / conflicts**：与 UI-004、VAL-002 并行；只写 transition 核心与其专属测试。
+- **Write scope**：`src/protocol/transition/transition.ts`、`tests/unit/rounds-invariants.test.ts`。
+- **Refs**：Spec §11.3、§11.2；Design DES-011、§10.6；A04/A16。
+- **Implementation contract**：影响评估继续承担它本来的职责——暂停下游执行资格、并要求冻结下游必须显式重开；但不得再充当写权限来源。写权限只来自回执的 EDIT/HOLD 决定与 `feedback.convertedTargets`。修复必须同时封住更锐利的变体：影响闭包取当前图与候选图的并集，因此候选原本可以先自造依赖边、再据此改写无关待处理块。
+- **Failure rules**：不得放宽 `IMPACT_ASSESSMENT_INVALID` 既有校验来补偿；不得让冻结块保护退化。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- rounds-invariants
+  npm run test:unit
+  npm run test:e2e
+  node tools/run-test-suite.mjs tests/acceptance
+  ```
+
+  预期：全部退出 0；把 `impact.affectedIds` 加回 `permittedChanges` 后，新增回归断言必须失败。
+- **Completion evidence**：Node 24.19.0 下 rounds-invariants 24/24、unit 全量、e2e 157 pass + 2 skip、acceptance 30/30 + 2 skip 均通过——收紧后没有任何既有轮次/消费/验收测试失败，说明该缺口此前完全没有测试覆盖。新增断言覆盖三种形态：候选自声明改写下游、候选自造依赖边后改写无关待处理块、以及“只声明影响不改正文”的合法形态仍然通过。变异证明：恢复 `...impact.affectedIds` 后新断言失败，还原后通过。
+- **Blocker / unblock**：无。
+
+### DOC-001 · DES-017 与跟踪现状对齐
+
+- **状态 / owner_role / owner / last_updated**：`done` / coordinator / 协调者 / 2026-08-18
+- **Outcome**：DES-017 不再声称 spec/design/task “保持本地忽略、不进入 CI”，与 2026-08-17 的用户决定、已跟踪现状以及 REL-002 新增的 CI 断言一致。
+- **Depends on / unlocks**：REL-002 / REL-003（摘要回填）。
+- **Parallel / conflicts**：只写 `docs/design.md`；与三个代码 lane 无交集。
+- **Write scope**：`docs/design.md` 的 DES-017 行、§4 变更说明与文首更新日期。
+- **Refs**：Design §1 权威顺序、§4、§18；Spec §18.2。
+- **Implementation contract**：保留原文以便追溯，不改动其余 DES 行，不改动需求条款；`不修改用户的 .gitignore` 与 SHA-256 绑定义务保持有效。修订后必须重算 design 摘要并回填 [task.md](task.md) 文首与 [claude-code-handoff.md](claude-code-handoff.md) §1。
+- **Failure rules**：不得静默改写既有 DES 决定而不留变更说明；不得让 §18 继续声称本文自确认以来无 DES 行文变更。
+- **Completion evidence**：DES-017 行订正为“随仓库跟踪”，§4 增加带原文的变更说明，§18 收尾段落改为记录这是确认以来唯一一次 DES 行文变更；design SHA-256 由 `6d6916d7af9d49d317c8138c243cd00ca5d66e89a8196aac8a25a77b13aef61b` 变为 `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52`，并已回填本文文首与 [claude-code-handoff.md](claude-code-handoff.md) §1。
+- **Blocker / unblock**：无。
+
+### REL-003 · 候选重切与摘要重新绑定
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w9_release Agent / 2026-08-18
+- **Outcome**：v0.2 候选按修复后的源码确定性重建，源码、生成分发面与 ZIP/manifest 重新一致；全部已记录摘要指向同一个当前候选。
+- **Depends on / unlocks**：UI-004、VAL-002、RND-002、DOC-001 / 无。
+- **Parallel / conflicts**：串行收口；三个代码 lane 全部合入后才执行，且只有本任务写 `dist/**` 与已记录摘要。
+- **Write scope**：`dist/deliver-dual-audience-report-v0.2.0.{zip,manifest.json}`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2 预检、`tests/unit/claude-handoff.test.ts` 的两个固定摘要、本文文首与本卡证据。
+- **Refs**：Spec §15.1；Design DES-014、§15；本文 §8.4 Release gate；REL-001 完成证据。
+- **Implementation contract**：只重建，不手改 ZIP 字节；重建必须可复现（连续两次构建摘要相同）；`ae207e27…` 及其字节数只保留在 REL-001/REL-002 的历史完成证据中，不得被改写；`dae53e5b76e6507592b37c1a241e7ad6c6e22905` 仍是 §6.2 预检的祖先基线，本任务不改它；v0.1.0 回滚基线不受影响；不创建 tag 或 GitHub Release。
+- **Failure rules**：不得在三个 lane 未全绿前重切；不得只改文档摘要而不重建产物，或只重建产物而漏掉任一处已记录摘要。
+- **Validation**：
+
+  ```bash
+  npm run build
+  npm run check:generated
+  npm run release:build -- --version 0.2.0
+  npm run verify:dist
+  npm run scan:legacy-surface
+  npm run test:unit
+  npm run test:e2e
+  npm run test:browser
+  npm run test:coverage
+  npm run validate:skill
+  npm run check:acceptance-coverage
+  npm run check:bundle-size
+  git diff --check
+  ```
+
+  预期：全部退出 0；`verify:dist` 与 `tests/unit/claude-handoff.test.ts` 报告同一个新摘要；连续两次 `release:build` 得到相同 ZIP 摘要。
+- **Completion evidence**：新候选 ZIP 为 958943 bytes、SHA-256 `712c1f21b60ccc407a36537ff13bbd8cd84da517eff462305e32d24684034539`；manifest SHA-256 `c057d29d5845df8e68cbc6ca98690034befac00d8e300b7d5b2457cc7fa6d4e6`；entryCount 仍为 11。连续两次 `release:build` 得到同一 ZIP 摘要，确定性成立。摘要已同步到 [claude-code-handoff.md](claude-code-handoff.md) §1 候选表、§6.2 预检的 `shasum -c` 常量与 `tests/unit/claude-handoff.test.ts` 的两个固定值，四处一致。旧值 `ae207e27…2f2290b59` / `9d520f3d…d458eb85` 只保留在 REL-001、REL-002 的历史证据中作为当时事实。用户于 2026-08-18 明确选择“重切 v0.2 候选”而非另开 v0.2.1；PIL-001 从未开始，因此没有依赖旧 ZIP 的真实试点。未创建 v0.2 tag 或 GitHub Release。
+- **Blocker / unblock**：无。W7 的阻塞条件不变；PIL-001 若开始，必须以本卡记录的新摘要执行 §6.2 预检。
+
+### IO-001 · 字节相同的 replace 不得制造歧义事务
+
+- **状态 / owner_role / owner / last_updated**：`done` / cli-core engineer / w10_io Agent / 2026-08-18
+- **Outcome**：`expectedOldDigest === expectedNewDigest` 的事务记录不再产生；重复写入同样字节是健康的 no-op，输出根保持可写，崩溃窗口内也不会删除既有交付文件。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/io/transaction.ts`、`tests/unit/cli-io.test.ts`、`tests/e2e/replace-generated.test.ts`。
+- **Refs**：Spec §7.4「没有静默覆盖既有文件」；Design §12.5 事务与恢复状态机；A15。
+- **Implementation contract**：恢复游标的全部判据都是纯摘要比较，因此两个摘要相等时 final/stage/backup 状态互相混淆。修复必须在事务开始前消除该状态，而不是在恢复端增加特例：preflight 已完成身份、父目录与 verifier 校验后，若既有字节等于请求字节，则该目标不进入事务，也不写入 manifest。全部目标都无需写入时不创建事务目录。既有的身份校验、权限约束与跨设备拒绝不得放宽。
+- **Failure rules**：不得靠删除 `finalOld && backupOld` 判据取绿；不得让未变更目标从 `CommitValue` 中消失，调用方仍须看到它的最终状态。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- cli-io
+  npm run test:e2e -- replace-generated
+  npm run test:unit
+  npm run test:e2e
+  ```
+
+  预期：全部退出 0；移除 preflight 的相等判断后，两条新单元断言必须失败。
+- **Completion evidence**：修复前实测：对未修改的文档重跑 `render --replace-generated` 退出 70、`recoveryRequired:true`，留下 `phase:"committed"` 且两个摘要相等的 manifest，此后该输出根的任何 render/consume 都返回 `TRANSACTION_RECOVERY_BLOCKED`，只能由人手动删除私有事务目录；在 `manifest-published:staged` 注入失败时，既有交付文件被 unlink 且无法恢复，而同样注入下字节不同的对照组文件完好。修复后 Node 24.19.0 下 cli-io 66/66（新增 2 条）、replace-generated 6/6（新增 1 条）、unit 532/532、e2e 158 pass + 2 skip 全通过。变异证明：移除相等判断后两条新断言同时失败，还原后通过。
+
+### VAL-003 · render 的退役合同诊断与统一的派生索引空间
+
+- **状态 / owner_role / owner / last_updated**：`done` / validation engineer / w10_validate Agent / 2026-08-18
+- **Outcome**：`render` 对旧静态合同给出与其他入口一致的单条 `LEGACY_CONTRACT_INCOMPATIBLE`；`/derived/N` 指针在 CLI 与协议两侧指向同一条目。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/render/index.ts`、`src/cli/consume/index.ts`、`src/cli/validate/command.ts`、`tests/e2e/legacy-interface.test.ts`。
+- **Refs**：Spec §10.5、§11.1「可定位的错误」；A12/A15。
+- **Implementation contract**：render 复用已导出的 `rejectLegacyStaticContract`，位置与 validate 相同（隐私校验之后、结构校验之前），不新增错误码也不改退出码映射。`validateTransition` 按 topicId 排序后再报告 `/derived/N`，因此 CLI 必须以同一顺序读取派生文档，使读取期错误与协议错误共用一个索引空间；下游本就消费排序后的数组，顺序不变。
+- **Failure rules**：不得在 render 里复制 validate 的诊断逻辑；不得为对齐索引而改动协议的排序或公开错误路径格式。
+- **Completion evidence**：修复前 `render --document <legacy.json>` 返回 12 条通用 schema 错误且不含 `LEGACY_CONTRACT_INCOMPATIBLE`，而同一文件经 `validate delivery` 返回唯一正确诊断；`/derived/N` 在协议侧按排序索引、在 CLI preflight 侧按 argv 索引，同一指针指向不同条目。修复后两种旧合同形态（`schema_version` 与 `format`）都返回退出 3 与恰好一条 `LEGACY_CONTRACT_INCOMPATIBLE /format`。Node 24.19.0 下 legacy-interface 3/3（新增 1 条）、unit 532/532、e2e 158 pass + 2 skip 通过。变异证明：移除 render 的 legacy 判据后新断言失败，还原后通过。
+
+### GEN-002 · 步骤首个代码块必须保持惰性
+
+- **状态 / owner_role / owner / last_updated**：`done` / generator engineer / w10_generators Agent / 2026-08-18
+- **Outcome**：步骤标题与其首个代码块之间恢复空行，使缩进真正构成代码块，而不是把未转义正文当作段落续行解析。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/generators/markdown.ts`、`tests/unit/generators.test.ts`。
+- **Refs**：Spec §13.3 不可信内容；A19。
+- **Implementation contract**：`indentedCode` 逐字输出代码文本，仅靠缩进使其惰性，因此前置空行是安全前提。`callout` 已经输出该空行，`steps` 缺失。修复只在首个条目是代码节点时补空行，段落开头的既有输出保持字节不变。
+- **Failure rules**：不得改为转义代码正文（会破坏代码块语义）；不得对全部步骤无条件加空行而改动既有产物字节。
+- **Completion evidence**：修复前，步骤首个代码节点的内容紧随 `1. **标题**` 输出且无空行，含 `## Injected heading` 与链接语法的不可信文本被解析为文档结构；同一文本位于第二个条目时因既有空行而正确惰性化，二者对照精确定位了成因。修复后两处代码行均缩进 ≥7 空格且各自前置空行。Node 24.19.0 下 generators 18/18（新增 1 条）通过。变异证明：还原为无条件跳过空行后新断言失败，还原修复后通过。
+
+### TEL-002 · summarize 不得静默截断合规样本
+
+- **状态 / owner_role / owner / last_updated**：`done` / telemetry engineer / w10_telemetry Agent / 2026-08-18
+- **Outcome**：全部合规案例都参与聚合与逐案例阈值表；样本数超出声明窗口时报告真实样本数并拒绝下结论，而不是用前 N 条得出 `通过`。
+- **Depends on / unlocks**：REL-003 / REL-004。
+- **Write scope**：`src/cli/record-usage.ts`、`tests/unit/record-usage.test.ts`。
+- **Refs**：Spec §6.3「测量时必须记录所用口径与样本数…不得将目标写成已达成事实」；Design §13.4。
+- **Implementation contract**：删除 `slice(0, maximumSamples)`；聚合、中位数与逐案例布尔表覆盖全部合规案例。样本数低于下限或高于上限都返回 `尚未验证` 并带真实 `sampleCount`，只有落在 `[min, max]` 内才给出 `通过`/`未达标`。不改记录格式、不改字段、不放宽合规判据。
+- **Failure rules**：不得在超窗口时给出 `通过` 或 `未达标`；不得为凑窗口丢弃案例或改写 `sampleSequence`。
+- **Completion evidence**：修复前实测：7 个合规案例（后 2 个主动时长 24 小时、返工 90 轮、负担 +2）经 `summarize --min-samples 3 --max-samples 5` 得到 `通过`、`sampleCount: 5`，两个灾难性真实案例完全不可见；同一存储用 `--max-samples 3` 得到 `通过`、用 `--max-samples 5` 得到 `未达标`，结论随窗口翻转。修复后同样数据分别返回 `未达标`（5 例）与 `尚未验证`（6 例，`cases` 长度 6）。Node 24.19.0 下 record-usage 40/40（新增 1 条）通过。变异证明：恢复截断后新断言失败，还原后通过。
+- **Blocker / unblock**：MET-001 仍为 `deferred`；spec §6.3 只为 3–5 份定义验收口径，超过 5 份时本命令按上述规则拒绝下结论。若要对更大样本量下结论，属于需求变更，须先修改 spec。
+
+### REL-004 · W10 修复后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w10_release Agent / 2026-08-18
+- **Outcome**：候选按 W10 修复重建，源码、生成分发面与 ZIP/manifest 再次一致，全部已记录摘要指向同一候选。
+- **Depends on / unlocks**：IO-001、VAL-003、GEN-002、TEL-002 / 无。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Refs**：Spec §15.1；Design DES-014；本文 §8.4 Release gate。
+- **Implementation contract**：与 REL-003 相同——只重建、可复现、不手改字节、不创建 tag 或 Release；REL-001/REL-002/REL-003 的历史摘要保持不变。
+- **Completion evidence**：新候选 ZIP 为 959266 bytes、SHA-256 `5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34`；manifest SHA-256 `59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02`；entryCount 仍为 11。连续两次 `release:build` 得到相同摘要。摘要已同步到 handoff §1 候选表、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。REL-003 记录的 `712c1f21…` 与 REL-001 的 `ae207e27…` 保留为各自时点的历史事实。
+- **Blocker / unblock**：无。W7 阻塞条件不变；PIL-001 若开始，必须以本卡摘要执行 §6.2 预检。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -966,7 +1160,7 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | A01 | 正常双产物完整审批 | GEN-001 | INT-001 | `A01_complete_review` | zero-context 工作台 | `done` | GEN proof + INT coverage/full-loop；PR #58 CI `31681741191` |
 | A02 | 部分回执不默认通过 | UI-003 | RND-001 | `A02_partial_packet` | packet 人工复核 | `done` | UI/RND proof + INT coverage；PR #58 CI `31681741191` |
 | A03 | bulk 排除 T2 | UI-002 | INT-001 | `A03_bulk_excludes_t2` | 键盘、处理/排除计数 | `done` | UI browser proof + INT coverage；PR #58 CI `31681741191` |
-| A04 | EDIT 只改触及块 | RND-001 | CON-001 | `A04_edit_incremental` | 跨轮 diff 证据 | `done` | CON E2E + INT full-loop 统一复跑；PR #58 CI `31681741191` |
+| A04 | EDIT 只改触及块 | RND-001 | CON-001、RND-002 | `A04_edit_incremental` | 跨轮 diff 证据 | `done` | CON E2E + INT full-loop 统一复跑；PR #58 CI `31681741191`；W9/RND-002 补充“候选自声明影响集不得授权改写未触及块”回归 |
 | A05 | HOLD 先回答再审 | RND-001 | CON-001 | `A05_hold_answer` | 人工语义检查 | `done` | CON E2E + zero-context Approval HOLD 语义复核；PR #58 CI `31681741191` |
 | A06 | TOPIC 唯一派生且源块活动 | RND-001 | CON-001 | `A06_topic_derivation` | 派生双产物 | `done` | CON E2E + INT full-loop；PR #58 CI `31681741191` |
 | A07 | 全通过定稿不改正文 | RND-001 | CON-001 | `A07_finalize_unchanged` | 摘要比对 | `done` | CON E2E + INT digest/body proof；PR #58 CI `31681741191` |
@@ -977,12 +1171,12 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | A12 | 非法输入定位拒绝 | CTR-002 | VAL-001 | `A12_fail_closed` | 错误 JSON | `done` | fixture/unit/E2E stable error + INT coverage；PR #58 CI `31681741191` |
 | A13 | 超限拆分或阻塞 | GEN-001 | CTR-002 | `A13_split_or_block` | splitGroup 全有或全无 | `done` | Schema/GEN/split E2E + INT coverage；PR #58 CI `31681741191` |
 | A14 | 不适用不触发 | SKL-001 | INT-001 | `A14_trigger_boundary` | fresh-agent | `done` | exact candidate fresh Codex 正/负边界 + deterministic fixtures；PR #58 CI `31681741191` |
-| A15 | 双产物冲突失败 | VAL-001 | GEN-001 | `A15_artifact_drift` | 人工语义复核 | `done` | real artifact byte drift exit 5/no mutation + semantic review；PR #58 CI `31681741191` |
-| A16 | 传递依赖暂停 | RND-001 | CTR-002 | `A16_transitive_hold` | 资格图复核 | `done` | transition graph unit/E2E + INT coverage；PR #58 CI `31681741191` |
+| A15 | 双产物冲突失败 | VAL-001 | GEN-001、VAL-002 | `A15_artifact_drift` | 人工语义复核 | `done` | real artifact byte drift exit 5/no mutation + semantic review；PR #58 CI `31681741191`；W9/VAL-002 补充个人绝对路径与作者占位符漏检回归 |
+| A16 | 传递依赖暂停 | RND-001 | CTR-002、RND-002 | `A16_transitive_hold` | 资格图复核 | `done` | transition graph unit/E2E + INT coverage；PR #58 CI `31681741191`；W9/RND-002 确认影响集只暂停资格、不再授予写权限 |
 | A17 | 重开未决定/再 PASS | RND-001 | UI-003 | `A17_reapprove_reopened` | 历史批准保留 + 跨轮 | `done` | unit/browser/E2E cross-round proof + INT coverage；PR #58 CI `31681741191` |
 | A18 | 状态身份不足拒绝 | CTR-002 | UI-003 | `A18_state_identity` | 显式确认流程 | `done` | identity confirmation/refusal unit/browser/E2E + INT coverage；PR #58 CI `31681741191` |
 | A19 | 注入不执行 | UI-001 | VAL-001 | `A19_untrusted_content` | standalone CSP/flow 文字/零请求 | `done` | malicious payload/CSP/zero-request browser proof + INT coverage；PR #58 CI `31681741191` |
-| A20 | 纯键盘全流程 | UI-002 | UI-003 | `A20_keyboard_complete` | Chromium/WebKit/Firefox smoke | `done` | Chromium/WebKit/Firefox + axe/keyboard proof；PR #58 CI `31681741191` |
+| A20 | 纯键盘全流程 | UI-002 | UI-003、UI-004 | `A20_keyboard_complete` | Chromium/WebKit/Firefox smoke | `done` | Chromium/WebKit/Firefox + axe/keyboard proof；PR #58 CI `31681741191`；W9/UI-004 补充随手记跨块编辑与本地化失败提示两条三引擎断言 |
 | A21 | 全局主题幂等 | RND-001 | CON-001 | `A21_global_topic_idempotent` | 映射与定稿 | `done` | CON replay/E2E + INT full-loop；PR #58 CI `31681741191` |
 | A22 | 手动导出后再改恢复告警 | UI-003 | INT-001 | `A22_export_dirty_again` | 浏览器告警 | `done` | UI browser dirty-again proof + INT coverage；PR #58 CI `31681741191` |
 
@@ -1084,3 +1278,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-17 的后续记录：`codex/claude-code-handoff` 以提交 `12cf429` 新增 [claude-code-handoff.md](claude-code-handoff.md)（PIL-001 验证交接），经 PR #63 合入 `codex/v0.2.0`，当前候选分支 HEAD 为 `fe734f7`；发布候选基线 `dae53e5b76e6507592b37c1a241e7ad6c6e22905` 与 ZIP/manifest 摘要不变。同日按用户决定完成规划文档整合：spec/design/task 由本地忽略改为随仓库跟踪，`docs/调研/` 加入 `.gitignore` 保持私有，handoff 从候选分支收入 `docs/`，并新增 [README.md](README.md) 作为目录索引。该次整合只对齐状态元数据、跟踪规则、交叉引用与摘要，未改变任何需求条款、设计决定、任务验收口径或已记录的完成证据；PIL-001 与 MET-001 的阻塞条件不受影响。
 
 同日更晚的一次候选 HEAD 全量复验发现：上述整合提交 `04e8f59` 直接推送到 `codex/v0.2.0`，未经过 PR，因此没有触发任何 CI，而它让 `scan:legacy-surface` 在候选 HEAD 上以 rc=3 失败——三份规划记录为了描述迁移而必须提及已退役的 v0.1 合同、`_HUMAN.html` 与旧脚本文件名，被该门当作当前公开承诺。除此之外，同一次复验在 Node 24.19.0 上确认其余全部门仍然全绿：build、check:generated、typecheck、lint、schema meta/types、unit 508/508、e2e 157 pass + 2 skip、acceptance 30/30 + 2 skip、coverage 695 pass + 4 skip（91.48/85.42/97.30/94.70）、Chromium/WebKit/Firefox 88 pass + 2 designed skip、A01–A22 checker 22/22、bundle size 351962/358400、固定版 Skill validator、`verify:dist` 与 `release:build` 复现同一 ZIP 摘要、`git diff --check`。因此新增 W8 / REL-002 只修复该门与其触发面，不改动任何产品代码、Skill 分发面或候选 ZIP。
+
+2026-08-18 的 W9 记录：对同一候选做了一次以 spec/design 条款为准的对抗式复审，22 条候选发现中 14 条被独立复核推翻，7 条确认为真实契约缺口（其中 3 条即 W8 已修复的发布门问题）。剩余四条构成 W9：UI-004（随手记编辑绑定活动游标导致编辑静默丢失，且全部 16 个 reducer 错误码以机器码回显，违反 Spec §9.3/§13.5）、VAL-002（个人绝对路径只在“用户名后带分隔符且路径前是空白/引号/括号”时命中，作者遗留的占位符因 Markdown 转义在文档正文中完全不可见，违反 Spec §13.2/§14.1）、RND-002（`permittedChanges` 采信候选自声明的影响集，一次 EDIT 即可授权改写任意未触及待处理块，且影响闭包取当前图与候选图并集使候选可先自造依赖边，违反 Spec §11.3）、DOC-001（DES-017 与已跟踪现状相反）。四项均以“先复现、再修复、再变异验证”的顺序完成：每条修复都被临时还原以确认新断言失败，再还原修复确认通过。RND-002 的收紧没有导致任何既有轮次、消费或验收测试失败，这本身说明该缺口此前完全没有测试覆盖。三个代码 lane 通过独立 worktree 并行开发后合入同一波次分支，再由 REL-003 按用户 2026-08-18 的决定统一重切候选并重新绑定全部已记录摘要。

@@ -1363,8 +1363,11 @@ export async function summarizeUsageMetrics(
       const latestComplete = [...latestCompleteByCase.values()];
       const sequences = new Set(latestComplete.map((record) => record.sampleSequence));
       if (sequences.size !== latestComplete.length) return emptySummary();
-      const eligible = latestComplete.filter(isEligiblePilot).sort((left, right) => left.sampleSequence - right.sampleSequence);
-      const samples = eligible.slice(0, maximumSamples);
+      // Every eligible case is measured. Silently keeping only the first
+      // `maximumSamples` would let a later, worse case vanish from the aggregate
+      // and the per-case table, which is exactly how spec §6.3's 「不得将目标写成
+      // 已达成事实」 gets violated: the dropped cases are invisible in the output.
+      const samples = latestComplete.filter(isEligiblePilot).sort((left, right) => left.sampleSequence - right.sampleSequence);
       if (samples.length === 0) return emptySummary();
 
       let t0T1DecidedCount = 0;
@@ -1388,7 +1391,10 @@ export async function summarizeUsageMetrics(
         burdenLowerThanOld: record.burdenScore < 0,
       }));
       const aggregate = { t0T1DecidedCount, t0T1ActiveReviewMs, t0T1AverageDecisionMs, totalActiveReviewMs, medianBurdenScore };
-      if (samples.length < minimumSamples) {
+      // Below the window there is not enough evidence; above it the declared
+      // measurement caliber does not describe the cohort. Both report the true
+      // sample count and refuse to conclude, rather than concluding from a subset.
+      if (samples.length < minimumSamples || samples.length > maximumSamples) {
         return { status: "summarized", conclusion: "尚未验证", sampleCount: samples.length, aggregate, cases };
       }
       const passed =

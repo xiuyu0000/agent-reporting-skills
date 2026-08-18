@@ -14,6 +14,23 @@ describe("privacy validator", () => {
     expect(validatePrivateText("No private content is present.", "/text")).toEqual({ ok: true, value: true });
   });
 
+  it("keeps relative paths and public URL segments out of the personal-path rule", () => {
+    // Only an absolute home path is personal. A `Users`/`home` segment inside a
+    // relative path or a public URL must never be reported.
+    const legitimate = [
+      ["reports/2026", "report.md"].join("/"),
+      ["docs", "home", "index.md"].join("/"),
+      ["src", "Users", "profile.tsx"].join("/"),
+      ["https://docs.example.test", "home", "getting-started"].join("/"),
+      ["https://docs.example.test", "Users", "guide"].join("/"),
+      ["见 ", ["docs", "home", "index.md"].join("/"), " 获取详情"].join(""),
+    ];
+    for (const value of legitimate) {
+      expect(validatePrivateText(value, "/text"), value).toEqual({ ok: true, value: true });
+    }
+    expect(validatePrivateData({ paths: legitimate })).toEqual({ ok: true, value: true });
+  });
+
   it.each([
     ["Author", "ization: Bearer abcdefghijklmnopqrstuvwxyz"].join(""),
     "Bearer abcdefghijklmnopqrstuvwxyz",
@@ -26,6 +43,17 @@ describe("privacy validator", () => {
     ["file:///Use", "rs/person/project/input.json"].join(""),
     ["/Use", "rs/person/project/input.json"].join(""),
     "C:\\Users\\person\\project\\input.json",
+    // A bare home directory never reaches a trailing separator.
+    ["/Use", "rs/alice"].join(""),
+    ["/ho", "me/bob"].join(""),
+    ["C:\\Use", "rs\\alice"].join(""),
+    // Any character may precede an absolute personal path, including the CJK
+    // adjacency that is ordinary typography for this Chinese-first product.
+    ["path=/Use", "rs/alice/notes.md"].join(""),
+    ["**/Use", "rs/alice/notes.md**"].join(""),
+    ["见/Use", "rs/alice/notes.md"].join(""),
+    ["见/ho", "me/bob/notes.md"].join(""),
+    ["见C:\\Use", "rs\\alice\\notes.md"].join(""),
     ["session", "-id=123e4567-e89b-12d3-a456-426614174000"].join(""),
     "raw conversation transcript",
   ])("rejects prohibited content without echoing it: %s", (privateValue) => {

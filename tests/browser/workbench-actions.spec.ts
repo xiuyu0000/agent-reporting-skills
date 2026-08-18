@@ -351,3 +351,46 @@ test("@A20 action surface has no serious axe violations in blocking browsers", a
   expect(pageResults.violations.filter((violation) =>
     violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
 });
+
+test("@A20 a note edit stays bound to its own block when the review cursor moves", async ({ page }) => {
+  await openWorkbench(page);
+
+  // Record a note on the first block.
+  const noteInput = page.locator("#side-note-input");
+  await noteInput.focus();
+  await noteInput.fill("Original thought about the first block.");
+  await page.keyboard.press("Control+Enter");
+  const noteList = page.locator(".side-note-list");
+  await expect(noteList).toContainText("NOTE-001 · B001");
+
+  // Reopen it for editing, then re-read another block before saving. Clicking a
+  // block moves the review cursor, which is ordinary use, not a corner case.
+  await noteList.getByRole("button", { name: "编辑" }).click();
+  await expect(noteInput).toHaveValue("Original thought about the first block.");
+  await block(page, "B003").click();
+  await expect(page.locator(".current-block-label")).toContainText("B003");
+
+  await noteInput.focus();
+  await noteInput.fill("Revised thought, still about the first block.");
+  await page.keyboard.press("Control+Enter");
+
+  // The edit must land on the note's own block, not on whatever is focused.
+  await expect(noteList).toContainText("NOTE-001 · B001 — Revised thought, still about the first block.");
+  await expect(noteList).not.toContainText("NOTE-002");
+  await expect(page.locator("#workbench-status")).toHaveText("保存");
+});
+
+test("@A20 a rejected action reports an understandable hint instead of a machine code", async ({ page }) => {
+  await openWorkbench(page);
+
+  // An empty note is rejected by the reducer with NOTE_REQUIRED.
+  const noteInput = page.locator("#side-note-input");
+  await noteInput.focus();
+  await noteInput.fill("   ");
+  await page.keyboard.press("Control+Enter");
+
+  const status = page.locator("#workbench-status");
+  await expect(status).toHaveText("未保存: 随手记内容不能为空");
+  await expect(status).not.toContainText("NOTE_REQUIRED");
+  await expect(page.locator(".side-note-list")).toContainText("尚未记录随手记");
+});
