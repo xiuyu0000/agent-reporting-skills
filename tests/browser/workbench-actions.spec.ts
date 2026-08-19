@@ -77,8 +77,17 @@ test.afterAll(async () => {
 
 async function openWorkbench(page: Page, url = workbenchUrl, total = 4): Promise<void> {
   await page.goto(url);
-  await expect(page.locator("article.decision-block")).toHaveCount(4);
-  await expect(page.locator(".review-progress")).toContainText(`0 共 ${total}`);
+  await expect(page.locator("article.blk")).toHaveCount(4);
+  await expect(page.locator(".p-num")).toContainText(`0 共 ${total}`);
+}
+
+// Option A keeps the rail compact: each editor sits in a closed disclosure, so a
+// reviewer opens it exactly as they would in the approved prototype.
+async function openRailEditor(page: Page, controlId: string): Promise<void> {
+  const fold = page.locator(`details.rail-fold:has(#${controlId})`);
+  if (!(await fold.evaluate((node) => (node as HTMLDetailsElement).open))) {
+    await fold.locator("summary").click();
+  }
 }
 
 function block(page: Page, blockId: string) {
@@ -105,34 +114,34 @@ test("@A03 bulk confirmation passes only pending T0/T1 blocks", async ({ page })
   await expect(dialog).toContainText("T2 已排除且保持不变: 1");
   await dialog.getByRole("button", { name: "确认整批通过" }).click();
 
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("待处理");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("待处理");
   for (const blockId of ["B002", "B003", "B004"]) {
-    await expect(block(page, blockId).locator(".decision-status")).toContainText("通过");
-    await expect(block(page, blockId).getByRole("button", { name: /1 · 通过/ }))
+    await expect(block(page, blockId).locator(".st-chip")).toContainText("通过");
+    await expect(block(page, blockId).locator("button[data-action='PASS']"))
       .toHaveAttribute("aria-pressed", "true");
   }
-  await expect(page.locator(".review-progress")).toContainText("3 共 4");
+  await expect(page.locator(".p-num")).toContainText("3 共 4");
   await expect(page.locator(".review-feedback")).toContainText("T2 已排除且保持不变: 1");
   await expect(block(page, "B001")).toBeFocused();
 
   await page.reload();
   for (const blockId of ["B002", "B003", "B004"]) {
-    await expect(block(page, blockId).locator(".decision-status")).toContainText("通过");
+    await expect(block(page, blockId).locator(".st-chip")).toContainText("通过");
   }
   for (const blockId of ["B003", "B004"]) {
     await block(page, blockId).getByRole("button", { name: "撤销决定" }).click();
   }
-  await block(page, "B002").getByRole("button", { name: /2 · 修改/ }).click();
+  await block(page, "B002").locator("button[data-action='EDIT']").click();
   await page.locator("dialog textarea").fill("Do not pass this block in bulk.");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();
   await expect(bulk).toHaveText("整批通过 T0/T1 (2)");
   await bulk.click();
   await expect(dialog).toContainText("将通过的块: 2 · T0 2 · T1 0");
   await dialog.getByRole("button", { name: "确认整批通过" }).click();
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("修改");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("待处理");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("修改");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("待处理");
 
-  await page.locator("#review-filter").selectOption("t2");
+  await page.locator("#review-filter button[data-filter='t2']").click();
   await expect(block(page, "B001")).toBeVisible();
   await expect(block(page, "B002")).toBeHidden();
   await expect(bulk).toBeDisabled();
@@ -143,7 +152,7 @@ test("@A16 shared execution eligibility propagates through the dependency chain"
   await expect(page.locator(".execution-eligibility[data-eligibility='suspended']")).toHaveCount(4);
 
   for (const blockId of ["B001", "B002", "B003", "B004"]) {
-    await block(page, blockId).getByRole("button", { name: /1 · 通过/ }).click();
+    await block(page, blockId).locator("button[data-action='PASS']").click();
     await expect(block(page, blockId).locator(".execution-eligibility"))
       .toHaveAttribute("data-eligibility", "eligible");
   }
@@ -151,7 +160,7 @@ test("@A16 shared execution eligibility propagates through the dependency chain"
   await expect(block(page, "B001").locator(".execution-eligibility"))
     .toContainText("不构成外部执行授权");
 
-  await block(page, "B001").getByRole("button", { name: /2 · 修改/ }).click();
+  await block(page, "B001").locator("button[data-action='EDIT']").click();
   await page.locator("dialog textarea").fill("Change the root dependency.");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();
   for (const blockId of ["B001", "B002", "B003"]) {
@@ -161,22 +170,24 @@ test("@A16 shared execution eligibility propagates through the dependency chain"
   await expect(block(page, "B004").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "eligible");
 
-  await block(page, "B001").getByRole("button", { name: /4 · 存疑/ }).click();
+  await block(page, "B001").locator("button[data-action='HOLD']").click();
   await page.locator("dialog textarea").fill("Answer the root question.");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();
   await expect(block(page, "B003").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "suspended");
 
-  await block(page, "B001").getByRole("button", { name: /3 · 新主题/ }).click();
+  await block(page, "B001").locator("button[data-action='TOPIC']").click();
   await page.locator("dialog input[data-field='title']").fill("Separate root topic");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();
-  await expect(page.locator(".topic-list")).toContainText("来源块: B001");
+  const rootTopic = page.locator(".topic-list li").filter({ hasText: "Separate root topic" });
+  await expect(rootTopic).toContainText("TOP-001");
+  await expect(rootTopic).toContainText("B001");
   await expect(block(page, "B002").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "suspended");
 
   await block(page, "B001").getByRole("button", { name: "撤销决定" }).click();
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("待处理");
-  await expect(page.locator(".topic-list")).not.toContainText("来源块: B001");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("待处理");
+  await expect(page.locator(".topic-list")).not.toContainText("Separate root topic");
   await expect(block(page, "B003").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "suspended");
 });
@@ -185,21 +196,21 @@ test("@A16 frozen blocks expose eligibility without exposing review actions", as
   await openWorkbench(page, frozenWorkbenchUrl, 3);
   await expect(block(page, "B004").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "eligible");
-  await expect(block(page, "B004").locator("button.decision-action")).toHaveCount(0);
+  await expect(block(page, "B004").locator("button.act[data-action]")).toHaveCount(0);
   await expect(block(page, "B003").locator(".execution-eligibility"))
     .toHaveAttribute("data-eligibility", "suspended");
 });
 
 test("@A20 keyboard actions, focus trap, overwrite, undo, search, and topic pairing", async ({ page }) => {
   await openWorkbench(page);
-  await expect(block(page, "B001").locator("details.block-body")).toHaveAttribute("open", "");
-  await expect(block(page, "B002").locator("details.block-body")).not.toHaveAttribute("open", "");
-  await expect(block(page, "B003").locator("details.block-body")).not.toHaveAttribute("open", "");
+  await expect(block(page, "B001").locator("details.b-body")).toHaveAttribute("open", "");
+  await expect(block(page, "B002").locator("details.b-body")).not.toHaveAttribute("open", "");
+  await expect(block(page, "B003").locator("details.b-body")).not.toHaveAttribute("open", "");
 
   await page.keyboard.press("j");
   await expect(block(page, "B002")).toBeFocused();
   await page.keyboard.press("1");
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("通过");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("通过");
   await expect(block(page, "B003")).toBeFocused();
 
   await page.keyboard.press("2");
@@ -212,13 +223,13 @@ test("@A20 keyboard actions, focus trap, overwrite, undo, search, and topic pair
   await expect(editor).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
-  await expect(block(page, "B003").getByRole("button", { name: /2 · 修改/ })).toBeFocused();
-  await expect(block(page, "B003").locator(".decision-status")).toContainText("待处理");
+  await expect(block(page, "B003").locator("button[data-action='EDIT']")).toBeFocused();
+  await expect(block(page, "B003").locator(".st-chip")).toContainText("待处理");
 
   await page.keyboard.press("2");
   await editor.fill("Need deterministic output.");
   await page.keyboard.press("Control+Enter");
-  await expect(block(page, "B003").locator(".decision-status")).toContainText("修改");
+  await expect(block(page, "B003").locator(".st-chip")).toContainText("修改");
   await expect(block(page, "B004")).toBeFocused();
 
   await page.keyboard.press("3");
@@ -228,29 +239,30 @@ test("@A20 keyboard actions, focus trap, overwrite, undo, search, and topic pair
   await page.keyboard.press("Tab");
   await dialog.locator("textarea[data-field='note']").fill("Keep it independent.");
   await page.keyboard.press("Control+Enter");
-  await expect(block(page, "B004").locator(".decision-status")).toContainText("新主题");
-  await expect(page.locator(".topic-list")).toContainText("TOP-001");
-  await expect(page.locator(".topic-list")).toContainText("来源块: B004");
+  await expect(block(page, "B004").locator(".st-chip")).toContainText("新主题");
+  const derivedTopic = page.locator(".topic-list li").filter({ hasText: "Derived migration plan" });
+  await expect(derivedTopic).toContainText("TOP-001");
+  await expect(derivedTopic).toContainText("B004");
   await expect(block(page, "B001")).toBeFocused();
 
   await page.keyboard.press("4");
   await dialog.locator("textarea[data-field='note']").fill("Which approval boundary applies?");
   await page.keyboard.press("Control+Enter");
-  await expect(page.locator(".review-progress")).toContainText("4 共 4");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("存疑");
+  await expect(page.locator(".p-num")).toContainText("4 共 4");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("存疑");
 
   await page.keyboard.press("1");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.keyboard.press("2");
   await page.keyboard.press("Escape");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
 
   const b1Decision = page.locator(".decision-list li").filter({ hasText: "B001" });
   const undo = b1Decision.getByRole("button", { name: "撤销决定" });
   await undo.focus();
   await page.keyboard.press("Enter");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("待处理");
-  await expect(page.locator(".review-progress")).toContainText("3 共 4");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("待处理");
+  await expect(page.locator(".p-num")).toContainText("3 共 4");
 
   const search = page.locator("#decision-search");
   await search.focus();
@@ -258,26 +270,26 @@ test("@A20 keyboard actions, focus trap, overwrite, undo, search, and topic pair
   await expect(block(page, "B003")).toBeVisible();
   await expect(block(page, "B002")).toBeHidden();
   await page.keyboard.press("1");
-  await expect(block(page, "B003").locator(".decision-status")).toContainText("修改");
+  await expect(block(page, "B003").locator(".st-chip")).toContainText("修改");
   await search.fill("");
-  await page.locator("#review-filter").selectOption("annotated");
+  await page.locator("#review-filter button[data-filter='annotated']").click();
   await expect(block(page, "B001")).toBeHidden();
   await expect(block(page, "B002")).toBeVisible();
 
-  const sourceTopic = page.locator(".topic-list li").filter({ hasText: "来源块: B004" });
+  const sourceTopic = page.locator(".topic-list li").filter({ hasText: "Derived migration plan" });
   const deleteTopic = sourceTopic.getByRole("button", { name: "删除" });
   await deleteTopic.focus();
   await page.keyboard.press("Enter");
-  await page.locator("#review-filter").selectOption("all");
-  await expect(block(page, "B004").locator(".decision-status")).toContainText("待处理");
-  await expect(page.locator(".topic-list")).not.toContainText("来源块: B004");
+  await page.locator("#review-filter button[data-filter='all']").click();
+  await expect(block(page, "B004").locator(".st-chip")).toContainText("待处理");
+  await expect(page.locator(".topic-list")).not.toContainText("Derived migration plan");
 });
 
 test("@A20 current-block quoting preserves full text and rejects cross-block selections", async ({ page }) => {
   await openWorkbench(page);
-  const selected = await block(page, "B001").locator("p.summary").textContent();
+  const selected = await block(page, "B001").locator("p.b-tldr").textContent();
   await page.evaluate(() => {
-    const text = document.querySelector("#block-B001 p.summary")?.firstChild;
+    const text = document.querySelector("#block-B001 p.b-tldr")?.firstChild;
     if (text === null || text === undefined) throw new Error("selection fixture missing");
     const range = document.createRange();
     range.selectNodeContents(text);
@@ -294,8 +306,8 @@ test("@A20 current-block quoting preserves full text and rejects cross-block sel
 
   await page.reload();
   await page.evaluate(() => {
-    const start = document.querySelector("#block-B001 p.summary")?.firstChild;
-    const end = document.querySelector("#block-B002 p.summary")?.firstChild;
+    const start = document.querySelector("#block-B001 p.b-tldr")?.firstChild;
+    const end = document.querySelector("#block-B002 p.b-tldr")?.firstChild;
     if (start === null || start === undefined || end === null || end === undefined) {
       throw new Error("selection fixture missing");
     }
@@ -312,27 +324,32 @@ test("@A20 current-block quoting preserves full text and rejects cross-block sel
 
 test("@A20 pointer action bounds and keyboard annotation management remain observable", async ({ page }) => {
   await openWorkbench(page);
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/ }).click();
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
-  await block(page, "B002").getByRole("button", { name: /2 · 修改/ }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
+  await block(page, "B002").locator("button[data-action='EDIT']").click();
   await page.locator("dialog textarea").fill("Two-click modification.");
   await page.locator("dialog").getByRole("button", { name: "保存" }).click();
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("修改");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("修改");
 
   await page.keyboard.press("j");
   const noteInput = page.locator("#side-note-input");
+  await openRailEditor(page, "side-note-input");
   await noteInput.focus();
   await noteInput.fill("Keep this thought separate.");
   await page.keyboard.press("Control+Enter");
   await expect(page.locator(".side-note-list")).toContainText("NOTE-001");
 
   const topicTitle = page.locator("#global-topic-title");
+  await openRailEditor(page, "global-topic-title");
   await topicTitle.focus();
   await topicTitle.fill("Global follow-up");
   await page.keyboard.press("Control+Enter");
-  await expect(page.locator(".topic-list")).toContainText("TOP-001 · 全局主题");
+  const globalTopic = page.locator(".topic-list li").filter({ hasText: "Global follow-up" });
+  await expect(globalTopic).toContainText("TOP-001");
+  await expect(globalTopic).toContainText("全局主题");
 
   const overall = page.locator("#overall-review");
+  await openRailEditor(page, "overall-review");
   await overall.focus();
   await overall.fill("Overall direction is sound.");
   await page.keyboard.press("Control+Enter");
@@ -357,25 +374,29 @@ test("@A20 a note edit stays bound to its own block when the review cursor moves
 
   // Record a note on the first block.
   const noteInput = page.locator("#side-note-input");
+  await openRailEditor(page, "side-note-input");
   await noteInput.focus();
   await noteInput.fill("Original thought about the first block.");
   await page.keyboard.press("Control+Enter");
   const noteList = page.locator(".side-note-list");
-  await expect(noteList).toContainText("NOTE-001 · B001");
+  const noteRow = noteList.locator("li").filter({ hasText: "NOTE-001" });
+  await expect(noteRow).toContainText("B001");
 
   // Reopen it for editing, then re-read another block before saving. Clicking a
   // block moves the review cursor, which is ordinary use, not a corner case.
   await noteList.getByRole("button", { name: "编辑" }).click();
   await expect(noteInput).toHaveValue("Original thought about the first block.");
   await block(page, "B003").click();
-  await expect(page.locator(".current-block-label")).toContainText("B003");
+  await expect(page.locator(".rail-current")).toContainText("B003");
 
+  await openRailEditor(page, "side-note-input");
   await noteInput.focus();
   await noteInput.fill("Revised thought, still about the first block.");
   await page.keyboard.press("Control+Enter");
 
   // The edit must land on the note's own block, not on whatever is focused.
-  await expect(noteList).toContainText("NOTE-001 · B001 — Revised thought, still about the first block.");
+  await expect(noteRow).toContainText("B001");
+  await expect(noteRow).toContainText("Revised thought, still about the first block.");
   await expect(noteList).not.toContainText("NOTE-002");
   await expect(page.locator("#workbench-status")).toHaveText("保存");
 });
@@ -385,6 +406,7 @@ test("@A20 a rejected action reports an understandable hint instead of a machine
 
   // An empty note is rejected by the reducer with NOTE_REQUIRED.
   const noteInput = page.locator("#side-note-input");
+  await openRailEditor(page, "side-note-input");
   await noteInput.focus();
   await noteInput.fill("   ");
   await page.keyboard.press("Control+Enter");

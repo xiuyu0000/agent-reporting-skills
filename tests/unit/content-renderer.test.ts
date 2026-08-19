@@ -118,9 +118,21 @@ class MiniFragment extends MiniNode {
   }
 }
 
+// The workbench styles the progress fill and the sticky-header offset through
+// CSSOM, the only styling path a hash-pinned CSP allows.
+class MiniStyle {
+  readonly properties = new Map<string, string>();
+  width = "";
+
+  setProperty(name: string, value: string): void {
+    this.properties.set(name, value);
+  }
+}
+
 class MiniElement extends MiniNode {
   readonly attributes = new Map<string, string>();
   readonly dataset: Record<string, string> = {};
+  readonly style = new MiniStyle();
   private readonly eventListeners = new Map<string, EventListener[]>();
   hidden = false;
   open = false;
@@ -499,9 +511,9 @@ function makeShell(documentValue: ReviewDocumentV1): MiniDocument {
     href: "#review-main",
   }).textContent = "Skip to decision blocks";
   appendElement(ownerDocument.body, "header", { id: "review-header" });
-  const workspace = appendElement(ownerDocument.body, "div", { class: "workspace" });
+  const workspace = appendElement(ownerDocument.body, "div", { class: "layout" });
   appendElement(workspace, "main", { id: "review-main", tabindex: "-1" });
-  appendElement(workspace, "aside", { id: "decision-rail", class: "decision-rail" });
+  appendElement(workspace, "aside", { id: "decision-rail", class: "rail" });
   appendElement(ownerDocument.body, "footer", { id: "review-footer" });
   appendElement(ownerDocument.body, "div", { id: "workbench-status", "aria-live": "polite" });
   const template = appendElement(ownerDocument.body, "template", {
@@ -528,7 +540,7 @@ describe("safe content renderer and bootstrap", () => {
     expect(ownerDocument.querySelector("h1")?.textContent).toBe(cases.injectionText);
     expect(ownerDocument.querySelector("h1")?.lang).toBe("en");
     expect(ownerDocument.querySelectorAll("h1")).toHaveLength(1);
-    expect(ownerDocument.querySelector("section.continuation")?.textContent).toContain("审批上下文");
+    expect(ownerDocument.querySelector("details.context-fold > summary")?.textContent).toContain("审批上下文");
     expect(ownerDocument.querySelector("section.continuation")?.textContent).toContain(cases.injectionText);
     expect(ownerDocument.querySelector("section.evidence")?.textContent).toContain("静态来源");
     expect(ownerDocument.querySelector("section.evidence")?.querySelector("p.evidence-notice")?.textContent).toBe(
@@ -545,7 +557,7 @@ describe("safe content renderer and bootstrap", () => {
     expect(ownerDocument.querySelector("#evidence-decision-D-001")).not.toBeNull();
     expect(ownerDocument.querySelector("section.continuation")?.querySelectorAll("span.content-value")[0]?.lang).toBe("en");
     expect(ownerDocument.querySelector("section.evidence")?.querySelector("span.content-value")?.lang).toBe("en");
-    expect(ownerDocument.querySelectorAll("article.decision-block")).toHaveLength(4);
+    expect(ownerDocument.querySelectorAll("article.blk")).toHaveLength(4);
     expect(ownerDocument.querySelectorAll("script")).toHaveLength(0);
     expect(ownerDocument.querySelectorAll("img")).toHaveLength(0);
     expect(ownerDocument.querySelector("a.link-kind")).toBeNull();
@@ -598,11 +610,11 @@ describe("safe content renderer and bootstrap", () => {
     expect(ownerDocument.querySelector("div.table-region")?.tabIndex).toBe(0);
     expect(ownerDocument.querySelector("div.code-region")?.tabIndex).toBe(0);
     expect(ownerDocument.querySelectorAll("code").some((node) => node.textContent.includes(cases.injectionText))).toBe(true);
-    expect(ownerDocument.querySelector("article#block-B001")?.querySelector("details.block-body")?.open).toBe(true);
-    expect(ownerDocument.querySelector("article#block-B002")?.querySelector("details.block-body")?.open).toBe(false);
+    expect(ownerDocument.querySelector("article#block-B001")?.querySelector("details.b-body")?.open).toBe(true);
+    expect(ownerDocument.querySelector("article#block-B002")?.querySelector("details.b-body")?.open).toBe(false);
     expect(ownerDocument.querySelector("article#block-B004")?.textContent).toContain("已冻结 · 冻结轮次: 1");
     const initialActions = ownerDocument.querySelectorAll("button")
-      .filter((button) => button.className.split(/\s+/u).includes("decision-action"));
+      .filter((button) => button.dataset.action !== undefined);
     expect(initialActions.length).toBe(12);
     expect(initialActions.map((button) => button.getAttribute("aria-pressed")))
       .toEqual(Array.from({ length: 12 }, () => "false"));
@@ -645,8 +657,10 @@ describe("safe content renderer and bootstrap", () => {
     bootstrapWorkbench();
     expect(ownerDocument.documentElement.lang).toBe("en");
     expect(ownerDocument.querySelector("a.skip-link")?.textContent).toBe("Skip to decision blocks");
-    expect(ownerDocument.querySelector("section.continuation")?.textContent).toContain("Review context");
-    expect(ownerDocument.querySelector("section.evidence")?.textContent).toContain("Evidence snapshot");
+    expect(ownerDocument.querySelectorAll("details.context-fold > summary")[0]?.textContent)
+      .toContain("Review context");
+    expect(ownerDocument.querySelectorAll("details.context-fold > summary")[1]?.textContent)
+      .toContain("Evidence snapshot");
     expect(ownerDocument.querySelector("section.evidence")?.querySelector("p.evidence-notice")?.textContent).toContain(
       "Before continuing, recheck time-sensitive facts according to the source hierarchy.",
     );

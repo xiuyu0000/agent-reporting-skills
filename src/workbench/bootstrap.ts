@@ -335,7 +335,6 @@ function renderContinuation(
 ): HTMLElement {
   const continuation = ownerDocument.createElement("section");
   continuation.className = "context-panel continuation";
-  continuation.append(elementWithText(ownerDocument, "h2", strings.continuation));
   const overview = ownerDocument.createElement("dl");
   const objective = elementWithText(ownerDocument, "span", documentValue.continuation.objective);
   objective.lang = documentValue.document.language;
@@ -425,6 +424,25 @@ function confidenceLabel(
   return strings.confidenceUnknown;
 }
 
+// Option A layout: the reading column leads with the decision blocks. The
+// self-sufficiency requirement (spec 7.2) still needs the continuation and
+// evidence context in the same file, so each panel is kept in full but folded
+// into a closed disclosure above the blocks rather than pushed ahead of them.
+function collapsedContext(
+  ownerDocument: Document,
+  title: string,
+  panel: HTMLElement,
+): HTMLElement {
+  const fold = ownerDocument.createElement("details");
+  fold.className = "context-fold";
+  const summary = ownerDocument.createElement("summary");
+  const heading = elementWithText(ownerDocument, "h2", title);
+  heading.className = "fold-title";
+  summary.append(heading);
+  fold.append(summary, panel);
+  return fold;
+}
+
 function renderEvidenceItems(
   ownerDocument: Document,
   heading: string,
@@ -486,7 +504,6 @@ function renderEvidence(
 ): HTMLElement {
   const evidence = ownerDocument.createElement("section");
   evidence.className = "context-panel evidence";
-  evidence.append(elementWithText(ownerDocument, "h2", strings.evidence));
   const notice = elementWithText(ownerDocument, "p", strings.evidenceNotice);
   notice.className = "notice evidence-notice";
   evidence.append(notice);
@@ -618,40 +635,59 @@ function renderBlock(
   contentContext: ContentRenderContext,
 ): HTMLElement {
   const article = ownerDocument.createElement("article");
-  article.className = "decision-block";
+  const frozen = documentValue.approvals.currentFrozen.includes(block.id);
+  // Tier drives the card's left border until a decision replaces it; the review
+  // controller rewrites this list when the decision or the review cursor moves.
+  article.className = `blk tier-${block.tier}${frozen ? " frozen" : ""}`;
   article.dataset.tier = block.tier;
   article.id = `block-${block.id}`;
-  const heading = ownerDocument.createElement("div");
-  heading.className = "block-heading";
-  const headingText = ownerDocument.createElement("div");
-  const eyebrow = elementWithText(ownerDocument, "p", block.id);
-  eyebrow.className = "eyebrow";
+  const head = ownerDocument.createElement("div");
+  head.className = "b-head";
+  const pill = elementWithText(ownerDocument, "span", tierLabel(block, strings));
+  pill.className = `pill ${block.tier}`;
+  const identifier = elementWithText(ownerDocument, "span", block.id);
+  identifier.className = "b-id";
   const title = elementWithText(ownerDocument, "h3", block.title);
+  title.className = "b-title";
   title.lang = documentValue.document.language;
+  // The decision chip and the frozen chip share one right-aligned slot so the
+  // controller never has to reorder the head.
+  const statusSlot = ownerDocument.createElement("span");
+  statusSlot.className = "st-slot";
+  head.append(pill, identifier, title, statusSlot);
   const summary = elementWithText(ownerDocument, "p", block.summary);
-  summary.className = "summary";
+  summary.className = "b-tldr";
   summary.lang = documentValue.document.language;
-  headingText.append(eyebrow, title, summary);
-  const tier = elementWithText(ownerDocument, "span", tierLabel(block, strings));
-  tier.className = "tier-chip";
-  heading.append(headingText, tier);
-  article.append(heading);
+  article.append(head, summary);
 
-  if (documentValue.approvals.currentFrozen.includes(block.id)) {
+  if (frozen) {
     const approvedRound = documentValue.approvals.history
       .filter((approval) => approval.blockId === block.id)
       .reduce((latest, approval) => Math.max(latest, approval.approvedRound), 0);
-    const frozen = elementWithText(
+    const chip = ownerDocument.createElement("span");
+    chip.className = "frozen-chip";
+    const marker = ownerDocument.createElement("span");
+    marker.className = "dot d-FROZEN";
+    chip.append(marker, elementWithText(
       ownerDocument,
-      "p",
+      "span",
       `❄ ${strings.frozen} · ${strings.frozenRound}: ${approvedRound}`,
-    );
-    frozen.className = "status-chip";
-    article.append(frozen);
+    ));
+    statusSlot.append(chip);
   }
+  const body = ownerDocument.createElement("details");
+  body.className = "b-body";
+  body.open = block.tier === "T2";
+  body.append(elementWithText(ownerDocument, "summary", strings.summary));
+  const content = ownerDocument.createElement("div");
+  content.className = "b-content";
+  content.lang = documentValue.document.language;
+  content.append(renderContentNodes(ownerDocument, block.body, contentContext));
+  body.append(content);
+  article.append(body);
   if (block.tier === "T2") {
     const prompt = ownerDocument.createElement("dl");
-    prompt.className = "t2-prompt";
+    prompt.className = "why";
     prompt.append(
       elementWithText(ownerDocument, "dt", strings.whyTier),
       elementWithText(ownerDocument, "dd", block.whyTier),
@@ -667,15 +703,6 @@ function renderBlock(
     strings,
     documentValue.document.language,
   ));
-  const body = ownerDocument.createElement("details");
-  body.className = "block-body";
-  body.open = block.tier === "T2";
-  body.append(elementWithText(ownerDocument, "summary", strings.summary));
-  const content = ownerDocument.createElement("div");
-  content.lang = documentValue.document.language;
-  content.append(renderContentNodes(ownerDocument, block.body, contentContext));
-  body.append(content);
-  article.append(body);
   return article;
 }
 
@@ -690,30 +717,22 @@ function buildWorkbenchFragments(
 } {
   const ownerDocument = document;
   const header = ownerDocument.createDocumentFragment();
-  const eyebrow = elementWithText(ownerDocument, "p", strings.approvalWorkspace);
-  eyebrow.className = "eyebrow";
+  // `.h-top` is the prototype's identity line; the progress bar, tier counts,
+  // filters, bulk control and the warn/final/restore bars are appended by the
+  // review controller so they can stay in one live-updating `.h-bar`.
+  const top = ownerDocument.createElement("div");
+  top.className = "h-top";
   const title = elementWithText(ownerDocument, "h1", documentValue.document.title);
+  title.className = "h-title";
   title.lang = documentValue.document.language;
-  const summary = elementWithText(ownerDocument, "p", documentValue.document.summary);
-  summary.className = "summary";
-  summary.lang = documentValue.document.language;
   const meta = elementWithText(
     ownerDocument,
     "p",
     `${strings.round}: ${documentValue.document.round} · ${strings.asOf}: ${documentValue.document.asOf} · ${strings.status}: ${statusLabel(documentValue.document.status, strings)}`,
   );
-  meta.className = "meta";
-  const notice = elementWithText(ownerDocument, "p", strings.evidenceNotice);
-  notice.className = "notice";
-  const counts = ownerDocument.createElement("ul");
-  counts.className = "tier-counts";
-  counts.setAttribute("aria-label", strings.tierCounts);
-  for (const tier of ["T2", "T1", "T0"] as const) {
-    const count = documentValue.blocks.filter((block) => block.tier === tier).length;
-    const label = tier === "T2" ? strings.tierT2 : tier === "T1" ? strings.tierT1 : strings.tierT0;
-    counts.append(elementWithText(ownerDocument, "li", `${label}: ${count}`));
-  }
-  header.append(eyebrow, title, summary, meta, notice, counts);
+  meta.className = "h-meta";
+  top.append(title, meta);
+  header.append(top);
 
   let termDisclosureIndex = 0;
   const nextTermDisclosureId = (glossaryId: string): string => {
@@ -728,9 +747,23 @@ function buildWorkbenchFragments(
     nextTermDisclosureId,
   };
   const main = ownerDocument.createDocumentFragment();
+  // The prototype opens the reading column with an `.intro` card; the document
+  // summary belongs there, which also keeps the sticky header to two rows.
+  const intro = elementWithText(ownerDocument, "p", documentValue.document.summary);
+  intro.className = "intro";
+  intro.lang = documentValue.document.language;
   main.append(
-    renderContinuation(ownerDocument, documentValue, strings, contentContext),
-    renderEvidence(ownerDocument, documentValue, strings, contentContext),
+    intro,
+    collapsedContext(
+      ownerDocument,
+      strings.continuation,
+      renderContinuation(ownerDocument, documentValue, strings, contentContext),
+    ),
+    collapsedContext(
+      ownerDocument,
+      strings.evidence,
+      renderEvidence(ownerDocument, documentValue, strings, contentContext),
+    ),
     elementWithText(ownerDocument, "h2", strings.decisionBlocks),
   );
   const blocks = ownerDocument.createElement("div");

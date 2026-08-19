@@ -217,6 +217,7 @@ flowchart TD
 | W8 | REL-002 | 单线程；与 W7 无写入交集 | 候选 HEAD 全量门（含 `scan:legacy-surface`）恢复全绿 |
 | W9 | UI-004、VAL-002、RND-002 三 lane 并行；DOC-001 独立；全部合入后由 REL-003 重切候选 | 三 lane 写域互斥（workbench / cli-validate / transition）；REL-003 串行收口 | 四项契约缺口各有失败-通过变异证明；候选重建且全部门全绿 |
 | W10 | IO-001、VAL-003、GEN-002、TEL-002；REL-004 收口重切 | 单线程；四个缺口分属 CLI I/O、validate/consume、generators 与 telemetry | 五项缺口各有失败-通过变异证明；候选重建且全部门全绿 |
+| W11 | UI-005；REL-005 收口重切 | 单线程；只写 workbench 与其测试 | 审批台与已批准原型视觉一致；三浏览器全绿；候选重建 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -266,6 +267,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | GEN-002 | 步骤中的首个代码块保持惰性，不被解析为文档结构 | REL-003 | generators | `done` | w10_generators Agent | `src/generators/markdown.ts`、generators 测试 | A19；Spec §13.3 |
 | TEL-002 | summarize 不再静默截断合规样本 | REL-003 | telemetry | `done` | w10_telemetry Agent | `src/cli/record-usage.ts`、record-usage 测试 | Spec §6.3 |
 | REL-004 | 按 W10 修复重切候选并重新绑定摘要 | IO-001、VAL-003、GEN-002、TEL-002 | release | `done` | w10_release Agent | `dist/**`、生成分发面、handoff §1、claude-handoff 测试 | Release gate |
+| UI-005 | 审批 HTML 采用用户已批准的审批工作台原型视觉系统与阅读顺序 | REL-004 | ui | `done` | w11_ui Agent + 协调者 | `src/workbench/**`、`src/generators/approval.ts`、build/check 工具、workbench 测试 | A19/A20；用户 2026-08-18 指令 |
+| REL-005 | 按 W11 重切候选并重新绑定摘要 | UI-005 | release | `done` | w11_release Agent | `dist/**`、生成分发面、handoff §1、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1150,6 +1153,41 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Implementation contract**：与 REL-003 相同——只重建、可复现、不手改字节、不创建 tag 或 Release；REL-001/REL-002/REL-003 的历史摘要保持不变。
 - **Completion evidence**：新候选 ZIP 为 959266 bytes、SHA-256 `5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34`；manifest SHA-256 `59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02`；entryCount 仍为 11。连续两次 `release:build` 得到相同摘要。摘要已同步到 handoff §1 候选表、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。REL-003 记录的 `712c1f21…` 与 REL-001 的 `ae207e27…` 保留为各自时点的历史事实。
 - **Blocker / unblock**：无。W7 阻塞条件不变；PIL-001 若开始，必须以本卡摘要执行 §6.2 预检。
+
+### UI-005 · 审批台采用已批准的原型视觉系统
+
+- **状态 / owner_role / owner / last_updated**：`done` / ui engineer / w11_ui Agent + 协调者 / 2026-08-18
+- **Outcome**：审批 HTML 的视觉系统与阅读顺序与用户已批准并实际使用的审批工作台原型一致，同时保留无障碍契约与离线/CSP 保证。
+- **Depends on / unlocks**：REL-004 / REL-005。
+- **Write scope**：`src/workbench/{shell,bootstrap,interactions,i18n}.ts`、`src/workbench/persistence/ui.ts`、`src/generators/approval.ts` 的 shell 上限、`tools/{build-workbench,check-generated}.mjs`、workbench 的 browser/unit 测试。
+- **Refs**：Spec §7.2 自足性、§9.6 键盘、§13.3–§13.5 安全与可访问性；A19/A20；用户 2026-08-18 的 UI 指令与选项 A。
+- **Implementation contract**：视觉系统取自已批准原型——暖纸色 `--page:#f9f9f7` / `--surface:#fcfcfb`、发丝线、分诊左边框（T2 橙 / T1 蓝 / T0 base）并在有决定后切为决定态色、分诊 pill、带键帽的四动作 chip、真实进度填充条、筛选 pill、1280px 网格与 340px 侧栏。**只采纳视觉系统，不得把 `docs/调研/` 的业务正文、示例块内容或方案标题复制进跟踪文件。** 阅读顺序按用户选择的方案 A：决策块居前，审批上下文与证据快照仍在同一文件内但折叠为默认关闭的 disclosure，以同时满足 Spec §7.2 自足性；侧栏编辑器同样折叠，使导出 CTA 无需滚动即可见，任何以编程方式聚焦编辑器的路径必须先展开其 fold。landmarks、skip link、`aria-live` 状态区、`aria-pressed`、可见焦点与 `j/k/n/1-4/Esc/Cmd+Enter` 不得回退。
+- **Failure rules**：不得为压进体积预算而删减已批准样式；不得以降低对比度换取与原型逐像素一致；不得引入任何外部资源或放宽 CSP。
+- **Validation**：
+
+  ```bash
+  npm run build
+  npm run check:generated
+  npm run check:bundle-size
+  npm run typecheck
+  npm run lint
+  npm run test:unit
+  npm run test:browser
+  ```
+
+  预期：全部退出 0；三浏览器 97 pass + 2 designed skip；新增视觉系统断言覆盖调色板、分诊/决定态左边框、进度填充条与筛选 pill 状态。
+- **Completion evidence**：改版前审批台使用与原型完全不同的冷蓝配色与类名体系，且主列先渲染审批上下文与证据快照——实测首个决策块位于 y≈1656（总高 2695），审阅者需滚动过 60% 页面才能做第一个决定。改版后同一文档的首个决策块位于 **y≈369**，上下文改为两个默认关闭的 disclosure，侧栏的黑色「复制回执 Markdown」CTA 首屏可见。三条原型规则经实测替换而非照搬：`.blk.frozen{opacity:.75}` 会把文字一同合成，axe 实测 6 条 serious 对比度违规（3.04–4.08:1），改为 `--page` 底色内凹；`--muted`/`--blue` 保留原值用于装饰，正文改用新增的 `--muted-ink`(4.98:1) 与 `--link`(5.25:1)；模态保留原生 `<dialog>` + `::backdrop` 以维持焦点陷阱。`color-mix()` 在 Chromium 151 / WebKit 26.5 / Firefox 153 实测均受支持，仍为每处补了静态 sRGB 回退。工作台体积上限由 358400 提升至 393216（`tools/build-workbench.mjs` 与 `src/generators/approval.ts` 两处门），实测 369026/393216。Node 24.19.0 下 unit 532/532、三浏览器 97 pass + 2 designed skip、typecheck、lint、check:generated、check:acceptance-coverage 22/22、固定版 Skill validator 全绿。
+- **Blocker / unblock**：无。视觉契约目前只由 UI-005 的浏览器断言守护；若要防止再次漂移，需另立需求条款与 DES 记录（见本卡 Refs 的用户指令）。
+
+### REL-005 · W11 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w11_release Agent / 2026-08-18
+- **Outcome**：候选按 W11 的审批台改版重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Depends on / unlocks**：UI-005 / 无。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003/REL-004 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 972385 bytes、SHA-256 `99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e`；manifest SHA-256 `7cce8a15373d31035d5b05e92df244452e3fa4427e389eab2c166d989e62284e`；entryCount 仍为 11。摘要已同步到 handoff §1、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。此前各次重切的摘要保留在 REL-001..REL-004 的历史证据中。
+- **Blocker / unblock**：无。W7 阻塞条件不变；PIL-001 的 round 1 需以本卡摘要重新生成，使审批者在改版后的工作台上审阅。
 
 ## 6. A01–A22 覆盖矩阵
 

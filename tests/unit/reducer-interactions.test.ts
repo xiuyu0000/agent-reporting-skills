@@ -94,8 +94,20 @@ class TestText extends TestNode {
 
 type TestListener = (event: TestEvent) => void;
 
+// The controller styles the progress fill and the sticky-header offset through
+// CSSOM, which is the only styling path a hash-pinned CSP allows.
+class TestStyle {
+  readonly properties = new Map<string, string>();
+  width = "";
+
+  setProperty(name: string, value: string): void {
+    this.properties.set(name, value);
+  }
+}
+
 class TestElement extends TestNode {
   readonly attributes = new Map<string, string>();
+  readonly style = new TestStyle();
   readonly dataset: Record<string, string>;
   private readonly listeners = new Map<string, TestListener[]>();
   className = "";
@@ -312,10 +324,16 @@ function mount(): MountedWorkbench {
   keyboardHelp.textContent = strings.keyboardHelp;
   const documentValue = documentFixture();
   for (const block of documentValue.blocks) {
-    const article = appendElement(main, "article", { id: `block-${block.id}`, class: "decision-block" });
-    const heading = appendElement(article, "h3");
+    const article = appendElement(main, "article", {
+      id: `block-${block.id}`,
+      class: `blk tier-${block.tier}`,
+      "data-tier": block.tier,
+    });
+    const head = appendElement(article, "div", { class: "b-head" });
+    const heading = appendElement(head, "h3", { class: "b-title" });
     heading.textContent = block.title;
-    const summary = appendElement(article, "p", { class: "summary" });
+    appendElement(head, "span", { class: "st-slot" });
+    const summary = appendElement(article, "p", { class: "b-tldr" });
     summary.textContent = block.summary;
   }
   mountReviewInteractions({
@@ -338,9 +356,25 @@ function key(target: TestElement, value: string, options: TestEvent["options"] =
   return event;
 }
 
+// Rail record controls are icon buttons, so match the accessible name as well
+// as the visible glyph.
 function button(container: TestNode, text: string): TestElement {
-  const result = container.querySelectorAll("button").find((value) => value.textContent === text);
+  const result = container.querySelectorAll("button").find((value) => (
+    value.textContent === text || value.getAttribute("aria-label") === text
+  ));
   if (result === undefined) throw new Error(`button not found: ${text}`);
+  return result;
+}
+
+function actionButton(container: TestNode, action: string): TestElement {
+  const result = container.querySelectorAll(`button[data-action='${action}']`)[0];
+  if (result === undefined) throw new Error(`action button not found: ${action}`);
+  return result;
+}
+
+function filterButton(workbench: MountedWorkbench, value: string): TestElement {
+  const result = workbench.header.querySelectorAll(`button[data-filter='${value}']`)[0];
+  if (result === undefined) throw new Error(`filter button not found: ${value}`);
   return result;
 }
 
@@ -383,8 +417,8 @@ describe("review interaction controller", () => {
     const workbench = mount();
     installDom(workbench.ownerDocument);
 
-    expect(workbench.header.querySelector(".review-progress")?.textContent).toContain("0 of 4");
-    expect(workbench.main.querySelectorAll("button.decision-action")).toHaveLength(16);
+    expect(workbench.header.querySelector(".p-num")?.textContent).toContain("0 of 4");
+    expect(workbench.main.querySelectorAll("button.act[data-action]")).toHaveLength(16);
     expect(workbench.rail.querySelectorAll("h2#decision-rail-heading")).toHaveLength(1);
     expect(workbench.rail.querySelector("section.review-interactions")).not.toBeNull();
     expect(workbench.footer.textContent).toContain("j/k");
@@ -392,7 +426,7 @@ describe("review interaction controller", () => {
     key(workbench.ownerDocument.body, "j");
     expect(workbench.ownerDocument.activeElement).toBe(article(workbench, "B002"));
     key(workbench.ownerDocument.body, "1");
-    expect(article(workbench, "B002").querySelector(".decision-status")?.textContent).toContain("Pass");
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pass");
     expect(workbench.ownerDocument.activeElement).toBe(article(workbench, "B003"));
 
     key(workbench.ownerDocument.body, "2");
@@ -406,7 +440,7 @@ describe("review interaction controller", () => {
     note.value = "Change the closure.";
     button(dialog, "Save").click();
     expect(dialog.open).toBe(false);
-    expect(article(workbench, "B003").querySelector(".decision-status")?.textContent).toContain("Modify");
+    expect(article(workbench, "B003").querySelector(".st-chip")?.textContent).toContain("Modify");
 
     key(workbench.ownerDocument.body, "3");
     const title = dialog.querySelector("input[data-field='title']");
@@ -420,18 +454,18 @@ describe("review interaction controller", () => {
     const b4Topic = workbench.rail.querySelectorAll(".topic-list li")[0];
     if (b4Topic === undefined) throw new Error("topic missing");
     button(b4Topic, "Delete").click();
-    expect(article(workbench, "B004").querySelector(".decision-status")?.textContent).toContain("Pending");
+    expect(article(workbench, "B004").querySelector(".st-chip")?.textContent).toContain("Pending");
 
-    const bulk = workbench.header.querySelector("button.bulk-pass-button");
+    const bulk = workbench.header.querySelector("button.bulk");
     if (bulk === null) throw new Error("bulk missing");
     bulk.click();
     expect(dialog.textContent).toContain("T2 excluded and unchanged: 1");
     button(dialog, "Confirm bulk pass").click();
-    expect(article(workbench, "B001").querySelector(".decision-status")?.textContent).toContain("Pending");
+    expect(article(workbench, "B001").querySelector(".st-chip")?.textContent).toContain("Pending");
     expect(workbench.header.querySelector(".review-feedback")?.textContent).toContain("T2 excluded");
 
     button(article(workbench, "B002"), "Undo decision").click();
-    expect(article(workbench, "B002").querySelector(".decision-status")?.textContent).toContain("Pending");
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pending");
   });
 
   it("manages search/filter, notes, global topics, overall, and typing shortcuts", () => {
@@ -440,23 +474,22 @@ describe("review interaction controller", () => {
     const workbench = mount();
     installDom(workbench.ownerDocument);
     const search = workbench.rail.querySelector("input#decision-search");
-    const filter = workbench.header.querySelector("select#review-filter");
-    if (search === null || filter === null) throw new Error("toolbar missing");
+    if (search === null) throw new Error("toolbar missing");
     search.value = "Graph";
     search.dispatch(new TestEvent("input"));
     expect(article(workbench, "B003").hidden).toBe(false);
     expect(article(workbench, "B001").hidden).toBe(true);
     key(search, "1");
-    expect(article(workbench, "B003").querySelector(".decision-status")?.textContent).toContain("Pending");
+    expect(article(workbench, "B003").querySelector(".st-chip")?.textContent).toContain("Pending");
 
     search.value = "";
     search.dispatch(new TestEvent("input"));
-    filter.value = "t2";
-    filter.dispatch(new TestEvent("change"));
+    filterButton(workbench, "t2").click();
+    expect(filterButton(workbench, "t2").getAttribute("aria-pressed")).toBe("true");
+    expect(filterButton(workbench, "all").getAttribute("aria-pressed")).toBe("false");
     expect(article(workbench, "B001").hidden).toBe(false);
     expect(article(workbench, "B002").hidden).toBe(true);
-    filter.value = "all";
-    filter.dispatch(new TestEvent("change"));
+    filterButton(workbench, "all").click();
 
     article(workbench, "B002").focus();
     const noteInput = workbench.rail.querySelector("textarea#side-note-input");
@@ -499,7 +532,7 @@ describe("review interaction controller", () => {
     const workbench = mount();
     installDom(workbench.ownerDocument);
     const b1 = article(workbench, "B001");
-    const summary = b1.querySelector("p.summary");
+    const summary = b1.querySelector("p.b-tldr");
     if (summary === null) throw new Error("summary missing");
     workbench.ownerDocument.selection = {
       anchorNode: summary.childNodes[0] ?? summary,
@@ -514,7 +547,7 @@ describe("review interaction controller", () => {
     expect(dialog.textContent).toContain("exact quote");
     button(dialog, "Cancel").click();
     expect(dialog.open).toBe(false);
-    expect(workbench.ownerDocument.activeElement?.textContent).toContain("2 · Modify");
+    expect(workbench.ownerDocument.activeElement).toBe(actionButton(b1, "EDIT"));
 
     const b2 = article(workbench, "B002");
     workbench.ownerDocument.selection = {
@@ -535,7 +568,7 @@ describe("review interaction controller", () => {
     installDom(workbench.ownerDocument);
     const b1 = article(workbench, "B001");
     b1.focus();
-    button(b1, "4 · Hold").click();
+    actionButton(b1, "HOLD").click();
     const dialog = workbench.ownerDocument.querySelector("dialog") as TestDialog;
     const holdNote = dialog.querySelector("textarea");
     if (holdNote === null) throw new Error("hold note missing");
@@ -552,7 +585,7 @@ describe("review interaction controller", () => {
     const saved = key(dialog, "Enter", { ctrlKey: true });
     expect(saved.defaultPrevented).toBe(true);
     expect(dialog.open).toBe(false);
-    expect(b1.querySelector(".decision-status")?.textContent).toContain("Hold");
+    expect(b1.querySelector(".st-chip")?.textContent).toContain("Hold");
 
     const holdItem = workbench.rail.querySelector(".decision-list li");
     if (holdItem === null) throw new Error("hold decision missing");
@@ -562,10 +595,10 @@ describe("review interaction controller", () => {
     expect(existingHold.value).toBe("Wait for the dependency.");
     existingHold.value = "Dependency cleared later.";
     button(dialog, "Save").click();
-    expect(b1.querySelector(".decision-status")?.textContent).toContain("Dependency cleared later.");
+    expect(b1.querySelector(".st-chip")?.textContent).toContain("Dependency cleared later.");
 
     const b2 = article(workbench, "B002");
-    button(b2, "1 · Pass").click();
+    actionButton(b2, "PASS").click();
     const passItem = workbench.rail.querySelector(".decision-list")?.querySelectorAll("li")
       .find((item) => item.textContent.includes("B002"));
     if (passItem === undefined) throw new Error("pass decision missing");
@@ -573,13 +606,13 @@ describe("review interaction controller", () => {
     expect(workbench.ownerDocument.activeElement?.id).toBe("block-B002");
 
     const b3 = article(workbench, "B003");
-    button(b3, "3 · New topic").click();
+    actionButton(b3, "TOPIC").click();
     const title = dialog.querySelector("input[data-field='title']");
     if (title === null) throw new Error("topic title missing");
     title.value = "First title";
     button(dialog, "Save").click();
     const sourceTopic = workbench.rail.querySelector(".topic-list")?.querySelectorAll("li")
-      .find((item) => item.textContent.includes("Source block: B003"));
+      .find((item) => item.textContent.includes("B003"));
     if (sourceTopic === undefined) throw new Error("source topic missing");
     button(sourceTopic, "Edit").click();
     const existingTitle = dialog.querySelector("input[data-field='title']");
@@ -592,7 +625,7 @@ describe("review interaction controller", () => {
     button(dialog, "Save").click();
     expect(workbench.rail.querySelector(".topic-list")?.textContent).toContain("Updated title");
 
-    button(article(workbench, "B004"), "2 · Modify").click();
+    actionButton(article(workbench, "B004"), "EDIT").click();
     const cancelEvent = new TestEvent("cancel");
     dialog.dispatch(cancelEvent);
     expect(cancelEvent.defaultPrevented).toBe(true);
@@ -605,14 +638,12 @@ describe("review interaction controller", () => {
     const workbench = mount();
     installDom(workbench.ownerDocument);
     const search = workbench.rail.querySelector("input#decision-search");
-    const filter = workbench.header.querySelector("select#review-filter");
     const noteInput = workbench.rail.querySelector("textarea#side-note-input");
     const topicTitle = workbench.rail.querySelector("input#global-topic-title");
     const topicNote = workbench.rail.querySelector("textarea#global-topic-note");
     const overall = workbench.rail.querySelector("textarea#overall-review");
     if (
       search === null
-      || filter === null
       || noteInput === null
       || topicTitle === null
       || topicNote === null
@@ -620,7 +651,7 @@ describe("review interaction controller", () => {
     ) throw new Error("rail controls missing");
 
     article(workbench, "B003").dispatch(new TestEvent("pointerdown"));
-    expect(workbench.rail.querySelector(".current-block-label")?.textContent).toContain("B003");
+    expect(workbench.rail.querySelector(".rail-current")?.textContent).toContain("B003");
     key(workbench.ownerDocument.body, "k");
     expect(workbench.ownerDocument.activeElement).toBe(article(workbench, "B002"));
     key(workbench.ownerDocument.body, "n");
@@ -667,18 +698,19 @@ describe("review interaction controller", () => {
     key(overall, "Escape");
     expect(overall.value).toBe("Keep while focused");
 
-    filter.value = "invalid";
-    filter.dispatch(new TestEvent("change"));
+    const filters = workbench.header.querySelector("div#review-filter");
+    if (filters === null) throw new Error("filters missing");
+    expect(filters.querySelectorAll("button").map((value) => value.dataset.filter))
+      .toEqual(["all", "pending", "t2", "annotated"]);
     expect(article(workbench, "B001").hidden).toBe(false);
     article(workbench, "B003").focus();
-    filter.value = "t2";
-    filter.dispatch(new TestEvent("change"));
-    expect(workbench.rail.querySelector(".current-block-label")?.textContent).toContain("B001");
+    filterButton(workbench, "t2").click();
+    expect(workbench.rail.querySelector(".rail-current")?.textContent).toContain("B001");
 
     const targetEvent = new TestEvent("keydown", "1");
     targetEvent.target = search;
     workbench.ownerDocument.body.dispatch(targetEvent);
-    expect(article(workbench, "B001").querySelector(".decision-status")?.textContent).toContain("Pending");
+    expect(article(workbench, "B001").querySelector(".st-chip")?.textContent).toContain("Pending");
     const modifier = key(workbench.ownerDocument.body, "1", { altKey: true });
     expect(modifier.defaultPrevented).toBe(false);
     const unknown = key(workbench.ownerDocument.body, "x");
@@ -699,12 +731,12 @@ describe("review interaction controller", () => {
     button(workbench.rail, "Add global topic").click();
     expect(workbench.status.textContent).toBe("Not saved: a new topic needs a title");
 
-    const bulk = workbench.header.querySelector("button.bulk-pass-button");
+    const bulk = workbench.header.querySelector("button.bulk");
     if (bulk === null) throw new Error("bulk missing");
     bulk.click();
     const dialog = workbench.ownerDocument.querySelector("dialog") as TestDialog;
     const oldConfirm = button(dialog, "Confirm bulk pass");
-    button(article(workbench, "B002"), "1 · Pass").click();
+    actionButton(article(workbench, "B002"), "PASS").click();
     oldConfirm.click();
     expect(dialog.open).toBe(true);
     expect(workbench.status.textContent)

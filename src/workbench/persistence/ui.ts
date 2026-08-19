@@ -99,8 +99,8 @@ export function mountPersistenceControls(input: {
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
   const actions = ownerDocument.createElement("div");
-  actions.className = "inline-actions persistence-actions";
-  const packetMarkdown = buttonWithText(ownerDocument, strings.exportPacketMarkdown);
+  actions.className = "exports";
+  const packetMarkdown = buttonWithText(ownerDocument, strings.exportPacketMarkdown, "primary");
   const packetJson = buttonWithText(ownerDocument, strings.exportPacketJson, "secondary-action");
   const exportState = buttonWithText(ownerDocument, strings.exportState, "secondary-action");
   const importState = buttonWithText(ownerDocument, strings.importState, "secondary-action");
@@ -110,7 +110,7 @@ export function mountPersistenceControls(input: {
   rail.append(panel);
 
   const dialog = ownerDocument.createElement("dialog");
-  dialog.className = "review-dialog persistence-dialog";
+  dialog.className = "modal review-dialog persistence-dialog";
   dialog.setAttribute("aria-modal", "true");
   ownerDocument.body.append(dialog);
 

@@ -258,11 +258,11 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   });
   await page.goto(validUrl);
   await expect(page.locator("h1")).toHaveCount(1);
-  await expect(page.locator("article.decision-block")).toHaveCount(4);
+  await expect(page.locator("article.blk")).toHaveCount(4);
   await expect(page.locator("a.skip-link")).toHaveText("跳到决策块");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(page.locator("h1")).toHaveAttribute("lang", "en");
-  await expect(page.locator("section.continuation")).toContainText("审批上下文");
+  await expect(page.locator("details.context-fold > summary").first()).toContainText("审批上下文");
   await expect(page.locator("section.continuation")).toContainText(renderCases.injectionText);
   await expect(page.locator("section.evidence p.evidence-notice")).toHaveText(
     "本工作台是对所列证据的综合，不是新的事实源；续作前请按来源层级复核易变事实。",
@@ -281,7 +281,7 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   await expect(page.locator(".next-actions .content-value").first()).toHaveAttribute("lang", "en");
   await expect(page.locator(".next-actions p span").first()).not.toHaveAttribute("lang", "en");
   await expect(page.locator(".conflict-list .content-value")).toHaveAttribute("lang", "en");
-  await expect(page.locator("article#block-B001 .block-body > div")).toHaveAttribute("lang", "en");
+  await expect(page.locator("article#block-B001 .b-body > .b-content")).toHaveAttribute("lang", "en");
   await expect(page.locator(".callout-tone").first()).toHaveAttribute("lang", "zh-CN");
   await expect(page.locator(".link-kind")).toHaveAttribute("lang", "zh-CN");
   await expect(page.locator(".callout-tone").first()).toContainText("警告");
@@ -318,34 +318,45 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   expect(referenceAudit.targets.every((count) => count === 1)).toBe(true);
   await expect(page.locator(".table-region")).toHaveAttribute("tabindex", "0");
   await expect(page.locator("article#block-B001 .code-region")).toHaveAttribute("tabindex", "0");
-  await expect(page.locator("article#block-B001 details.block-body")).toHaveAttribute("open", "");
-  await expect(page.locator("article#block-B002 details.block-body")).not.toHaveAttribute("open", "");
+  await expect(page.locator("article#block-B001 details.b-body")).toHaveAttribute("open", "");
+  await expect(page.locator("article#block-B002 details.b-body")).not.toHaveAttribute("open", "");
   const tierHierarchy = await page.evaluate(() => {
-    const t0 = document.querySelector<HTMLElement>("article#block-B003");
-    const t1 = document.querySelector<HTMLElement>("article#block-B002");
-    if (t0 === null || t1 === null) {
-      throw new Error("tier hierarchy fixture missing");
-    }
-    const t0Title = t0.querySelector<HTMLElement>("h3");
-    const t1Title = t1.querySelector<HTMLElement>("h3");
-    if (t0Title === null || t1Title === null) {
-      throw new Error("tier hierarchy fixture missing");
-    }
+    const read = (selector: string) => {
+      const article = document.querySelector<HTMLElement>(selector);
+      const title = article?.querySelector<HTMLElement>("h3.b-title");
+      const pill = article?.querySelector<HTMLElement>("span.pill");
+      if (article === null || article === undefined || title == null || pill == null) {
+        throw new Error("tier hierarchy fixture missing");
+      }
+      return {
+        border: getComputedStyle(article).borderInlineStartColor,
+        width: Number.parseFloat(getComputedStyle(article).borderInlineStartWidth),
+        weight: Number.parseInt(getComputedStyle(title).fontWeight, 10),
+        pill: pill.textContent ?? "",
+      };
+    };
     return {
-      t0Border: Number.parseFloat(getComputedStyle(t0).borderInlineStartWidth),
-      t1Border: Number.parseFloat(getComputedStyle(t1).borderInlineStartWidth),
-      t0Weight: Number.parseInt(getComputedStyle(t0Title).fontWeight, 10),
-      t1Weight: Number.parseInt(getComputedStyle(t1Title).fontWeight, 10),
+      t0: read("article#block-B003"),
+      t1: read("article#block-B002"),
+      t2: read("article#block-B001"),
     };
   });
-  expect(tierHierarchy.t0Border).toBeLessThan(tierHierarchy.t1Border);
-  expect(tierHierarchy.t0Weight).toBeLessThan(tierHierarchy.t1Weight);
-  const t0Body = page.locator("article#block-B003 details.block-body");
+  expect(new Set([
+    tierHierarchy.t0.border,
+    tierHierarchy.t1.border,
+    tierHierarchy.t2.border,
+  ]).size).toBe(3);
+  expect(tierHierarchy.t0.width).toBeGreaterThanOrEqual(4);
+  expect(tierHierarchy.t0.weight).toBeLessThan(tierHierarchy.t1.weight);
+  expect(tierHierarchy.t1.weight).toBeLessThan(tierHierarchy.t2.weight);
+  expect([tierHierarchy.t0.pill, tierHierarchy.t1.pill, tierHierarchy.t2.pill])
+    .toEqual(["T0 直行", "T1 知会", "T2 决策"]);
+  const t0Body = page.locator("article#block-B003 details.b-body");
   await expect(t0Body).not.toHaveAttribute("open", "");
   await t0Body.locator("summary").click();
   await expect(t0Body).toHaveAttribute("open", "");
-  await expect(page.locator("article#block-B004 .status-chip")).toHaveText("❄ 已冻结 · 冻结轮次: 1");
-  await expect(page.locator(".decision-action[aria-pressed='true']")).toHaveCount(0);
+  await expect(page.locator("article#block-B004 .frozen-chip")).toHaveText("❄ 已冻结 · 冻结轮次: 1");
+  await expect(page.locator(".act[aria-pressed='true']")).toHaveCount(0);
   expect(await page.evaluate(() => (globalThis as typeof globalThis & {
     __DAR_INJECTED__?: boolean;
   }).__DAR_INJECTED__ ?? false)).toBe(false);
@@ -354,6 +365,131 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   expect(runtimeRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
+});
+
+test("@A19 the approved workbench visual system drives tier, decision, and progress chrome", async ({ page }) => {
+  await page.goto(pageUrl("valid"));
+  await expect(page.locator("article.blk")).toHaveCount(4);
+
+  // The approved palette is the contract; a drifted token changes every card,
+  // chip and bar at once, so it is asserted exactly.
+  const tokens = await page.evaluate(() => {
+    const style = getComputedStyle(document.documentElement);
+    const read = (name: string): string => style.getPropertyValue(name).trim();
+    return {
+      page: read("--page"),
+      surface: read("--surface"),
+      ink: read("--ink"),
+      ink2: read("--ink2"),
+      muted: read("--muted"),
+      hair: read("--hair"),
+      base: read("--base"),
+      ring: read("--ring"),
+      blue: read("--blue"),
+      orange: read("--orange"),
+      aqua: read("--aqua"),
+      yellow: read("--yellow"),
+      magenta: read("--magenta"),
+      violet: read("--violet"),
+      good: read("--good"),
+      serious: read("--serious"),
+      critical: read("--critical"),
+    };
+  });
+  expect(tokens).toEqual({
+    page: "#f9f9f7",
+    surface: "#fcfcfb",
+    ink: "#0b0b0b",
+    ink2: "#52514e",
+    muted: "#898781",
+    hair: "#e1e0d9",
+    base: "#c3c2b7",
+    ring: "rgba(11,11,11,.10)",
+    blue: "#2a78d6",
+    orange: "#eb6834",
+    aqua: "#1baf7a",
+    yellow: "#eda100",
+    magenta: "#e87ba4",
+    violet: "#4a3aa7",
+    good: "#0ca30c",
+    serious: "#ec835a",
+    critical: "#d03b3b",
+  });
+
+  const resolveToken = async (name: string): Promise<string> => page.evaluate((token) => {
+    const probe = document.createElement("span");
+    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(token);
+    document.body.append(probe);
+    const value = getComputedStyle(probe).color;
+    probe.remove();
+    return value;
+  }, name);
+  const borderOf = async (selector: string): Promise<string> => page.locator(selector)
+    .evaluate((element) => getComputedStyle(element).borderLeftColor);
+
+  // color-mix() drives every tint in this stylesheet; a browser that dropped it
+  // would leave the pill unpainted.
+  const pillBackground = await page.locator("article#block-B001 .pill")
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(pillBackground).not.toBe("rgba(0, 0, 0, 0)");
+  expect(pillBackground).not.toBe("transparent");
+
+  // Tier first: T2 orange, T1 blue, T0 base.
+  expect(await borderOf("article#block-B001")).toBe(await resolveToken("--orange"));
+  expect(await borderOf("article#block-B002")).toBe(await resolveToken("--blue"));
+  expect(await borderOf("article#block-B003")).toBe(await resolveToken("--base"));
+
+  // Then the decision replaces it, and the pressed chip is tinted.
+  await page.locator("article#block-B002 button[data-action='PASS']").click();
+  await expect(page.locator("article#block-B002")).toHaveClass(/(^|\s)st-PASS(\s|$)/);
+  expect(await borderOf("article#block-B002")).toBe(await resolveToken("--good"));
+  const passChip = page.locator("article#block-B002 button[data-action='PASS']");
+  await expect(passChip).toHaveAttribute("aria-pressed", "true");
+  await expect(passChip).toHaveClass(/(^|\s)on(\s|$)/);
+  const chipBackground = await passChip.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const restingChipBackground = await page.locator("article#block-B002 button[data-action='HOLD']")
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(chipBackground).not.toBe(restingChipBackground);
+
+  await page.locator("article#block-B003 button[data-action='HOLD']").click();
+  await page.locator("dialog[open] textarea").fill("Answer this before deciding.");
+  await page.locator("dialog[open] button.dialog-save").click();
+  expect(await borderOf("article#block-B003")).toBe(await resolveToken("--serious"));
+
+  // The progress element is a real fill bar, not a sentence.
+  const progress = await page.locator(".progress > i").evaluate((element) => ({
+    tag: element.tagName,
+    fill: element.getBoundingClientRect().width,
+    track: (element.parentElement as HTMLElement).getBoundingClientRect().width,
+    colour: getComputedStyle(element).backgroundColor,
+  }));
+  expect(progress.tag).toBe("I");
+  expect(progress.fill).toBeGreaterThan(0);
+  expect(progress.fill).toBeLessThan(progress.track);
+  expect(progress.colour).toBe(await resolveToken("--blue"));
+  await expect(page.locator(".progress")).toHaveAttribute("aria-valuenow", "2");
+  await expect(page.locator(".progress")).toHaveAttribute("aria-valuemax", "3");
+  await expect(page.locator(".p-num")).toHaveText("2 共 3");
+
+  // Filter pills invert on the active one instead of using a select.
+  await expect(page.locator("#review-filter button[data-filter='all']"))
+    .toHaveClass(/(^|\s)on(\s|$)/);
+  await page.locator("#review-filter button[data-filter='t2']").click();
+  await expect(page.locator("#review-filter button[data-filter='t2']"))
+    .toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#review-filter button[data-filter='all']"))
+    .toHaveAttribute("aria-pressed", "false");
+  const activeFilter = await page.locator("#review-filter button[data-filter='t2']")
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(activeFilter).toBe(await resolveToken("--ink"));
+
+  // The 340px rail and the 1280px reading column are the approved layout.
+  const layout = await page.locator("div.layout").evaluate((element) => ({
+    columns: getComputedStyle(element).gridTemplateColumns,
+    maxWidth: getComputedStyle(element).maxWidth,
+  }));
+  expect(layout.columns.split(" ").at(-1)).toBe("340px");
+  expect(layout.maxWidth).toBe("1280px");
 });
 
 test("a11y-shell has no serious axe violations in blocking browsers", async ({ page, browserName }) => {

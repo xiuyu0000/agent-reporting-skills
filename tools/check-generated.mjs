@@ -92,6 +92,7 @@ if (
 }
 
 const {
+  WORKBENCH_SIZE_LIMIT_BYTES,
   checkTrackedWorkbenchTemplate,
   createBrowserSchemaValidatorPlugin,
 } = await import("./build-workbench.mjs");
@@ -166,7 +167,9 @@ console.log(
 );
 
 const workbenchBytes = await checkTrackedWorkbenchTemplate();
-console.log(`generated review workbench template is current; shell ${workbenchBytes}/358400 bytes`);
+console.log(
+  `generated review workbench template is current; shell ${workbenchBytes}/${WORKBENCH_SIZE_LIMIT_BYTES} bytes`,
+);
 
 const { checkTrackedCliBundle } = await import("./build-cli.mjs");
 const cliBytes = await checkTrackedCliBundle();
