@@ -14,7 +14,11 @@ import { containsDraftDecisionSlot } from "./draft.js";
 import { GENERATOR_VERSION, type GeneratorResult } from "./types.js";
 
 const encoder = new TextEncoder();
-const MAX_SHELL_BYTES = 358_400;
+// 384 KiB, matching `WORKBENCH_SIZE_LIMIT_BYTES` in tools/build-workbench.mjs.
+// The approved approval-workbench prototype's visual system needs the larger
+// stylesheet, and the two gates must move together or generation fails closed
+// on a template the UI build already accepted.
+const MAX_SHELL_BYTES = 393_216;
 const TOKENS = Object.freeze({
   generatorVersion: "@@DAR_GENERATOR_VERSION@@",
   documentId: "@@DAR_DOCUMENT_ID@@",

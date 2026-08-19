@@ -21,7 +21,11 @@ export const WORKBENCH_BUNDLE_PATH = resolve("build/workbench.js");
 export const WORKBENCH_TEMPLATE_PATH = resolve(
   "skills/deliver-dual-audience-report/assets/review-workbench.template.html",
 );
-export const WORKBENCH_SIZE_LIMIT_BYTES = 358_400;
+// 384 KiB. The approved approval-workbench prototype's visual system (token
+// palette, `.h-bar` progress chrome, `.blk` tier/decision borders, `.act` chips
+// and the 340px rail) is a larger stylesheet than the one it replaces, and the
+// approved styling is not something the budget may trim away.
+export const WORKBENCH_SIZE_LIMIT_BYTES = 393_216;
 
 export const WORKBENCH_ESBUILD_OPTIONS = Object.freeze({
   bundle: true,

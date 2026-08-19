@@ -77,8 +77,11 @@ interface BlockControls {
   readonly article: HTMLElement;
   readonly actions: HTMLElement;
   readonly status: HTMLElement;
+  readonly statusDot: HTMLElement;
+  readonly statusText: HTMLElement;
   readonly quote: HTMLElement;
   readonly actionButtons: ReadonlyMap<DecisionAction, HTMLButtonElement>;
+  readonly sideNote: HTMLButtonElement;
   readonly undo: HTMLButtonElement;
 }
 
@@ -103,6 +106,24 @@ interface RailControls {
   readonly topics: HTMLElement;
   readonly overall: HTMLTextAreaElement;
   readonly overallSubmit: HTMLButtonElement;
+  readonly noteFold: HTMLDetailsElement;
+  readonly topicFold: HTMLDetailsElement;
+}
+
+// The prototype keeps the rail compact: records are listed, and the editor that
+// writes them stays folded until it is needed, so the export call to action is
+// reachable without scrolling. Any path that focuses an editor opens its fold.
+function railFold(
+  ownerDocument: Document,
+  summaryText: string,
+  children: readonly HTMLElement[],
+): HTMLDetailsElement {
+  const fold = ownerDocument.createElement("details");
+  fold.className = "rail-fold";
+  const summary = ownerDocument.createElement("summary");
+  summary.textContent = summaryText;
+  fold.append(summary, ...children);
+  return fold;
 }
 
 function elementWithText<K extends keyof HTMLElementTagNameMap>(
@@ -141,6 +162,34 @@ function decisionActionLabel(action: DecisionAction, strings: WorkbenchStrings):
   if (action === "EDIT") return strings.actionEdit;
   if (action === "TOPIC") return strings.actionTopic;
   return strings.actionHold;
+}
+
+function tierLabel(tier: "T2" | "T1" | "T0", strings: WorkbenchStrings): string {
+  if (tier === "T2") return strings.tierT2;
+  if (tier === "T1") return strings.tierT1;
+  return strings.tierT0;
+}
+
+// The prototype marks every state with a coloured dot next to its text label, so
+// the colour never carries meaning on its own.
+function stateDot(ownerDocument: Document, state: string): HTMLSpanElement {
+  const dot = ownerDocument.createElement("span");
+  dot.className = `dot d-${state}`;
+  return dot;
+}
+
+function iconButton(
+  ownerDocument: Document,
+  glyph: string,
+  label: string,
+  className: string,
+): HTMLButtonElement {
+  const button = elementWithText(ownerDocument, "button", glyph);
+  button.type = "button";
+  button.className = className;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  return button;
 }
 
 function decisionDetail(
@@ -186,7 +235,7 @@ function setQuoteView(
     return;
   }
   const disclosure = document.createElement("details");
-  disclosure.className = "decision-quote";
+  disclosure.className = "quoted decision-quote";
   disclosure.append(
     elementWithText(document, "summary", strings.quote),
     elementWithText(document, "blockquote", quote),
@@ -225,36 +274,71 @@ export function mountReviewInteractions({
   const reopenControls = new Map<string, ReopenControls>();
   const eligibilityControls = new Map<string, HTMLElement>();
   const visibleFeedback = elementWithText(document, "p", "");
-  visibleFeedback.className = "review-feedback";
+  visibleFeedback.className = "review-feedback restorebar";
   visibleFeedback.hidden = true;
 
+  // Prototype `.h-bar`: a real fill bar, the tabular decided/total figure, the
+  // per-tier count chips, the inverted filter pills and the bulk control.
+  const progressBar = document.createElement("div");
+  progressBar.className = "progress";
+  progressBar.setAttribute("role", "progressbar");
+  progressBar.setAttribute("aria-label", strings.progress);
+  progressBar.setAttribute("aria-valuemin", "0");
+  const progressFill = document.createElement("i");
+  progressBar.append(progressFill);
   const progressText = elementWithText(document, "p", "");
-  progressText.className = "review-progress";
+  progressText.className = "p-num";
   progressText.id = "review-progress";
-  const filterSelect = document.createElement("select");
-  filterSelect.id = "review-filter";
+  const tierCounts = document.createElement("ul");
+  tierCounts.className = "counts";
+  tierCounts.setAttribute("aria-label", strings.tierCounts);
+  const tierCountValues = new Map<"T2" | "T1" | "T0", HTMLElement>();
+  for (const tier of ["T2", "T1", "T0"] as const) {
+    const item = document.createElement("li");
+    item.className = "cnt";
+    const value = elementWithText(document, "b", "");
+    item.append(
+      stateDot(document, tier),
+      elementWithText(document, "span", `${tierLabel(tier, strings)} `),
+      value,
+    );
+    tierCounts.append(item);
+    tierCountValues.set(tier, value);
+  }
+  const filters = document.createElement("div");
+  filters.className = "filters";
+  filters.id = "review-filter";
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", strings.filter);
+  const filterButtons = new Map<ReviewFilter, HTMLButtonElement>();
   for (const [value, label] of [
     ["all", strings.filterAll],
     ["pending", strings.filterPending],
     ["t2", strings.filterT2],
     ["annotated", strings.filterAnnotated],
   ] as const) {
-    const option = elementWithText(document, "option", label);
-    option.value = value;
-    filterSelect.append(option);
+    const button = buttonWithText(document, label);
+    button.dataset.filter = value;
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => {
+      filter = value;
+      render();
+    });
+    filterButtons.set(value, button);
+    filters.append(button);
   }
-  const bulkButton = buttonWithText(document, strings.bulkPass, "bulk-pass-button");
+  const bulkButton = buttonWithText(document, strings.bulkPass, "bulk");
   bulkButton.setAttribute("aria-describedby", "review-progress");
   const toolbar = document.createElement("section");
-  toolbar.className = "review-toolbar";
+  toolbar.className = "h-bar";
   toolbar.setAttribute("aria-label", strings.progress);
-  toolbar.append(
-    progressText,
-    labelControl(document, strings.filter, filterSelect),
-    bulkButton,
-    visibleFeedback,
-  );
-  landmarks.header.append(toolbar);
+  toolbar.append(progressBar, progressText, tierCounts, filters, bulkButton);
+  const warnbar = elementWithText(document, "p", strings.evidenceNotice);
+  warnbar.className = "warnbar";
+  const finalbar = elementWithText(document, "p", strings.reviewComplete);
+  finalbar.className = "finalbar";
+  finalbar.hidden = true;
+  landmarks.header.append(toolbar, warnbar, finalbar, visibleFeedback);
 
   function createDecisionControls(
     block: ReviewDocumentV1["blocks"][number],
@@ -263,15 +347,13 @@ export function mountReviewInteractions({
     const existing = blockControls.get(block.id);
     if (existing !== undefined) return existing;
     const controls = document.createElement("section");
-    controls.className = "review-actions";
+    controls.className = "b-actions";
     controls.setAttribute("aria-label", `${block.id} ${strings.decisionStatus}`);
-    const status = elementWithText(document, "p", strings.actionPending);
-    status.className = "decision-status";
     const quote = document.createElement("div");
     quote.className = "decision-quote-container";
     quote.hidden = true;
     const group = document.createElement("div");
-    group.className = "action-buttons";
+    group.className = "acts";
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", strings.decisionStatus);
     const actionButtons = new Map<DecisionAction, HTMLButtonElement>();
@@ -281,21 +363,55 @@ export function mountReviewInteractions({
       ["TOPIC", "3"],
       ["HOLD", "4"],
     ] as const) {
-      const button = buttonWithText(
-        document,
-        `${shortcut} · ${decisionActionLabel(action, strings)}`,
-        `decision-action action-${action.toLocaleLowerCase()}`,
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `act a-${action}`;
+      const hint = elementWithText(document, "span", shortcut);
+      hint.className = "k";
+      button.append(
+        stateDot(document, action),
+        elementWithText(document, "span", decisionActionLabel(action, strings)),
+        hint,
       );
       button.dataset.action = action;
       button.setAttribute("aria-pressed", "false");
       actionButtons.set(action, button);
       group.append(button);
     }
-    const undo = buttonWithText(document, strings.undoDecision, "undo-decision secondary-action");
+    // Prototype `.act.sidenote`: a dashed chip that opens this block's working
+    // note in the rail editor. It records no decision, so it stays outside the
+    // pressed action group.
+    const sideNote = document.createElement("button");
+    sideNote.type = "button";
+    sideNote.className = "act sidenote";
+    sideNote.append(elementWithText(document, "span", strings.sideNotes));
+    group.append(sideNote);
+    // The decision chip belongs in the block head, right-aligned in `.st-slot`.
+    // Harnesses that mount a bare article keep it inside the action section.
+    const status = document.createElement("span");
+    status.className = "st-chip pending";
+    const statusDot = stateDot(document, "PENDING");
+    const statusText = elementWithText(document, "span", strings.actionPending);
+    statusText.className = "txt";
+    const undo = iconButton(document, "✕", strings.undoDecision, "x");
     undo.hidden = true;
-    controls.append(status, quote, group, undo);
+    status.append(statusDot, statusText, undo);
+    const slot = article.querySelector<HTMLElement>(".st-slot");
+    if (slot === null) controls.append(status);
+    else slot.append(status);
+    controls.append(quote, group);
     article.append(controls);
-    const created = { article, actions: controls, status, quote, actionButtons, undo };
+    const created = {
+      article,
+      actions: controls,
+      status,
+      statusDot,
+      statusText,
+      quote,
+      actionButtons,
+      sideNote,
+      undo,
+    };
     blockControls.set(block.id, created);
     for (const [action, button] of actionButtons) {
       button.addEventListener("click", () => {
@@ -305,6 +421,22 @@ export function mountReviewInteractions({
         else openDecisionEditor(block.id, action, button);
       });
     }
+    sideNote.addEventListener("click", () => {
+      currentBlockId = block.id;
+      const recorded = [...state.sideNotesById.values()]
+        .find((note) => note.blockId === block.id);
+      if (recorded === undefined) {
+        resetNoteEditor();
+      } else {
+        editingNote = { id: recorded.id, blockId: recorded.blockId };
+        rail.noteInput.value = recorded.note;
+        rail.noteSubmit.textContent = strings.save;
+        rail.noteCancel.hidden = false;
+      }
+      renderCurrentBlock();
+      rail.noteFold.open = true;
+      rail.noteInput.focus();
+    });
     undo.addEventListener("click", () => {
       if (dispatch({ type: "UNSET_DECISION", blockId: block.id }, strings.decisionUndone)) {
         focusBlock(block.id);
@@ -360,9 +492,25 @@ export function mountReviewInteractions({
   const searchInput = document.createElement("input");
   searchInput.type = "search";
   searchInput.id = "decision-search";
+  searchInput.className = "rail-search";
   searchInput.placeholder = strings.searchPlaceholder;
   const currentBlock = elementWithText(document, "p", "");
-  currentBlock.className = "current-block-label";
+  currentBlock.className = "rail-current";
+  const stats = document.createElement("ul");
+  stats.className = "stats";
+  stats.setAttribute("aria-label", strings.decisionStatus);
+  const statValues = new Map<DecisionAction | "PENDING", HTMLElement>();
+  for (const key of ["PASS", "EDIT", "TOPIC", "HOLD", "PENDING"] as const) {
+    const item = document.createElement("li");
+    item.className = "cnt";
+    const value = elementWithText(document, "b", "");
+    const label = key === "PENDING"
+      ? strings.actionPending
+      : decisionActionLabel(key, strings);
+    item.append(stateDot(document, key), elementWithText(document, "span", `${label} `), value);
+    stats.append(item);
+    statValues.set(key, value);
+  }
 
   const decisionsHeading = elementWithText(document, "h3", strings.decisionStatus);
   const decisionsList = document.createElement("div");
@@ -390,7 +538,7 @@ export function mountReviewInteractions({
   topicNote.id = "global-topic-note";
   topicNote.rows = 2;
   topicNote.placeholder = strings.topicNote;
-  const topicSubmit = buttonWithText(document, strings.addTopic);
+  const topicSubmit = buttonWithText(document, strings.addTopic, "newtopic");
   const topicCancel = buttonWithText(document, strings.cancel, "secondary-action");
   topicCancel.hidden = true;
   const topicButtons = document.createElement("div");
@@ -399,30 +547,37 @@ export function mountReviewInteractions({
   const topicsList = document.createElement("div");
   topicsList.className = "topic-list";
 
-  const overallHeading = elementWithText(document, "h3", strings.overall);
   const overall = document.createElement("textarea");
   overall.id = "overall-review";
   overall.rows = 3;
   overall.placeholder = strings.overallPlaceholder;
   const overallSubmit = buttonWithText(document, strings.saveOverall);
 
+  const noteFold = railFold(document, strings.addSideNote, [
+    labelControl(document, strings.sideNotes, noteInput),
+    noteButtons,
+  ]);
+  const topicFold = railFold(document, strings.addTopic, [
+    labelControl(document, strings.topicTitle, topicTitle),
+    labelControl(document, strings.topicNote, topicNote),
+    topicButtons,
+  ]);
   interactionRail.append(
     labelControl(document, strings.search, searchInput),
+    stats,
     currentBlock,
     decisionsHeading,
     decisionsList,
     notesHeading,
-    labelControl(document, strings.sideNotes, noteInput),
-    noteButtons,
     notesList,
+    noteFold,
     topicsHeading,
-    labelControl(document, strings.topicTitle, topicTitle),
-    labelControl(document, strings.topicNote, topicNote),
-    topicButtons,
     topicsList,
-    overallHeading,
-    labelControl(document, strings.overall, overall),
-    overallSubmit,
+    topicFold,
+    railFold(document, strings.overall, [
+      labelControl(document, strings.overall, overall),
+      overallSubmit,
+    ]),
   );
   landmarks.rail.append(interactionRail);
   const rail: RailControls = {
@@ -440,12 +595,27 @@ export function mountReviewInteractions({
     topics: topicsList,
     overall,
     overallSubmit,
+    noteFold,
+    topicFold,
   };
 
   const dialog = document.createElement("dialog");
-  dialog.className = "review-dialog";
+  dialog.className = "modal review-dialog";
   dialog.setAttribute("aria-modal", "true");
   document.body.append(dialog);
+
+  // The sticky header grows and shrinks with the warn/final/restore bars, so the
+  // rail offset and the block scroll margin follow its measured height instead
+  // of a fixed guess that would hide the top of the rail.
+  function syncHeaderOffset(): void {
+    const root: { style?: { setProperty?: (name: string, value: string) => void } } | undefined =
+      document.documentElement;
+    const measure = landmarks.header.getBoundingClientRect as (() => DOMRect) | undefined;
+    if (root?.style?.setProperty === undefined || measure === undefined) return;
+    const { height } = measure.call(landmarks.header);
+    if (!Number.isFinite(height) || height <= 0) return;
+    root.style.setProperty("--header-h", `${Math.ceil(height)}px`);
+  }
 
   function announce(message: string): void {
     landmarks.status.textContent = "";
@@ -481,7 +651,6 @@ export function mountReviewInteractions({
       search = "";
       rail.search.value = "";
       filter = "all";
-      filterSelect.value = "all";
       render();
     }
     currentBlockId = blockId;
@@ -494,11 +663,50 @@ export function mountReviewInteractions({
     for (const block of documentValue.blocks) {
       const article = blockControls.get(block.id)?.article
         ?? landmarks.main.querySelector<HTMLElement>(`article#block-${block.id}`);
-      if (article !== null && article !== undefined) {
-        article.dataset.current = String(block.id === currentBlockId);
+      if (article === null || article === undefined) continue;
+      const current = block.id === currentBlockId;
+      article.dataset.current = String(current);
+      // `.blk` carries tier, freeze, decision and cursor state in one class list,
+      // which is what drives the card's left border and focus ring.
+      const parts = ["blk", `tier-${block.tier}`];
+      if (documentValue.approvals.currentFrozen.includes(block.id) && !state.reopened.has(block.id)) {
+        parts.push("frozen");
       }
+      const decision = state.decisionsByBlock.get(block.id);
+      if (decision !== undefined) parts.push(`st-${decision.action}`);
+      if (current) parts.push("focused");
+      article.className = parts.join(" ");
     }
     rail.currentBlock.textContent = `${strings.currentBlock}: ${currentBlockId ?? strings.none}`;
+  }
+
+  // One `.d-list` row: the block link (or a plain marker for a global record),
+  // the truncating `.nt` text and the compact `.rb` record buttons.
+  function railRow(
+    lead: { readonly blockId: string } | { readonly label: string },
+    text: string,
+    buttons: readonly HTMLButtonElement[],
+  ): HTMLLIElement {
+    const item = document.createElement("li");
+    if ("blockId" in lead) {
+      const link = elementWithText(document, "a", lead.blockId);
+      link.href = `#block-${lead.blockId}`;
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        focusBlock(lead.blockId);
+      });
+      item.append(link);
+    } else {
+      const marker = elementWithText(document, "span", lead.label);
+      marker.className = "b-id";
+      item.append(marker);
+    }
+    const note = elementWithText(document, "span", text);
+    note.className = "nt";
+    note.lang = documentValue.document.language;
+    note.title = text;
+    item.append(note, ...buttons);
+    return item;
   }
 
   function renderDecisionLists(): void {
@@ -509,21 +717,15 @@ export function mountReviewInteractions({
       return decision === undefined || !searchMatches.has(block.id) ? [] : [{ block, decision }];
     });
     if (decisions.length === 0) {
-      rail.decisions.append(elementWithText(document, "p", strings.noDecisions));
+      const empty = elementWithText(document, "p", strings.noDecisions);
+      empty.className = "empty";
+      rail.decisions.append(empty);
     } else {
       const list = document.createElement("ul");
+      list.className = "d-list";
       for (const { block, decision } of decisions) {
-        const item = document.createElement("li");
         const detail = decisionDetail(decision, state);
-        const summary = elementWithText(
-          document,
-          "p",
-          `${block.id} · ${decisionActionLabel(decision.action, strings)}${detail === "" ? "" : ` — ${detail}`}`,
-        );
-        summary.lang = documentValue.document.language;
-        const actions = document.createElement("div");
-        actions.className = "inline-actions";
-        const edit = buttonWithText(document, strings.edit, "secondary-action");
+        const edit = iconButton(document, "✎", strings.edit, "rb");
         edit.addEventListener("click", () => {
           currentBlockId = block.id;
           renderCurrentBlock();
@@ -534,14 +736,16 @@ export function mountReviewInteractions({
             openDecisionEditor(block.id, decision.action, opener);
           }
         });
-        const remove = buttonWithText(document, strings.undoDecision, "secondary-action");
+        const remove = iconButton(document, "✕", strings.undoDecision, "rb");
         remove.addEventListener("click", () => {
           dispatch({ type: "UNSET_DECISION", blockId: block.id }, strings.decisionUndone);
           focusBlock(block.id);
         });
-        actions.append(edit, remove);
-        item.append(summary, actions);
-        list.append(item);
+        list.append(railRow(
+          { blockId: block.id },
+          `${decisionActionLabel(decision.action, strings)}${detail === "" ? "" : ` — ${detail}`}`,
+          [edit, remove],
+        ));
       }
       rail.decisions.append(list);
     }
@@ -552,16 +756,14 @@ export function mountReviewInteractions({
       || `${note.blockId} ${note.note}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())
     ));
     if (notes.length === 0) {
-      rail.notes.append(elementWithText(document, "p", strings.noSideNotes));
+      const empty = elementWithText(document, "p", strings.noSideNotes);
+      empty.className = "empty";
+      rail.notes.append(empty);
     } else {
       const list = document.createElement("ul");
+      list.className = "d-list";
       for (const note of notes) {
-        const item = document.createElement("li");
-        const text = elementWithText(document, "p", `${note.id} · ${note.blockId} — ${note.note}`);
-        text.lang = documentValue.document.language;
-        const actions = document.createElement("div");
-        actions.className = "inline-actions";
-        const edit = buttonWithText(document, strings.edit, "secondary-action");
+        const edit = iconButton(document, "✎", strings.edit, "rb");
         edit.addEventListener("click", () => {
           currentBlockId = note.blockId;
           editingNote = { id: note.id, blockId: note.blockId };
@@ -569,16 +771,19 @@ export function mountReviewInteractions({
           rail.noteSubmit.textContent = strings.save;
           rail.noteCancel.hidden = false;
           renderCurrentBlock();
+          rail.noteFold.open = true;
           rail.noteInput.focus();
         });
-        const remove = buttonWithText(document, strings.delete, "secondary-action");
+        const remove = iconButton(document, "✕", strings.delete, "rb");
         remove.addEventListener("click", () => {
           dispatch({ type: "DELETE_SIDE_NOTE", noteId: note.id }, strings.delete);
           if (editingNote?.id === note.id) resetNoteEditor();
         });
-        actions.append(edit, remove);
-        item.append(text, actions);
-        list.append(item);
+        list.append(railRow(
+          { blockId: note.blockId },
+          `${note.id} · ${note.note}`,
+          [edit, remove],
+        ));
       }
       rail.notes.append(list);
     }
@@ -591,20 +796,14 @@ export function mountReviewInteractions({
         .includes(search.toLocaleLowerCase())
     ));
     if (topics.length === 0) {
-      rail.topics.append(elementWithText(document, "p", strings.noTopics));
+      const empty = elementWithText(document, "p", strings.noTopics);
+      empty.className = "empty";
+      rail.topics.append(empty);
     } else {
       const list = document.createElement("ul");
+      list.className = "d-list";
       for (const topic of topics) {
-        const item = document.createElement("li");
-        const source = topic.sourceBlockId === undefined
-          ? strings.globalTopic
-          : `${strings.sourceBlock}: ${topic.sourceBlockId}`;
-        const text = elementWithText(document, "p", `${topic.id} · ${source} — ${topic.title}`);
-        text.lang = documentValue.document.language;
-        if (topic.note !== undefined) text.append(document.createTextNode(` · ${topic.note}`));
-        const actions = document.createElement("div");
-        actions.className = "inline-actions";
-        const edit = buttonWithText(document, strings.edit, "secondary-action");
+        const edit = iconButton(document, "✎", strings.edit, "rb");
         edit.addEventListener("click", () => {
           if (topic.sourceBlockId !== undefined) {
             currentBlockId = topic.sourceBlockId;
@@ -617,16 +816,21 @@ export function mountReviewInteractions({
           rail.topicNote.value = topic.note ?? "";
           rail.topicSubmit.textContent = strings.save;
           rail.topicCancel.hidden = false;
+          rail.topicFold.open = true;
           rail.topicTitle.focus();
         });
-        const remove = buttonWithText(document, strings.delete, "secondary-action");
+        const remove = iconButton(document, "✕", strings.delete, "rb");
         remove.addEventListener("click", () => {
           dispatch({ type: "DELETE_TOPIC", topicId: topic.id }, strings.delete);
           if (editingGlobalTopicId === topic.id) resetTopicEditor();
         });
-        actions.append(edit, remove);
-        item.append(text, actions);
-        list.append(item);
+        list.append(railRow(
+          topic.sourceBlockId === undefined
+            ? { label: strings.globalTopic }
+            : { blockId: topic.sourceBlockId },
+          `${topic.id} · ${topic.title}${topic.note === undefined ? "" : ` · ${topic.note}`}`,
+          [edit, remove],
+        ));
       }
       rail.topics.append(list);
     }
@@ -640,11 +844,41 @@ export function mountReviewInteractions({
       if (block !== undefined && article !== null) createDecisionControls(block, article);
     }
     const progress = reviewProgress(documentValue, state);
-    const stats = reviewStats(state);
+    const decisionStats = reviewStats(state);
     const eligibility = executionEligibility(documentValue, state);
     const eligible = new Set(eligibility.ok ? eligibility.value.eligibleBlockIds : []);
     const suspended = new Set(eligibility.ok ? eligibility.value.suspendedBlockIds : []);
-    progressText.textContent = `${strings.progress}: ${progress.decided} ${strings.of} ${progress.total} · PASS ${stats.PASS} · EDIT ${stats.EDIT} · TOPIC ${stats.TOPIC} · HOLD ${stats.HOLD}`;
+    progressText.textContent = `${progress.decided} ${strings.of} ${progress.total}`;
+    const percent = progress.total === 0
+      ? 0
+      : Math.round((progress.decided / progress.total) * 100);
+    progressFill.style.width = `${percent}%`;
+    progressBar.setAttribute("aria-valuemax", String(progress.total));
+    progressBar.setAttribute("aria-valuenow", String(progress.decided));
+    progressBar.setAttribute(
+      "aria-valuetext",
+      `${strings.progress}: ${progress.decided} ${strings.of} ${progress.total}`,
+    );
+    finalbar.hidden = progress.total === 0 || progress.decided < progress.total;
+    for (const [tier, value] of tierCountValues) {
+      const active = documentValue.blocks.filter((block) => (
+        block.tier === tier
+        && (!documentValue.approvals.currentFrozen.includes(block.id)
+          || state.reopened.has(block.id))
+      ));
+      const decided = active.filter((block) => state.decisionsByBlock.has(block.id)).length;
+      value.textContent = `${decided}/${active.length}`;
+    }
+    for (const [key, value] of statValues) {
+      value.textContent = String(
+        key === "PENDING" ? progress.total - progress.decided : decisionStats[key],
+      );
+    }
+    for (const [value, button] of filterButtons) {
+      const active = value === filter;
+      button.className = active ? "on" : "";
+      button.setAttribute("aria-pressed", String(active));
+    }
     const visible = visibleBlockIds(documentValue, state, filter, search);
     const visibleSet = new Set(visible);
     if (currentBlockId !== undefined && !visibleSet.has(currentBlockId) && visible.length > 0) {
@@ -677,16 +911,26 @@ export function mountReviewInteractions({
       if (article !== null && article !== undefined) article.hidden = !visibleSet.has(block.id);
       if (controls === undefined) continue;
       controls.actions.hidden = effectivelyFrozen;
+      controls.status.hidden = effectivelyFrozen;
       const decision = state.decisionsByBlock.get(block.id);
       const detail = decision === undefined ? "" : decisionDetail(decision, state);
-      controls.status.textContent = decision === undefined
-        ? `${strings.decisionStatus}: ${strings.actionPending}`
-        : `${strings.decisionStatus}: ${decisionActionLabel(decision.action, strings)}${detail === "" ? "" : ` — ${detail}`}`;
+      const summary = decision === undefined
+        ? strings.actionPending
+        : `${decisionActionLabel(decision.action, strings)}${detail === "" ? "" : ` · ${detail}`}`;
+      controls.status.className = decision === undefined ? "st-chip pending" : "st-chip";
+      controls.statusDot.className = `dot d-${decision?.action ?? "PENDING"}`;
+      controls.statusText.textContent = summary;
+      controls.status.title = `${strings.decisionStatus}: ${summary}`;
       controls.status.dataset.action = decision?.action ?? "PENDING";
       setQuoteView(controls.quote, decision?.quote, strings);
       for (const [action, button] of controls.actionButtons) {
-        button.setAttribute("aria-pressed", String(decision?.action === action));
+        const pressed = decision?.action === action;
+        button.setAttribute("aria-pressed", String(pressed));
+        button.className = `act a-${action}${pressed ? " on" : ""}`;
       }
+      const annotated = [...state.sideNotesById.values()]
+        .some((note) => note.blockId === block.id);
+      controls.sideNote.className = `act sidenote${annotated ? " has" : ""}`;
       controls.undo.hidden = decision === undefined;
     }
     const preview = bulkPassPreview(documentValue, state, visible);
@@ -695,6 +939,7 @@ export function mountReviewInteractions({
     if (document.activeElement !== rail.overall) rail.overall.value = state.overall;
     renderCurrentBlock();
     renderDecisionLists();
+    syncHeaderOffset();
   }
 
   function acceptResult(
@@ -752,7 +997,7 @@ export function mountReviewInteractions({
 
   function dialogQuote(quote: string | undefined): HTMLElement {
     const container = document.createElement("div");
-    container.className = "dialog-quote";
+    container.className = "quoted dialog-quote";
     if (quote === undefined) {
       container.append(elementWithText(document, "p", strings.quoteNone));
     } else {
@@ -918,12 +1163,6 @@ export function mountReviewInteractions({
     focusAfterDecision(decidedBlock);
   }
 
-  filterSelect.addEventListener("change", () => {
-    if (["all", "pending", "t2", "annotated"].includes(filterSelect.value)) {
-      filter = filterSelect.value as ReviewFilter;
-      render();
-    }
-  });
   bulkButton.addEventListener("click", openBulkEditor);
   rail.search.addEventListener("input", () => {
     search = rail.search.value.trim();
@@ -1032,6 +1271,9 @@ export function mountReviewInteractions({
     else openDecisionEditor(currentBlockId, action, opener);
   });
 
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("resize", syncHeaderOffset);
+  }
   render();
   return {
     getState: () => cloneWorkbenchReviewState(state),

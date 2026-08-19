@@ -14,6 +14,15 @@ import { buildReviewPacket } from "../../src/workbench/packet.js";
 import { buildReviewState } from "../../src/workbench/state.js";
 import { createInitialReviewState, reduceReviewState } from "../../src/workbench/reducer.js";
 
+// Option A keeps the rail compact: each editor sits in a closed disclosure, so a
+// reviewer opens it exactly as they would in the approved prototype.
+async function openRailEditor(page: Page, controlId: string): Promise<void> {
+  const fold = page.locator(`details.rail-fold:has(#${controlId})`);
+  if (!(await fold.evaluate((node) => (node as HTMLDetailsElement).open))) {
+    await fold.locator("summary").click();
+  }
+}
+
 let fixtureDirectory = "";
 let workbenchUrl = "";
 let frozenWorkbenchUrl = "";
@@ -152,8 +161,8 @@ async function openWorkbench(page: Page, url = workbenchUrl, total = 4): Promise
   ]) {
     await expect(page.locator(`meta[name='${name}']`)).toHaveCount(1);
   }
-  await expect(page.locator("article.decision-block")).toHaveCount(4);
-  await expect(page.locator(".review-progress")).toContainText(`0 共 ${total}`);
+  await expect(page.locator("article.blk")).toHaveCount(4);
+  await expect(page.locator(".p-num")).toContainText(`0 共 ${total}`);
 }
 
 function block(page: Page, blockId: string) {
@@ -176,7 +185,7 @@ test("@A02 partial packet JSON and Markdown share one exact cached machine paylo
     });
   });
   await openWorkbench(page);
-  await block(page, "B001").getByRole("button", { name: /2 · 修改/u }).click();
+  await block(page, "B001").locator("button[data-action='EDIT']").click();
   const reviewDialog = page.locator("dialog.review-dialog[open]");
   await reviewDialog.locator("textarea[data-field='note']").fill("Partial decision with ```` and </script> 😀");
   await reviewDialog.getByRole("button", { name: "保存" }).click();
@@ -209,10 +218,10 @@ test("@A08/@A17 reopening creates active controls and exports an unambiguous reo
   await openWorkbench(page, frozenWorkbenchUrl, 3);
   await expect(block(page, "B004").getByRole("button", { name: "重新打开冻结块" })).toHaveCount(1);
   await block(page, "B004").getByRole("button", { name: "重新打开冻结块" }).click();
-  await expect(page.locator(".review-progress")).toContainText("0 共 4");
+  await expect(page.locator(".p-num")).toContainText("0 共 4");
   await expect(block(page, "B004").locator(".reopen-status")).toContainText("历史批准保留");
-  await expect(block(page, "B004").locator("button.decision-action")).toHaveCount(4);
-  await block(page, "B004").getByRole("button", { name: /1 · 通过/u }).click();
+  await expect(block(page, "B004").locator("button.act[data-action]")).toHaveCount(4);
+  await block(page, "B004").locator("button[data-action='PASS']").click();
   await page.getByRole("button", { name: "导出回执 JSON" }).click();
   const packet = JSON.parse(await persistenceDialog(page).locator("textarea.export-content").inputValue()) as {
     reopened: string[];
@@ -226,9 +235,9 @@ test("@A08/@A17 reopening creates active controls and exports an unambiguous reo
 
 test("recovers a decision after immediate reload and reports savedAt plus count", async ({ page }) => {
   await openWorkbench(page);
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.reload();
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await expect(page.locator(".persistence-status")).toContainText("已恢复保存的审阅");
   await expect(page.locator(".persistence-status")).toContainText("记录数: 1");
 });
@@ -241,14 +250,14 @@ test("@A10/@A22 storage degradation stays visible; explicit export quiets it onl
   });
   await openWorkbench(page);
   await expect(page.locator(".persistence-status")).toContainText("自动保存不可用");
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.getByRole("button", { name: "导出审阅状态" }).click();
   const dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "手动复制" }).click();
   await dialog.getByRole("button", { name: "我已保存或复制此快照" }).click();
   await expect(page.locator(".persistence-status")).toContainText("当前状态已手动导出");
   await dialog.getByRole("button", { name: "关闭" }).click();
-  await block(page, "B001").getByRole("button", { name: /4 · 存疑/u }).click();
+  await block(page, "B001").locator("button[data-action='HOLD']").click();
   const reviewDialog = page.locator("dialog.review-dialog[open]");
   await reviewDialog.locator("textarea[data-field='note']").fill("Changed after export.");
   await reviewDialog.getByRole("button", { name: "保存" }).click();
@@ -282,8 +291,8 @@ test("@A10/@A22 rejected recovery remains visible beside unsaved and manual-expo
   await page.evaluate(() => {
     (globalThis as typeof globalThis & { __failUi3Save?: boolean }).__failUi3Save = true;
   });
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
+  await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await expect(status).toContainText("已保存的恢复数据被拒绝");
   await expect(status).toContainText("离开前请导出状态");
 
@@ -298,7 +307,7 @@ test("@A10/@A22 rejected recovery remains visible beside unsaved and manual-expo
   await page.evaluate(() => {
     (globalThis as typeof globalThis & { __failUi3Save?: boolean }).__failUi3Save = false;
   });
-  await block(page, "B002").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B002").locator("button[data-action='PASS']").click();
   await expect(status).toContainText("本地自动保存可用");
   await expect(status).not.toContainText("已保存的恢复数据被拒绝");
   await expect.poll(async () => page.evaluate((key) => {
@@ -354,7 +363,7 @@ test("@A22 a pending clipboard success cannot confirm a snapshot after state cha
   const dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "复制", exact: true }).click();
   await dialog.getByRole("button", { name: "关闭" }).click();
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.evaluate(() => {
     (globalThis as typeof globalThis & { __resolveCopy?: () => void }).__resolveCopy?.();
   });
@@ -369,7 +378,7 @@ test("@A10/@A22 download triggering is not success until the digest-stable expli
     Storage.prototype.removeItem = () => { throw new Error("blocked"); };
   });
   await openWorkbench(page);
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.getByRole("button", { name: "导出审阅状态" }).click();
   const dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "下载", exact: true }).click();
@@ -383,21 +392,21 @@ test("@A10/@A22 download triggering is not success until the digest-stable expli
 
 test("@A18 exact import is atomic; missing-format migration requires visible identity confirmation", async ({ page }) => {
   await openWorkbench(page);
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.getByRole("button", { name: "导入状态或回执" }).click();
   let dialog = persistenceDialog(page);
   await dialog.locator("textarea").fill(badStateJson);
   await dialog.getByRole("button", { name: "验证并导入" }).click();
   await expect(dialog.locator(".import-error")).toContainText("导入已拒绝");
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("通过");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await dialog.getByRole("button", { name: "取消" }).click();
 
   await page.getByRole("button", { name: "导入状态或回执" }).click();
   dialog = persistenceDialog(page);
   await dialog.locator("textarea").fill(importedStateJson);
   await dialog.getByRole("button", { name: "验证并导入" }).click();
-  await expect(block(page, "B001").locator(".decision-status")).toContainText("待处理");
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("修改");
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("待处理");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("修改");
 
   await page.getByRole("button", { name: "导入状态或回执" }).click();
   dialog = persistenceDialog(page);
@@ -406,7 +415,7 @@ test("@A18 exact import is atomic; missing-format migration requires visible ide
   await expect(dialog.locator(".import-error")).toContainText("导入已拒绝");
   await dialog.locator("#legacy-identity-confirmation").check();
   await dialog.getByRole("button", { name: "验证并导入" }).click();
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("【精简】Imported exact state.");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("【精简】Imported exact state.");
 });
 
 test("@A18 explicit import accepts an exact packet but automatic restore never treats it as state", async ({ page }) => {
@@ -415,7 +424,7 @@ test("@A18 explicit import accepts an exact packet but automatic restore never t
   let dialog = persistenceDialog(page);
   await dialog.locator("textarea").fill(importedPacketJson);
   await dialog.getByRole("button", { name: "验证并导入" }).click();
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("修改");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("修改");
 
   await page.getByRole("button", { name: "导出回执 JSON" }).click();
   dialog = persistenceDialog(page);
@@ -429,11 +438,12 @@ test("@A18 explicit import accepts an exact packet but automatic restore never t
   }, { storageKey: key!, packet: canonicalPacket });
   await page.reload();
   await expect(page.locator(".persistence-status")).toContainText("恢复数据被拒绝");
-  await expect(block(page, "B002").locator(".decision-status")).toContainText("待处理");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("待处理");
 });
 
 test("@A18 import rejects current-memory high-water regression and preserves allocation", async ({ page }) => {
   await openWorkbench(page);
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("Allocated then deleted");
   await page.getByRole("button", { name: "添加全局主题" }).click();
   await expect(page.locator(".topic-list")).toContainText("TOP-001");
@@ -444,6 +454,7 @@ test("@A18 import rejects current-memory high-water regression and preserves all
   await dialog.getByRole("button", { name: "验证并导入" }).click();
   await expect(dialog.locator(".import-error")).toContainText("HIGH_WATER_REGRESSION /idHighWater/topic");
   await dialog.getByRole("button", { name: "取消" }).click();
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("Allocated after rejection");
   await page.getByRole("button", { name: "添加全局主题" }).click();
   await expect(page.locator(".topic-list")).toContainText("TOP-002");
@@ -458,25 +469,27 @@ test("@A08 imported reopened state rebuilds controls after clear without duplica
     await dialog.getByRole("button", { name: "验证并导入" }).click();
   };
   await importReopened();
-  await expect(page.locator(".review-progress")).toContainText("0 共 4");
-  await expect(block(page, "B004").locator("button.decision-action:visible")).toHaveCount(4);
+  await expect(page.locator(".p-num")).toContainText("0 共 4");
+  await expect(block(page, "B004").locator("button.act[data-action]:visible")).toHaveCount(4);
   await page.getByRole("button", { name: "清空审阅" }).click();
   await persistenceDialog(page).getByRole("button", { name: "清空并重新开始" }).click();
-  await expect(page.locator(".review-progress")).toContainText("0 共 3");
-  await expect(block(page, "B004").locator("button.decision-action:visible")).toHaveCount(0);
+  await expect(page.locator(".p-num")).toContainText("0 共 3");
+  await expect(block(page, "B004").locator("button.act[data-action]:visible")).toHaveCount(0);
   await expect(block(page, "B004").getByRole("button", { name: "重新打开冻结块" })).toBeVisible();
   await block(page, "B004").focus();
   await page.keyboard.press("2");
   await expect(page.locator("dialog.review-dialog[open]")).toHaveCount(0);
   await importReopened();
-  await expect(block(page, "B004").locator("button.decision-action:visible")).toHaveCount(4);
-  await expect(block(page, "B004").locator("button.decision-action")).toHaveCount(4);
+  await expect(block(page, "B004").locator("button.act[data-action]:visible")).toHaveCount(4);
+  await expect(block(page, "B004").locator("button.act[data-action]")).toHaveCount(4);
 });
 
 test("successful import resets note and topic editors for records removed by the snapshot", async ({ page }) => {
   await openWorkbench(page);
+  await openRailEditor(page, "side-note-input");
   await page.locator("#side-note-input").fill("Stale note editor");
   await page.getByRole("button", { name: "添加随手记" }).click();
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("Stale topic editor");
   await page.getByRole("button", { name: "添加全局主题" }).click();
   await page.locator(".side-note-list").getByRole("button", { name: "编辑" }).click();
@@ -492,9 +505,12 @@ test("successful import resets note and topic editors for records removed by the
   await expect(page.locator("#global-topic-title")).toHaveValue("");
   await expect(page.locator("#global-topic-note")).toHaveValue("");
 
+  await openRailEditor(page, "side-note-input");
+
   await page.locator("#side-note-input").fill("Fresh note after import");
   await page.locator("#side-note-input").press("Control+Enter");
   await expect(page.locator(".side-note-list")).toContainText("NOTE-002");
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("Fresh topic after import");
   await page.locator("#global-topic-title").press("Control+Enter");
   await expect(page.locator(".topic-list")).toContainText("TOP-002");
@@ -511,6 +527,7 @@ test("clear save failure leaves memory intact and successful clear preserves all
     };
   });
   await openWorkbench(page);
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("Allocated topic");
   await page.getByRole("button", { name: "添加全局主题" }).click();
   await expect(page.locator(".topic-list")).toContainText("TOP-001");
@@ -522,11 +539,12 @@ test("clear save failure leaves memory intact and successful clear preserves all
   await expect(page.locator(".topic-list")).toContainText("TOP-001");
   await dialog.getByRole("button", { name: "取消" }).click();
   await page.evaluate(() => { (globalThis as typeof globalThis & { __failSave?: boolean }).__failSave = false; });
-  await block(page, "B001").getByRole("button", { name: /1 · 通过/u }).click();
+  await block(page, "B001").locator("button[data-action='PASS']").click();
   await page.getByRole("button", { name: "清空审阅" }).click();
   dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "清空并重新开始" }).click();
   await expect(page.locator(".topic-list")).not.toContainText("TOP-001");
+  await openRailEditor(page, "global-topic-title");
   await page.locator("#global-topic-title").fill("New topic after clear");
   await page.getByRole("button", { name: "添加全局主题" }).click();
   await expect(page.locator(".topic-list")).toContainText("TOP-002");

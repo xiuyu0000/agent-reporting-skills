@@ -16,10 +16,10 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Candidate branch | `codex/v0.2.0` |
 | Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
 | Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
-| Current artifact source | W9 (UI-004, VAL-002, RND-002, DOC-001) then W10 (IO-001, VAL-003, GEN-002, TEL-002), re-cut by REL-004 on 2026-08-18 |
+| Current artifact source | W9, W10, then W11 (UI-005 approved workbench visual system), re-cut by REL-005 on 2026-08-18 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `959266` bytes / `5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34` |
-| Manifest SHA-256 | `59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02` |
+| ZIP size / SHA-256 | `972385` bytes / `99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e` |
+| Manifest SHA-256 | `7cce8a15373d31035d5b05e92df244452e3fa4427e389eab2c166d989e62284e` |
 | Runtime | Node `>=24 <25` |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
@@ -70,7 +70,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `9cef96554c41f2c7826b3a08aa707f13d38828b3c5d24c77815b5b6aac849809` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `d4a084f97573328f6d15602bd7d1d225982545c94a19b398c67415747d89ae40` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` is unchanged: no requirement clause has moved since the 2026-08-17
 consolidation. `design.md` changed once, on 2026-08-18, when DOC-001 corrected
@@ -248,6 +248,23 @@ perform destructive work without fresh user approval.
 | W8 | REL-002 restored the `scan:legacy-surface` release gate on the candidate HEAD; no product code, Skill surface, or release byte changed |
 | W9 | UI-004, VAL-002, RND-002 closed three verified contract gaps; DOC-001 corrected DES-017; REL-003 re-cut the candidate and rebound every recorded digest |
 | W10 | A second audit round over the I/O, consume, generator, telemetry, and Skill surfaces confirmed five more defects; IO-001, VAL-003, GEN-002, and TEL-002 closed them and REL-004 re-cut the candidate |
+| W11 | UI-005 rebuilt the Approval HTML on the user's approved workbench prototype; REL-005 re-cut the candidate |
+
+W11 exists because the visual layer was never part of the contract. `spec.md` §1
+excludes page DOM and CSS values by design, so the implementation invented its own
+look instead of the approval-workbench prototype the user had already approved and
+been using. UI-005 adopts that prototype's visual system — warm paper palette,
+tier-coloured left borders that switch to decision state, tier pills, keycap action
+chips, the real progress fill bar, filter pills, and the compact rail — while
+keeping the accessibility contract (landmarks, skip link, `aria-live` status,
+`aria-pressed`, focus outlines, `j`/`k`/`n`/`1`-`4`). Layout follows the prototype's
+reading order: the decision blocks lead, and the continuation and evidence panels
+stay in the same file but folded into closed disclosures, which keeps spec §7.2
+self-sufficiency without pushing the first decision below the fold. Three prototype
+rules were adapted rather than copied because they measured as WCAG failures: the
+frozen-card `opacity:.75` (6 serious contrast violations) became a recess, and two
+decorative tokens gained text-safe variants. The 350 KiB shell budget moved to
+384 KiB; the approved design is the requirement and the budget was a guardrail.
 
 W10 came from a second adversarial round aimed at the modules the first sweep had
 only reached indirectly. Its most serious finding is a data-loss path: a `replace`
@@ -375,8 +392,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  '5999fd8bd129fc0127423d0afad8ca7915962681dea67aa93a9ab3e61b772b34' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  '59a0c4984a9f35a5e68b60994620ba59e4e4dd81d3ac716f457e034619fe3f02' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  '99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  '7cce8a15373d31035d5b05e92df244452e3fa4427e389eab2c166d989e62284e' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 
