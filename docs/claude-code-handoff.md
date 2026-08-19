@@ -70,7 +70,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `205fc35c483d282ec9a6aac93c1355d9bf80faacb6ff3f575d786a41b14251ac` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `a29c63ead1683732a19726e527cba186e5ff41136aeeb16809c7c8d9d9c1ae63` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
@@ -254,6 +254,26 @@ perform destructive work without fresh user approval.
 | W11 | UI-005 rebuilt the Approval HTML on the user's approved workbench prototype; REL-005 re-cut the candidate |
 | W12 | CI-001 bounded the Playwright browser install after an apt-mirror degradation hung a CI job for 3h05m; no product byte changed |
 | W13 | DOC-002 promoted the approved workbench visual system into the contract (spec §7.2, DES-019/§11.8) and rebound the planning-source digests; docs-only |
+| W14 | CI-002 moved every browser lane into the digest-pinned official Playwright container image — apt and the browser download left the CI job graph entirely; approved via the round-1 review packet (9/9 PASS) |
+
+W14 finished what W12 bounded. The user asked for the apt-degradation cure to
+be researched and adjudicated through the Skill's own dual-audience review flow:
+a nine-block review document (four T2 decisions) came back from the approval
+workbench with every block PASS, and the approved option is the official
+Playwright container image. The browser matrix and firefox-smoke now run inside
+`mcr.microsoft.com/playwright:v1.62.1-noble` pinned by digest with
+`--user 1001 --ipc=host`; browsers and system libraries come from the image, so
+no browser download and no apt-get runs in any lane. `actions/setup-node` still
+pins Node 24.19.0 inside the container (the runner mounts the hosted tool
+cache), both lanes assert the exact version, and a mutation-verified unit test
+(`tests/unit/playwright-container-lockstep.test.ts`) fails the build if the
+image tag ever drifts from `@playwright/test` in package-lock.json. The W12
+install script and browser cache steps were retired per the approved
+disposition — git history is the rollback path — and `concurrency` now cancels
+superseded runs on PR branches only. The approved fallback specification
+(per-browser apt trimming, mirror demotion, version-keyed caching) is preserved
+in the review document's B005 for the day the container path fails. No product
+byte changed; the REL-005 candidate digests are untouched.
 
 W13 and W12 are governance and infrastructure waves; neither touched a product
 byte, so the REL-005 candidate and every artifact digest are unchanged. W12

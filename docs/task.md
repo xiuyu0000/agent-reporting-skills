@@ -220,6 +220,7 @@ flowchart TD
 | W11 | UI-005；REL-005 收口重切 | 单线程；只写 workbench 与其测试 | 审批台与已批准原型视觉一致；三浏览器全绿；候选重建 |
 | W12 | CI-001 浏览器安装硬化 | 单线程；只写 `.github/**` | 安装步骤有界、可重试、可降级；PR #69 自验证与 PR #68 复跑全绿 |
 | W13 | DOC-002 视觉契约固化 | 文档-only；只写 spec/design/task/handoff 及摘要回填 | 三份规划文档同步修订、摘要重新绑定、文档门全绿 |
+| W14 | CI-002 浏览器 lane 容器化 | 单线程；只写 `.github/**`、锁步断言测试与文档台账 | 用户审批回执（round 1 全 PASS）授权；PR 自验证四 job 全绿；锁步断言经双向变异验证 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -273,6 +274,7 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | REL-005 | 按 W11 重切候选并重新绑定摘要 | UI-005 | release | `done` | w11_release Agent | `dist/**`、生成分发面、handoff §1、claude-handoff 测试 | Release gate |
 | CI-001 | 浏览器安装步骤有界、可重试、可降级，不再无限挂起 | REL-005 | infra | `done` | w12_ci Agent | `.github/workflows/validate.yml`、`.github/scripts/install-playwright.sh` | PR #69 自验证与 PR #68 复跑全绿 |
 | DOC-002 | 审批台视觉契约固化为需求条款与工程决定 | UI-005、CI-001 | control | `done` | 协调者 | `docs/{spec,design,task}.md`、`docs/claude-code-handoff.md` 摘要 | Spec §18.2 影响审计；文档门 |
+| CI-002 | 浏览器 lane 容器化：apt 与浏览器下载移出 CI 关键路径 | CI-001、DOC-002 | infra | `done` | w14_ci Agent | `.github/workflows/validate.yml`、锁步断言测试、docs 台账 | 用户审批回执；PR 自验证全绿 |
 
 ## 5. 详细任务卡
 
@@ -1219,6 +1221,27 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：见本卡所列修订点；spec/design/task 新摘要以本文文首与 handoff 摘要表为准（合并前由本 PR 最终提交固定）。
 - **Blocker / unblock**：无。
 
+### CI-002 · 浏览器 lane 容器化根治
+
+- **状态 / owner_role / owner / last_updated**：`done` / infra engineer / w14_ci Agent / 2026-08-19
+- **Outcome**：两个 browser job 与 firefox-smoke 全部运行在按 digest 固定的官方 Playwright 容器镜像内，浏览器与系统依赖来自镜像——apt 与浏览器下载从 CI 关键路径整体消失，azure apt 镜像退化不再能影响任何 lane。
+- **Depends on / unlocks**：CI-001、DOC-002 / 无。
+- **Parallel / conflicts**：只写 `.github/**` 与一个新单元测试文件；产品代码、Skill 分发面与 `dist/**` 零变更，候选摘要不变。
+- **Write scope**：`.github/workflows/validate.yml`（container、concurrency、Node 断言）、`.github/scripts/install-playwright.sh`（退役删除）、`tests/unit/playwright-container-lockstep.test.ts`（新建）、docs 台账。
+- **Refs**：用户 2026-08-19 审批工作台回执（round 1，9/9 全 PASS，含四个 T2：主方案、锁步守护、旧路径处置、并发取消）；CI-001 完成证据；调研结论（8 个并行研究/核查 agent，一手来源）。
+- **Implementation contract**：镜像 `mcr.microsoft.com/playwright:v1.62.1-noble` 按 digest 固定；`--user 1001`（挂载 tool cache 可写、Firefox 拒绝 root）与 `--ipc=host`（Chromium 共享内存）为必需 options。容器内保留 `actions/setup-node` 精确钉 24.19.0（宿主 tool cache 挂载为 `/__t`，PATH 前置遮蔽镜像自带浮动 24.x），两个 lane 增加与 node job 相同的版本断言；`engine-strict` 语义不变。镜像 tag 与 package-lock 的 `@playwright/test` 版本锁步由单元测试断言（tag 漂移、双 lane 不一致、options 缺失、安装步骤复活四类回归均为红）。升级 checklist：升 `@playwright/test` 时同一提交内更新镜像 tag 与 digest。`concurrency` 只在 PR 分支取消被取代 run，`codex/v0.2.0` 与 `main` 的 push 校验永不取消。
+- **Failure rules**：不得使用浮动镜像 tag；不得让任一 lane 的镜像引用与另一 lane 或 npm 版本漂移而不红；不得在容器方案下保留无调用方的安装/缓存死代码。
+- **Validation**：
+
+  ```bash
+  npm run test:unit
+  npx vitest run tests/unit/playwright-container-lockstep.test.ts
+  ```
+
+  预期：全部通过；锁步断言经双向变异验证（tag 改为 v1.61.0 时 2 断言红，去掉 `--ipc=host` 时 1 断言红，还原后全绿）。
+- **Completion evidence**：授权链：用户 2026-08-19 审批工作台 round 1 回执 9/9 全 PASS，经 `validate packet` 验证后 `consume` 定稿（round 2，status `finalized`，全块冻结）。自验证 run `32238656661`（PR #71）四 job 全绿：Initialize containers 45s/27s/26s（chromium/webkit/firefox），容器内 `setup-node` 命中挂载 tool cache 仅 1s、零网络下载，安装步骤在三个 lane 均不复存在；套件 22s/1m08s/13s，browser job 全程 1m19s/1m48s/52s——对照 W12 前的 3h05m 静默挂起与 W12 后每 run 5–13 分钟的退化税。Node 24.19.0 断言三 lane 全过。锁步断言经双向变异验证：镜像 tag 漂移为 v1.61.0 时 2 断言红、去掉 `--ipc=host` 时 1 断言红、还原后 5/5 绿；Node 24.19.0 下 unit 537/537（含新增 5 项）。产品字节零变更，候选 ZIP/manifest 摘要保持 REL-005 值。
+- **Blocker / unblock**：无。apt 退化的 B 计划（分浏览器裁剪 + 镜像降级 + 版本键控缓存）作为已批准的备选规格保留在审批文档 B005，仅在容器方案失效时启用。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1350,3 +1373,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-18 的 W9 记录：对同一候选做了一次以 spec/design 条款为准的对抗式复审，22 条候选发现中 14 条被独立复核推翻，7 条确认为真实契约缺口（其中 3 条即 W8 已修复的发布门问题）。剩余四条构成 W9：UI-004（随手记编辑绑定活动游标导致编辑静默丢失，且全部 16 个 reducer 错误码以机器码回显，违反 Spec §9.3/§13.5）、VAL-002（个人绝对路径只在“用户名后带分隔符且路径前是空白/引号/括号”时命中，作者遗留的占位符因 Markdown 转义在文档正文中完全不可见，违反 Spec §13.2/§14.1）、RND-002（`permittedChanges` 采信候选自声明的影响集，一次 EDIT 即可授权改写任意未触及待处理块，且影响闭包取当前图与候选图并集使候选可先自造依赖边，违反 Spec §11.3）、DOC-001（DES-017 与已跟踪现状相反）。四项均以“先复现、再修复、再变异验证”的顺序完成：每条修复都被临时还原以确认新断言失败，再还原修复确认通过。RND-002 的收紧没有导致任何既有轮次、消费或验收测试失败，这本身说明该缺口此前完全没有测试覆盖。三个代码 lane 通过独立 worktree 并行开发后合入同一波次分支，再由 REL-003 按用户 2026-08-18 的决定统一重切候选并重新绑定全部已记录摘要。
 
 2026-08-19 的 W12/W13 记录：PR #68（W11 审批台改版）首跑 CI 时，webkit lane 的 `playwright install-deps` 在 Azure 内部 apt 镜像退化后静默挂起超过 3 小时，用户指令暂停该 run、搁置 PR #68，先以独立分支修复 CI。W12 / CI-001 由此而来：安装步骤拆为“浏览器下载（致命）/系统依赖（可降级）”两阶段，带界重试与缓存，经 PR #69 自验证 run `32226504889` 与 PR #68 复跑 run `32229834599` 双双全绿后，按用户指令先合并 #69、再合并 #68，两者与候选产物零交集，候选摘要不变。W13 / DOC-002 随后消除 W11 遗留的契约缺口：spec §1 仍整体排除 CSS 数值，而用户已把审批台视觉系统批准为需求——修订 spec（§1 例外、§7.2 条款、§17.2 收敛行、§18.1 记录）、design（DES-019、§11.8）与本文，并按 DOC-001 先例重新绑定三文档摘要。apt 镜像退化的根治方案（容器镜像等）作为 W14 调研提案单列，以审批文档形式交用户裁决后再实施。
+
+2026-08-19 的 W14 记录：apt 退化的根治按用户要求以双受众审批文档裁决——9 个决策块（4 个 T2）经审批工作台 round 1 全 PASS 后定稿。获批方案为官方 Playwright 容器镜像：browser 矩阵与 firefox-smoke 运行在按 digest 固定的 `v1.62.1-noble` 内，浏览器与系统依赖来自镜像，apt 与浏览器下载从 job 图中整体消失；容器内 `setup-node` 继续精确钉 Node 24.19.0（宿主 tool cache 挂载），镜像 tag 与 npm 版本的锁步由新增单元测试断言并经双向变异验证；W12 的安装脚本与浏览器缓存步骤按获批处置退役删除（Git 历史即回退路径）；`concurrency` 只取消 PR 分支上被取代的 run。调研由 8 个并行研究/核查 agent 完成并全部标注一手来源；备选的分层缓解方案（B005）作为已批准规格保留待命。CI-002 与 W13 的 DOC-002 同 PR 链交付，候选产物摘要不变。
