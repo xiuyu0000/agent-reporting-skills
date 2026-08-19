@@ -76,6 +76,21 @@ test.afterAll(async () => {
 });
 
 async function openWorkbench(page: Page, url = workbenchUrl, total = 4): Promise<void> {
+  // The template scrolls smoothly (html{scroll-behavior:smooth}) and WebKit's
+  // automation scroll honours that, so a click needing a page scroll can be
+  // dispatched while the target is still gliding and silently miss it. Forcing
+  // instant scrolling through CSSOM keeps pointer targets still; the CSP style
+  // hash rejects an injected <style>, so the inline property is the only route.
+  await page.addInitScript(() => {
+    const neutralizeSmoothScroll = (): void => {
+      document.documentElement.style.scrollBehavior = "auto";
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", neutralizeSmoothScroll);
+    } else {
+      neutralizeSmoothScroll();
+    }
+  });
   await page.goto(url);
   await expect(page.locator("article.blk")).toHaveCount(4);
   await expect(page.locator(".p-num")).toContainText(`0 共 ${total}`);
@@ -130,6 +145,7 @@ test("@A03 bulk confirmation passes only pending T0/T1 blocks", async ({ page })
   }
   for (const blockId of ["B003", "B004"]) {
     await block(page, blockId).getByRole("button", { name: "撤销决定" }).click();
+    await expect(block(page, blockId).locator(".st-chip")).toContainText("待处理");
   }
   await block(page, "B002").locator("button[data-action='EDIT']").click();
   await page.locator("dialog textarea").fill("Do not pass this block in bulk.");
