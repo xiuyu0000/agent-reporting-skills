@@ -8,6 +8,12 @@ on:
     # commit silently broke `scan:legacy-surface` after the v0.2 candidate froze.
     branches: [main, codex/v0.2.0]
 
+# Cancel superseded runs on PR branches only; pushes to the integration
+# branches always validate to completion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/codex/v0.2.0' && github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
 
@@ -115,6 +121,15 @@ jobs:
     name: browser (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Browsers and their system libraries are baked into the official image, so
+    # neither a browser download nor apt runs in this job; the image tag must
+    # stay in lockstep with @playwright/test in package-lock.json (asserted by
+    # tests/unit/playwright-container-lockstep.test.ts). `--user 1001` keeps the
+    # mounted tool cache writable and the browser sandboxes intact; `--ipc=host`
+    # avoids Chromium shared-memory crashes.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --user 1001 --ipc=host
     strategy:
       fail-fast: false
       matrix:
@@ -137,21 +152,19 @@ jobs:
           fi
       - name: Install locked dependencies
         run: npm ci
-      - name: Restore Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ matrix.project }}-${{ hashFiles('package-lock.json') }}
-      - name: Install ${{ matrix.project }} and its system dependencies
-        shell: bash
-        run: ./.github/scripts/install-playwright.sh "${{ matrix.project }}"
+      - name: Verify the fixed Node runtime inside the container
+        run: node -e 'if (process.versions.node !== "24.19.0") process.exit(1)'
       - name: Run blocking browser suite
         run: npm run test:browser -- --project="${{ matrix.project }}"
 
   firefox-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Same image and lockstep contract as the browser matrix; `--user 1001` is
+    # mandatory here — Firefox refuses to run as root in the container.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --user 1001 --ipc=host
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -170,14 +183,8 @@ jobs:
           fi
       - name: Install locked dependencies
         run: npm ci
-      - name: Restore Playwright browsers
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-firefox-${{ hashFiles('package-lock.json') }}
-      - name: Install Firefox and its system dependencies
-        shell: bash
-        run: ./.github/scripts/install-playwright.sh firefox
+      - name: Verify the fixed Node runtime inside the container
+        run: node -e 'if (process.versions.node !== "24.19.0") process.exit(1)'
       - name: Select a nonempty Firefox smoke lane including A20
         shell: bash
         run: |
