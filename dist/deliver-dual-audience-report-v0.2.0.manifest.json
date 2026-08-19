@@ -5,8 +5,8 @@
   "node": ">=24 <25",
   "archive": {
     "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
-    "byteLength": 972385,
-    "digest": "sha256:99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e",
+    "byteLength": 975548,
+    "digest": "sha256:31aee980f839f1ac388829da362415616cbe5fc693e901ad7a4b1c7b5ecaf869",
     "entryCount": 11,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
@@ -31,13 +31,13 @@
     },
     {
       "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
-      "byteLength": 368994,
-      "digest": "sha256:85f15a601e595b676a4d1a3a3a70bc095cba68f912a0a418ac96bc533903384f"
+      "byteLength": 370789,
+      "digest": "sha256:cad357a5c7a589f005eb155182ebdd744673207fc32b2bf021b1df281c7a58a8"
     },
     {
       "path": "deliver-dual-audience-report/references/audience-contracts.md",
-      "byteLength": 5495,
-      "digest": "sha256:bb11ae68acc3e9e306aabe235330d7723b95fc767c1e0b2437af46ee3a2b14f1"
+      "byteLength": 6666,
+      "digest": "sha256:d34b06240bcd4557924d6f1db3af35932bb1b94dc287097ab60209dd8989d4ad"
     },
     {
       "path": "deliver-dual-audience-report/references/evidence-and-privacy.md",
@@ -56,8 +56,8 @@
     },
     {
       "path": "deliver-dual-audience-report/references/review-protocols.md",
-      "byteLength": 16194,
-      "digest": "sha256:c0c16c026ed1d34453b7d2bc1c2eeab3fb2d72c7d1425dcc6aaf5d469ba27039"
+      "byteLength": 16391,
+      "digest": "sha256:bad28c6485b47986692d2f75534cdd294781116fca61f60aa9f7a0e00f2c3e0f"
     },
     {
       "path": "deliver-dual-audience-report/references/review-state.schema.json",

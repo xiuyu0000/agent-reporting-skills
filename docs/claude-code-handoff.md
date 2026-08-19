@@ -16,10 +16,10 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Candidate branch | `codex/v0.2.0` |
 | Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
 | Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
-| Current artifact source | W9, W10, then W11 (UI-005 approved workbench visual system), re-cut by REL-005 on 2026-08-18 |
+| Current artifact source | W9–W11, then W15 (UI-006 usage-feedback fixes on the approved workbench), re-cut by REL-006 on 2026-08-19 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `972385` bytes / `99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e` |
-| Manifest SHA-256 | `7cce8a15373d31035d5b05e92df244452e3fa4427e389eab2c166d989e62284e` |
+| ZIP size / SHA-256 | `975548` bytes / `31aee980f839f1ac388829da362415616cbe5fc693e901ad7a4b1c7b5ecaf869` |
+| Manifest SHA-256 | `c8594010d431a7e4e6902a3bd5b7536d132b63e382440f54d25d679bc65274c2` |
 | Runtime | Node `>=24 <25` |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
@@ -69,8 +69,8 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 | Source | SHA-256 | Value at 2026-08-17 handoff time |
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
-| `design.md` | `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `a29c63ead1683732a19726e527cba186e5ff41136aeeb16809c7c8d9d9c1ae63` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `design.md` | `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
+| `task.md` | `9cf065bf02f4dc6b6d1d0f118be50732edf3f82fed8c81e85cadedb7b3b24b8e` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
@@ -255,6 +255,23 @@ perform destructive work without fresh user approval.
 | W12 | CI-001 bounded the Playwright browser install after an apt-mirror degradation hung a CI job for 3h05m; no product byte changed |
 | W13 | DOC-002 promoted the approved workbench visual system into the contract (spec §7.2, DES-019/§11.8) and rebound the planning-source digests; docs-only |
 | W14 | CI-002 moved every browser lane into the digest-pinned official Playwright container image — apt and the browser download left the CI job graph entirely; approved via the round-1 review packet (9/9 PASS) |
+| W15 | UI-006 landed the user's five usage-feedback fixes on the workbench (aria-pressed toggle, note-target labeling, termRef hover preview, in-contract readability, plain-language authoring rules); REL-006 re-cut the candidate |
+
+W15 came from the user actually reviewing on the workbench and reporting five
+issues, each adjudicated on the record (task.md §9). The action chips now honour
+the aria-pressed toggle they always advertised — a second activation of a
+recorded PASS revokes it, while the input-bearing actions reopen their prefilled
+editor carrying an explicit revoke button so one keypress can never destroy
+typed review text (spec §9.1 and §9.3 both satisfied). The rail note editor
+names the block it writes to, termRef terms gained a hover/focus definition
+preview that only supplements the click disclosure and glossary appendix
+(spec §7.2 unchanged), tables gained in-contract header emphasis and zebra
+striping, and the Skill's authoring references now mandate zero-context plain
+language, termRef-bound terminology, and structured visualization. The palette
+redesign portion of the feedback was not adopted: the visual system is the
+user-approved DES-019 contract, and replacing it needs a newly approved
+prototype, which was put back to the user as an open proposal. REL-006 re-cut
+the candidate; the digests above are current.
 
 W14 finished what W12 bounded. The user asked for the apt-degradation cure to
 be researched and adjudicated through the Skill's own dual-audience review flow:
@@ -432,8 +449,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  '99ad801fea85330e2341faaebc2bf04a7d5c97702de431e99adace98e5c5782e' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  '7cce8a15373d31035d5b05e92df244452e3fa4427e389eab2c166d989e62284e' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  '31aee980f839f1ac388829da362415616cbe5fc693e901ad7a4b1c7b5ecaf869' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  'c8594010d431a7e4e6902a3bd5b7536d132b63e382440f54d25d679bc65274c2' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 

@@ -573,6 +573,7 @@ describe("safe content renderer and bootstrap", () => {
     const termDefinition = ownerDocument.querySelector(`#${definitionId}`);
     expect(termToggle?.getAttribute("type")).toBe("button");
     expect(termToggle?.getAttribute("aria-expanded")).toBe("false");
+    expect(termToggle?.getAttribute("data-tip")).toBe("Every downstream dependency.");
     expect(termToggle?.textContent).toContain("展开定义");
     expect(termDefinition?.hidden).toBe(true);
     expect(termDefinition?.textContent).toContain("Every downstream dependency.");

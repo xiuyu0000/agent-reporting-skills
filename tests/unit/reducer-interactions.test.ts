@@ -468,6 +468,50 @@ describe("review interaction controller", () => {
     expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pending");
   });
 
+  it("toggles PASS off, guards input-action revocation, and names the note target", () => {
+    const ownerDocument = new TestDocument();
+    installDom(ownerDocument);
+    const workbench = mount();
+    installDom(workbench.ownerDocument);
+
+    // Same-action toggle: a pressed PASS chip or its number key revokes the
+    // decision back to pending, honouring the chip's aria-pressed semantics.
+    key(workbench.ownerDocument.body, "j");
+    key(workbench.ownerDocument.body, "1");
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pass");
+    key(workbench.ownerDocument.body, "k");
+    key(workbench.ownerDocument.body, "1");
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pending");
+    const pass = actionButton(article(workbench, "B002"), "PASS");
+    pass.click();
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pass");
+    pass.click();
+    expect(article(workbench, "B002").querySelector(".st-chip")?.textContent).toContain("Pending");
+
+    // Input-bearing actions never unset on a repeat press: the prefilled
+    // editor opens instead, and revocation is its explicit button, so typed
+    // review text cannot be destroyed by a single chip press.
+    const edit = actionButton(article(workbench, "B003"), "EDIT");
+    edit.click();
+    const dialog = workbench.ownerDocument.querySelector("dialog") as TestDialog;
+    const note = dialog.querySelector("textarea");
+    if (note === null) throw new Error("note missing");
+    note.value = "Change the closure.";
+    button(dialog, "Save").click();
+    expect(article(workbench, "B003").querySelector(".st-chip")?.textContent).toContain("Modify");
+    edit.click();
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector("textarea")?.value).toBe("Change the closure.");
+    button(dialog, "Undo decision").click();
+    expect(dialog.open).toBe(false);
+    expect(article(workbench, "B003").querySelector(".st-chip")?.textContent).toContain("Pending");
+
+    // The rail note editor names the block it writes to.
+    expect(workbench.rail.querySelector(".note-target")?.textContent).toContain("B003");
+    button(article(workbench, "B004"), "Working notes").click();
+    expect(workbench.rail.querySelector(".note-target")?.textContent).toContain("Attaches to block B004");
+  });
+
   it("manages search/filter, notes, global topics, overall, and typing shortcuts", () => {
     const ownerDocument = new TestDocument();
     installDom(ownerDocument);

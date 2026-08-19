@@ -45,9 +45,30 @@ Write for one human reviewer who receives no Agent Markdown and no prior
 conversation. Keep all decision-essential information inside the file.
 
 Preserve the proposal's narrative block order. Default T2 blocks open; let T1
-and T0 start compact while remaining expandable. Explain unfamiliar terms in
-place or through an in-file glossary. Use a controlled flow only when it makes a
-relationship materially easier to judge, and provide equivalent text.
+and T0 start compact while remaining expandable. Use a controlled flow only
+when it makes a relationship materially easier to judge, and provide
+equivalent text.
+
+Write every sentence for a reader starting from zero context, in the plainest
+language that stays accurate. These rules are mandatory, not stylistic:
+
+- Prefer the everyday phrase over the professional term. When a professional
+  term is genuinely required, reference it with a glossary term node
+  (`termRef`) bound to a glossary entry, so the reviewer gets the in-place
+  definition, its hover preview, and the appendix entry. A bare professional
+  term with no glossary link is a defect.
+- The continuation section and the evidence snapshot render inside the
+  Approval HTML for the same zero-context human. Write them in reviewer
+  language too — never in Agent shorthand, bare identifiers, or untranslated
+  tool output.
+- Express logic, processes, and multi-step relationships as structured
+  content — steps, tables, or a flow with its text equivalent — rather than
+  as long prose. If a reviewer must simulate a sequence in their head to
+  judge a block, restructure it.
+- Before delivery, self-check: could a careful person with no prior exposure
+  to the project read only this file, from top to bottom, and understand
+  every block well enough to decide it? If any block fails that test,
+  rewrite it before rendering.
 
 Support these review behaviors without an external service:
 
