@@ -14,6 +14,7 @@ permissions:
 jobs:
   node:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -113,6 +114,7 @@ jobs:
   browser:
     name: browser (${{ matrix.project }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -133,15 +135,23 @@ jobs:
             echo "blocking browser suite is missing" >&2
             exit 1
           fi
-      - name: Install locked dependencies and browser
-        run: |
-          npm ci
-          npx --no-install playwright install --with-deps "${{ matrix.project }}"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Restore Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.project }}-${{ hashFiles('package-lock.json') }}
+      - name: Install ${{ matrix.project }} and its system dependencies
+        shell: bash
+        run: ./.github/scripts/install-playwright.sh "${{ matrix.project }}"
       - name: Run blocking browser suite
         run: npm run test:browser -- --project="${{ matrix.project }}"
 
   firefox-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -158,10 +168,16 @@ jobs:
             echo "Firefox smoke inputs are missing" >&2
             exit 1
           fi
-      - name: Install locked dependencies and Firefox
-        run: |
-          npm ci
-          npx --no-install playwright install --with-deps firefox
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Restore Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-firefox-${{ hashFiles('package-lock.json') }}
+      - name: Install Firefox and its system dependencies
+        shell: bash
+        run: ./.github/scripts/install-playwright.sh firefox
       - name: Select a nonempty Firefox smoke lane including A20
         shell: bash
         run: |
