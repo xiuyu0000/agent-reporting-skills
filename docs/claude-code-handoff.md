@@ -68,16 +68,19 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 
 | Source | SHA-256 | Value at 2026-08-17 handoff time |
 |---|---|---|
-| `spec.md` | `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
-| `design.md` | `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `d4a084f97573328f6d15602bd7d1d225982545c94a19b398c67415747d89ae40` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
+| `design.md` | `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
+| `task.md` | `205fc35c483d282ec9a6aac93c1355d9bf80faacb6ff3f575d786a41b14251ac` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
-`spec.md` is unchanged: no requirement clause has moved since the 2026-08-17
-consolidation. `design.md` changed once, on 2026-08-18, when DOC-001 corrected
-DES-017 — the row still claimed the planning sources stay gitignored and out of
-CI, which the same consolidation had already falsified and which REL-002 then
-turned into an executable CI assertion. That is the only DES wording change since
-the design was confirmed; no other engineering decision moved. `task.md` changes
+`spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
+DOC-002 turned the user-approved workbench visual system into contract text
+(§1 exception, §7.2 clause, §17.2 convergence row, §18.1 change record) without
+adding any product capability. `design.md` has changed twice: on 2026-08-18
+DOC-001 corrected DES-017 — the row still claimed the planning sources stay
+gitignored and out of CI, which the consolidation had falsified and REL-002 then
+turned into an executable CI assertion — and on 2026-08-19 DOC-002 added DES-019
+plus the normative §11.8 token list. No other engineering decision moved, and no
+run-time behaviour changed in either revision. `task.md` changes
 whenever wave status or completion evidence changes, which is its normal role.
 Read the tracked files directly rather than reconstructing them from memory, and
 verify a digest before treating a planning source as current.
@@ -249,6 +252,23 @@ perform destructive work without fresh user approval.
 | W9 | UI-004, VAL-002, RND-002 closed three verified contract gaps; DOC-001 corrected DES-017; REL-003 re-cut the candidate and rebound every recorded digest |
 | W10 | A second audit round over the I/O, consume, generator, telemetry, and Skill surfaces confirmed five more defects; IO-001, VAL-003, GEN-002, and TEL-002 closed them and REL-004 re-cut the candidate |
 | W11 | UI-005 rebuilt the Approval HTML on the user's approved workbench prototype; REL-005 re-cut the candidate |
+| W12 | CI-001 bounded the Playwright browser install after an apt-mirror degradation hung a CI job for 3h05m; no product byte changed |
+| W13 | DOC-002 promoted the approved workbench visual system into the contract (spec §7.2, DES-019/§11.8) and rebound the planning-source digests; docs-only |
+
+W13 and W12 are governance and infrastructure waves; neither touched a product
+byte, so the REL-005 candidate and every artifact digest are unchanged. W12
+(CI-001) answered a real incident: PR #68's first CI run hung for 3h05m inside
+`playwright install-deps` after the Azure-internal apt mirror degraded, and the
+user ordered the run paused and the CI fixed first. The install step is now two
+phases — browser download stays fatal, apt system dependencies retry bounded
+(240s x 3, lock cleanup between attempts) and degrade to a `::warning` — with the
+browser directory cached across runs; it self-validated on PR #69 and on PR #68's
+green re-run before either merged. W13 (DOC-002) closed the contract gap W11 left
+behind: spec §1 still excluded all CSS values while the user had already approved
+a concrete visual system as a requirement. The spec now carries that single
+exception (§7.2 clause, §17.2 convergence row, §18.1 change record), design
+carries the normative token list (DES-019, §11.8), and the digests above were
+rebound in the DOC-001 order.
 
 W11 exists because the visual layer was never part of the contract. `spec.md` §1
 excludes page DOM and CSS values by design, so the implementation invented its own

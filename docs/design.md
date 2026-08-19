@@ -3,9 +3,9 @@
 > - 文档状态：已确认，实施基线
 > - 设计版本：0.2-implementation-baseline
 > - 目标发布：v0.2.0
-> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）
+> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）；2026-08-19（补录 DES-019 审批台视觉契约并新增 §11.8，同步 spec 2026-08-19 修订；不改变运行行为）
 > - 需求基线：[spec.md](spec.md)
-> - 需求基线 SHA-256：`6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`
+> - 需求基线 SHA-256：`2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 视觉契约修订后重算；2026-08-17 整合值为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
 > - 基线解释：需求文件已于 2026-08-17 的文档整合中正式标记为“已确认，需求基线”，与本设计自 2026-08-12 起采用的口径一致；此前记录的摘要 `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` 对应仅有状态元数据差异的同一份需求条款。
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 施工单：[task.md](task.md) · 运行事实源：[claude-code-handoff.md](claude-code-handoff.md) · 目录索引：[README.md](README.md)
@@ -134,10 +134,13 @@
 | DES-016 | 语言 | UI 内置 `zh-CN` 与 `en`；内容语言使用 BCP-47 | 不在 v0.2 引入任意 locale 包 | 满足首发需要，保留扩展点 |
 | DES-017 | 文档治理 | spec/design/task 随仓库跟踪，以 SHA-256 绑定（2026-08-17 修订，原为“保持本地忽略”） | 只由用户维护 `.gitignore`；实施任务不得修改 | 摘要仍须人工回填；跟踪状态由 CI 的 `scan:legacy-surface` 断言 |
 | DES-018 | 语义写作边界 | Agent 编写候选文档；CLI 只生成、验证和提交 | 不让 CLI 猜测 EDIT/HOLD 的内容 | 防止自动修改扩大授权 |
+| DES-019 | 审批台视觉契约 | 审批 HTML 采用用户 2026-08-18 批准的审批工作台原型视觉系统与方案 A 阅读顺序；规范性 token 清单与布局常量固定在 §11.8 | 不把视觉留作实现自由裁量，也不把 `docs/调研/` 的业务正文复制进跟踪文件 | 防止审批面再次漂移；由 spec §7.2 条款与三浏览器断言双重守护 |
 
 上述决策均已由已接受计划或计划阶段用户选择锁定；本文没有需要实施者再选择的架构分支。
 
 DES-017 于 2026-08-17 按用户决定修订：规划文档由“本地忽略”改为随仓库跟踪，`docs/调研/` 反过来加入 `.gitignore` 保持私有。该修订只改变规划记录的存放位置，不改变任何产品行为、接口或其他 DES 决定；SHA-256 绑定与人工回填义务保持不变。跟踪状态现在还是一个可执行约束：`tools/scan-legacy-surface.mjs` 把这三份文件登记为规划记录边界，并在它们不再被 Git 跟踪时失败关闭，因此“未跟踪”已成为发布门会拒绝的状态。修订前的原文为“spec/design/task 保持本地忽略，以 SHA-256 绑定 / 不进入 CI，需人工维护摘要”。
+
+DES-019 于 2026-08-19 补录：W11 期间用户否决了首版审批 HTML 的视觉呈现，指令改用其已批准并实际使用的审批工作台原型视觉系统，并在两种阅读顺序中选定方案 A（UI-005 已按此实施并通过三浏览器断言）。补录把这次用户决定从任务卡备注升格为工程决定，同时把规范性 token 清单固定在 §11.8，与 spec §7.2 的新增条款（2026-08-19 修订）互为行为层/实现层对照。补录不改变任何运行行为——实现与断言在补录前已经落地，本条只消除“视觉契约无契约记录”的治理缺口。
 
 ## 5. 系统上下文与目标架构
 
@@ -1387,6 +1390,20 @@ v0.2 默认实现封装同步 localStorage，但 UI 只依赖接口。每次成�
 - 文档内容语言与 UI locale 分离。
 - 缺少 locale key 是构建错误；未知 uiLocale 是协议错误，不静默回退。
 
+### 11.8 视觉契约（DES-019）
+
+审批 HTML 的视觉系统与阅读顺序是需求（spec §7.2，2026-08-19 修订），不是实现自由裁量。规范性定义如下，任何变更须先获用户批准并按 spec §18.2 完成影响审计：
+
+- **调色板 token**（`:root`，`color-scheme:light`）：`--page:#f9f9f7`、`--surface:#fcfcfb`、`--ink:#0b0b0b`、`--ink2:#52514e`、`--muted:#898781`、`--muted-ink:#6f6e69`、`--hair:#e1e0d9`、`--base:#c3c2b7`、`--ring:rgba(11,11,11,.10)`、`--blue:#2a78d6`、`--orange:#eb6834`、`--aqua:#1baf7a`、`--yellow:#eda100`、`--magenta:#e87ba4`、`--violet:#4a3aa7`、`--good:#0ca30c`、`--serious:#ec835a`、`--critical:#d03b3b`、`--link:#1f6ac2`、`--focus:#c1440e`。
+- **分诊与决定态**：决策块左边框按分诊着色（T2 橙、T1 蓝、T0 base），块有决定后切换为决定态色；分诊以 pill 呈现，弱化不得只靠颜色（spec §13.5 对比与非色觉通道要求继续适用）。
+- **动作与进度**：四动作使用带键帽提示的 chip；头部进度为真实填充条；过滤器为 pill。
+- **布局**：内容网格 `max-width:1280px`，主列 + `340px` 侧栏（`grid-template-columns:minmax(0,1fr) 340px`）；粘性 header。
+- **阅读顺序（方案 A）**：决策块居前；审批上下文与证据快照在同一文件内折叠为默认关闭的 disclosure；侧栏编辑器折叠，导出回执入口无需滚动即可见；任何以编程方式聚焦被折叠编辑器的路径必须先展开其 fold。
+- **不变式**：landmarks、skip link、`aria-live` 状态区、`aria-pressed`、可见焦点与 `j/k/n/1-4/Esc/Cmd+Enter` 键盘契约不得回退；离线/CSP（§11.1/§11.2）与 `358400` 字节门不因视觉系统而放宽。
+- **来源边界**：只采纳视觉系统；`docs/调研/` 的业务正文、示例块内容或方案标题不得复制进跟踪文件。
+
+守护方式：`tests/browser/**` 的视觉系统断言（调色板、分诊/决定态左边框、进度填充条、筛选 pill 状态）为回归门；本节与 spec §7.2 为契约记录。token 的实现载体是 `src/workbench/shell.ts` 的 `WORKBENCH_STYLE`；实现与本节不一致时以本节为准并停下澄清。
+
 ## 12. 安全、隐私与文件系统边界
 
 ### 12.1 威胁模型
@@ -1758,7 +1775,7 @@ CI 使用 Node 24 LTS。Chromium 和 WebKit 为阻断门；Firefox smoke 失败�
 |---|---|---|
 | §5 触发边界 | DES-013、Skill surface、trigger fixtures | A14、fresh-agent |
 | §6 成功标准 | 双产物 generator、pilot gate | A01、A15、W7 真实试点 |
-| §7 默认交付 | ReviewDocument、deterministic generators | delivery validate、reader isolation |
+| §7 默认交付 | ReviewDocument、deterministic generators、DES-019/§11.8 视觉契约 | delivery validate、reader isolation、workbench 视觉断言（A19/A20） |
 | §8 输入模型 | document Schema、content nodes、graph | Schema/unit、A12/A13 |
 | §9 审批行为 | reducer、selectors、keyboard/focus | unit/browser、A02/A03/A08/A20 |
 | §10 packet/state | packet/state Schema、JSON authority、migration | A02/A09/A18 |
@@ -1776,7 +1793,7 @@ CI 使用 Node 24 LTS。Chromium 和 WebKit 为阻断门；Firefox smoke 失败�
 本文成为实施事实源前必须确认：
 
 - 需求基线摘要仍为文首值；
-- DES-001–DES-018 均无开放分支；
+- DES-001–DES-019 均无开放分支；
 - `review-document/1`、`review-packet/1`、`review-state/1` 和 CLI 的职责无冲突；
 - JSON 权威、内容节点、版本、摘要、幂等和失败关闭规则贯穿全文一致；
 - A01–A22 都有组件和测试层；
@@ -1786,4 +1803,4 @@ CI 使用 Node 24 LTS。Chromium 和 WebKit 为阻断门；Firefox smoke 失败�
 
 本文当前没有遗留给实施者自行决定的架构问题。用户已于 2026-08-12 明确要求按本文与 `docs/task.md` 全量实施，因此设计确认门已解除；后续任何语义变更仍须先做影响审计。
 
-W0–W6 已按本文实施完毕并产出 v0.2 发布候选，剩余工作只有 W7 的真实试点与指标验证；任务状态见 [task.md](task.md)，候选 SHA、ZIP 摘要与剩余授权门见 [claude-code-handoff.md](claude-code-handoff.md)。2026-08-17 的文档整合只对齐了状态元数据、现状说明与跟踪状态，未改变任何接口定义；同日对 DES-017 的修订按 §4 的说明记录在案，是本文自确认以来唯一一次 DES 行文变更。
+W0–W6 已按本文实施完毕并产出 v0.2 发布候选，剩余工作只有 W7 的真实试点与指标验证；任务状态见 [task.md](task.md)，候选 SHA、ZIP 摘要与剩余授权门见 [claude-code-handoff.md](claude-code-handoff.md)。2026-08-17 的文档整合只对齐了状态元数据、现状说明与跟踪状态，未改变任何接口定义；同日对 DES-017 的修订按 §4 的说明记录在案；2026-08-19 又按 §4 的说明补录了 DES-019（审批台视觉契约）并新增 §11.8。两者是本文自确认以来仅有的 DES 变更：前者订正行文，后者把 W11 已实施的用户批准补录为决定，均不改变运行行为。
