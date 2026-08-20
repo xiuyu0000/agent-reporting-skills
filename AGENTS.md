@@ -25,7 +25,9 @@ instruction source for this repository.
 ## Authority and working-tree rules
 
 - Treat `codex/v0.2.0` and its recorded candidate baseline as the release
-  lineage. Do not work from the older `main` branch for v0.2 or PIL work.
+  lineage and the base for every PR. `main` is kept tree-identical to it by a
+  sync merge (since 2026-08-20); still branch from `codex/v0.2.0`, and run
+  pilot work only in the dedicated worktree the handoff prescribes.
 - Use an isolated feature worktree and branch for repository changes. Inspect
   `git status`, branch, parent SHA, and `git worktree list --porcelain` before
   mutating files.

@@ -51,14 +51,10 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 
 ## 4. 分支上下文
 
-规划文档描述的是 **v0.2 候选**，其实现位于 `codex/v0.2.0`。默认分支 `main` 仍是较旧的 v0.1 代码线（`main` 的全部提交都包含在 `codex/v0.2.0` 中，后者另有 60 个提交）。
+规划文档描述的是 **v0.2 候选**，集成分支为 `codex/v0.2.0`。自 2026-08-20 起，默认分支 `main` 通过 `-s ours` 同步合并保持与 `codex/v0.2.0` **树完全一致**（两侧历史都保留：main 此前独有的一条 2026-08-17 文档整合提交经该合并并入谱系）。因此两个分支的内容相同，规则如下：
 
-因此在 `main` 上阅读时：
-
-- [claude-code-handoff.md](claude-code-handoff.md) 指向的 `../AGENTS.md`、`../CLAUDE.md` 与 `../skills/deliver-dual-audience-report/references/review-protocols.md` 在 `main` 上不存在，只存在于 `codex/v0.2.0`；
-- `main` 上的 `SKILL.md`、`references/` 与 `scripts/` 仍是 v0.1（Python、静态人类叙事 HTML）实现，与本目录描述的 v0.2 行为不一致。
-
-不要在 `main` 工作树上执行 v0.2 或 PIL-001 流程；按 handoff 的要求使用独立的 v0.2 工作树，并只用经校验后私有解压的发布 ZIP 作为试点运行时。
+- PR 一律以 `codex/v0.2.0` 为 base；每次集成分支变化后以同样的同步合并更新 `main`；
+- 试点/真实审批流程仍按 handoff 要求在独立干净工作树中运行，且只用经校验后私有解压的发布 ZIP 作为运行时——分支同步不改变该纪律。
 
 ## 5. 不在本目录的材料
 

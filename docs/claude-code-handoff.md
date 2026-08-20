@@ -33,8 +33,11 @@ in the shipped runtime and REL-004 rebuilt the archive. `952704` bytes /
 that survive only in the REL-001 and REL-002 completion evidence. Use an isolated
 v0.2 worktree where the baseline is an ancestor, inspect the diff from it, and
 stop if a source or release-artifact change makes the verified ZIP no longer
-match the values above. The root `main` branch is an older v0.1 line and
-must not be used to run a v0.2 pilot. Refresh remote branch, PR, CI, issues,
+match the values above. Since 2026-08-20 the root `main` branch is kept
+tree-identical to `codex/v0.2.0` by an `-s ours` sync merge; `codex/v0.2.0`
+remains the integration branch and the base for PRs, and a pilot still runs
+only from a dedicated clean worktree with the separately extracted ZIP
+runtime, never from a casually reused checkout. Refresh remote branch, PR, CI, issues,
 milestones, release metadata, and worktree state before claiming any value
 above is current.
 
@@ -70,7 +73,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `6270957f1f04e7c826b3753efdd37b579e8d99f2e8e1ac1ea0ccbd738ea9a6ca` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `c133b41ef8e6b3ad899e7f33f53d50c224a332461ac62980a1b012260671831a` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
