@@ -70,7 +70,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `9cf065bf02f4dc6b6d1d0f118be50732edf3f82fed8c81e85cadedb7b3b24b8e` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `e95158e21a32d3b14ce6ec6c155b5e73c8687b98db726d84cb38fc1cfe4ac00a` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
@@ -376,12 +376,18 @@ schema baseline, W1–W3 protocol/CLI/Skill/workbench construction, W4–W5
 consume/assembly/integration proof, and W6 release packaging. Those completed
 waves are implementation evidence, not permission to invent a pilot.
 
-The only remaining sequence is strict: a genuine user-authorized **PIL-001**
-case first, then **MET-001** only after three to five independently eligible
-real cases exist. A fixture, a replay no-op, a synthetic reader test, or a green
-CI run cannot substitute for either step. Keep #61 blocked until the first real
-closure and #62 deferred until the sample threshold and measurement contract
-are actually met.
+**PIL-001 completed on 2026-08-20**: a genuine user-authorized case ran the full
+generate→approve→packet→consume→finalization loop through the verified ZIP
+runtime, every validation passed, and the user confirmed the case genuine and
+useful, then separately authorized closing #61 with the content-free template.
+Public record is exactly: `PIL-001: status=completed; validation=pass; content
+remains private.` The content-free burden metrics were NOT captured — the usage
+state directory stayed unauthorized, so no record-usage call was made and no
+CLI-backed metric is claimed; that blocker is logged in the private closure
+note. The only remaining step is **MET-001**, and only after three to five
+independently eligible real cases exist. A fixture, a replay no-op, a synthetic
+reader test, or a green CI run cannot substitute. Keep #62 deferred until the
+sample threshold and measurement contract are actually met.
 
 Representative final candidate evidence was unit `502/502`, release E2E `7/7`,
 browser `88` pass plus `2` designed skips, and coverage statements/branches/
@@ -391,11 +397,11 @@ validation gates passed. Refresh live state before calling these current.
 
 | Remaining task | GitHub issue | State | Completion proof |
 |---|---|---|---|
-| PIL-001: one genuine business approval loop | [#61](https://github.com/xiuyu0000/agent-reporting-skills/issues/61) | blocked | Genuine generate→approve→packet→consume→revision/finalization, both artifacts, and content-free burden evidence |
+| PIL-001: one genuine business approval loop | [#61](https://github.com/xiuyu0000/agent-reporting-skills/issues/61) | completed 2026-08-20; #61 closed with the content-free template | Full loop ran and validated on the verified ZIP runtime; user confirmed the case genuine and useful; burden metrics not captured (usage-store authorization withheld — logged privately) |
 | MET-001: 3–5 real-case metrics | [#62](https://github.com/xiuyu0000/agent-reporting-skills/issues/62) | deferred | Three to five eligible cases meet the measurement contract, or report `尚未验证` honestly |
 
-W0–W6 milestones are closed. W7 stays open while #61 and #62 are open. Green
-fixtures cannot close either issue.
+W0–W6 milestones are closed. W7 stays open while #62 is open (#61 closed
+2026-08-20). Green fixtures cannot close it.
 
 ## 6. PIL-001 exact runbook
 
