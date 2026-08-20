@@ -45,6 +45,7 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **W13 / DOC-002**（`done`）：把 W11 已获批准并实施的审批台视觉系统固化为契约——spec §1 例外与 §7.2 条款、design DES-019 与 §11.8 规范性 token 清单——并按 DOC-001 先例重新绑定三文档摘要。文档-only，候选字节不变。
 - **W14 / CI-002**（`done`）：apt 退化根治经用户审批工作台回执（round 1 全 PASS）授权：浏览器 lane 全部改跑按 digest 固定的官方 Playwright 容器镜像，apt 与浏览器下载移出 CI 关键路径；Node 24.19.0 钉版在容器内保持，镜像/npm 版本锁步由变异验证的单元测试守护。只写 `.github/**` 与测试，候选字节不变。
 - **W15 / UI-006、REL-006**（`done`）：用户实际使用审批台后的 5 条反馈逐条裁定并落地——动作 chip 兑现 aria-pressed 开关语义（PASS 重复触发即撤销，输入型动作走预填编辑器 + 显式撤销）、随手记编辑器显示写入目标块、termRef 悬停定义预览（仅补充）、契约内表格可读性增强、Skill 写作规范强制零上下文直白语言与术语绑定。配色重设计未采纳（DES-019 契约冻结，理由已呈用户）。候选按 REL-006 重切。
+- **W17 / UI-007、REL-007**（`done`）：按用户 2026-08-20 反馈把 termRef 简化为单一锚点——悬停/聚焦预览定义、点击直接跳转术语表附录，去掉“展开定义”按钮与独立跳转链接。候选按 REL-007 重切。
 
 绿色 CI、fixture、演示内容与 replay no-op 仍不能关闭 MET-001。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 

@@ -734,17 +734,11 @@ function buildWorkbenchFragments(
   top.append(title, meta);
   header.append(top);
 
-  let termDisclosureIndex = 0;
-  const nextTermDisclosureId = (glossaryId: string): string => {
-    termDisclosureIndex += 1;
-    return `term-definition-${glossaryId}-${termDisclosureIndex}`;
-  };
   const contentContext: ContentRenderContext = {
     glossary: new Map(documentValue.glossary.map((entry) => [entry.id, entry])),
     strings,
     uiLocale: documentValue.document.uiLocale,
     contentLanguage: documentValue.document.language,
-    nextTermDisclosureId,
   };
   const main = ownerDocument.createDocumentFragment();
   // The prototype opens the reading column with an `.intro` card; the document

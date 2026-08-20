@@ -7,7 +7,7 @@
 > - 协调者：主实施 Agent
 > - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871`（2026-08-19 W15 补充 §11.3/§11.4 后重算；同日 DOC-002 值为 `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88`）
+> - Design 基线：`docs/design.md` · SHA-256 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`（2026-08-20 W17 修订 §11.3 术语交互后重算；2026-08-19 W15 值为 `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -222,6 +222,7 @@ flowchart TD
 | W13 | DOC-002 视觉契约固化 | 文档-only；只写 spec/design/task/handoff 及摘要回填 | 三份规划文档同步修订、摘要重新绑定、文档门全绿 |
 | W14 | CI-002 浏览器 lane 容器化 | 单线程；只写 `.github/**`、锁步断言测试与文档台账 | 用户审批回执（round 1 全 PASS）授权；PR 自验证四 job 全绿；锁步断言经双向变异验证 |
 | W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
+| W17 | UI-007 术语交互简化；REL-007 收口重切 | 单线程；写 workbench 渲染器与测试 | termRef 单锚点（悬停预览 + 点击跳附录）；三浏览器全绿；候选重建 |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -278,6 +279,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | CI-002 | 浏览器 lane 容器化：apt 与浏览器下载移出 CI 关键路径 | CI-001、DOC-002 | infra | `done` | w14_ci Agent | `.github/workflows/validate.yml`、锁步断言测试、docs 台账 | 用户审批回执；PR 自验证全绿 |
 | UI-006 | 同动作开关语义、随手记目标可见、术语悬停预览与写作规范强化 | CI-002 | ui | `done` | w15_ui Agent | `src/workbench/**`、Skill references、workbench 测试 | A20；用户 2026-08-19 使用反馈 |
 | REL-006 | 按 W15 重切候选并重新绑定摘要 | UI-006 | release | `done` | w15_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
+| UI-007 | termRef 简化为悬停预览 + 点击跳术语表的单一锚点 | UI-006 | ui | `done` | w17_ui Agent | `src/workbench/{content-renderer,bootstrap,shell,i18n}.ts`、renderer 测试 | A19；用户 2026-08-20 反馈 |
+| REL-007 | 按 W17 重切候选并重新绑定摘要 | UI-007 | release | `done` | w17_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1277,6 +1280,36 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：新候选 ZIP 为 975548 bytes、SHA-256 `31aee980f839f1ac388829da362415616cbe5fc693e901ad7a4b1c7b5ecaf869`；manifest SHA-256 `c8594010d431a7e4e6902a3bd5b7536d132b63e382440f54d25d679bc65274c2`；entryCount 仍为 11。摘要已同步到 handoff §1、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。此前各次重切的摘要保留在 REL-001..REL-005 的历史证据中。
 - **Blocker / unblock**：无。PIL-001 的 round 1 需以本卡摘要（而非 REL-005 摘要）重新生成。
 
+### UI-007 · 术语交互简化为单一锚点
+
+- **状态 / owner_role / owner / last_updated**：`done` / ui engineer / w17_ui Agent / 2026-08-20
+- **Outcome**：termRef 从“展开按钮 + 独立跳转链接”简化为一个锚点：悬停/聚焦预览定义（data-tip），激活即跳转文件内术语表附录；块内展开按钮与其两个 i18n 键退役。
+- **Depends on / unlocks**：UI-006 / REL-007。
+- **Write scope**：`src/workbench/content-renderer.ts`（termRef 单锚点 + 屏读者可见的“跳到术语表”隐藏说明）、`bootstrap.ts`（移除 disclosure id 生成器）、`shell.ts`（`.term-ref` 样式与 tooltip 选择器迁移）、`i18n.ts`（删 showDefinition/hideDefinition）、renderer 单测与浏览器断言。
+- **Refs**：Spec §7.2（悬停只能补充；定义的文件内载体为术语表附录，满足“同一文件内可见”）、§13.5；Design §11.3（2026-08-20 修订）；用户 2026-08-20 截图反馈。
+- **Implementation contract**：锚点保留 `data-internal-ref` 与目标存在性；键盘路径完整（聚焦出预览、Enter 跳转）；术语表 dt 的 scroll-margin 保证跳转不被粘性 header 遮挡；调色板与布局 token 不变。
+- **Validation**：
+
+  ```bash
+  npm run test:unit
+  npm run test:browser -- --project=chromium
+  npm run test:browser -- --project=webkit
+  npm run test:browser -- --project=firefox
+  ```
+
+  预期：unit 538/538；三浏览器 100 pass + 2 designed skip；渲染断言覆盖单锚点结构、data-tip、无展开按钮与跳转入视口。
+- **Completion evidence**：unit 538/538；chromium 34、webkit 34、firefox 32 pass + 2 designed skip；typecheck/lint/check:generated/bundle 369633/393216 全绿。变异验证：移除 data-tip 赋值 → renderer 单测红；还原后全绿。浏览器断言含聚焦 + Enter 后术语表条目进入视口。
+- **Blocker / unblock**：无。
+
+### REL-007 · W17 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w17_release Agent / 2026-08-20
+- **Outcome**：候选按 W17 的术语交互简化重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-006 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 974385 bytes、SHA-256 `e33d05ba296e5b4436c49179c9bac34ea2dd9fc3a9a04090d464176d1eb49e1c`；manifest SHA-256 `3d20833ce1398d23e5793851869d2b57c366d61a2779dffe7a4ce2794a922fa6`；entryCount 仍为 11。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-006 历史证据中。
+- **Blocker / unblock**：无。后续新渲染的审批文档自动获得新交互；已定稿的历史产物不回溯重生成。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1416,3 +1449,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-20 的 W7 记录：PIL-001 完成。一次用户授权的真实业务审批闭环在私有输出根内走完全流程——候选 ZIP 运行时经 §6.2 预检与摘要核对、交付双产物、审批者在工作台完成全量裁决、回执经 validate packet 验证、consume 产出定稿轮且定稿不改正文的不变量在真实数据上成立。用户确认案例真实且有用，并单独授权以内容无关模板关闭 Issue #61 及本条去标识记录；除该模板句外，一切标题、ID、路径、工件名与业务细节保持私有。指标状态目录授权仍未授予，故无 record-usage 调用、无 CLI 指标声明；MET-001 保持 deferred，等待授权与 3–5 份合格样本。
 
 2026-08-20 的测试基建记录：CI run `32326529448`（docs-only diff、共享 runner 高负载）上 `tests/e2e/consume.test.ts` 的 `A06_topic_derivation` 用例偶发超出 Vitest 默认 5000ms 超时（该文件 10 个用例当次共耗 27s，复跑即过）。e2e 与 acceptance 套件运行完整命令并派生真实 CLI 子进程，耗时随 runner 负载而非被测代码伸缩，它们断言正确性而非时延。修复为测试基建-only：`vitest.config.ts` 改为按目录划分的 Vitest projects——`unit` 保持全部默认值不变，`e2e` 与 `acceptance` 的 `testTimeout`/`hookTimeout` 提升至 30000ms（browser lane 本就有 30 分钟 job 预算）。因 `test:coverage` 在同一次 vitest 调用里混跑三个目录，超时必须跟随文件所在目录而非调用方式，projects 是同时覆盖 `test:unit`/`test:e2e`（含 selector 形态）/`test:coverage`/acceptance 四条 CI 调用路径的唯一落点；`tools/run-test-suite.mjs`、npm scripts 与 coverage 阈值配置均未改动。双向变异验证：常量降为 1ms 时 consume e2e 10/10 超时红、unit 套件仍绿；还原后全绿。Node 24.19.0 本地复验：unit 538/538、e2e 160 pass + 2 skip、acceptance 30 pass + 2 skip、coverage 728 pass + 4 skip 且阈值门通过、`check:acceptance-coverage` 主检与自检通过、typecheck/lint 全绿。产品字节零变更，候选 ZIP/manifest 摘要不变。
+
+2026-08-20 的 W17 记录：用户使用重渲染后的试点审批台时提出术语交互仍显冗余——“(展开定义)”按钮加独立“跳到术语表”链接是两个操作三个视觉元素。按其指定的目标形态简化：termRef 渲染为单一锚点，悬停/聚焦即预览定义，点击/Enter 直接跳转文件内术语表附录；spec §7.2 的“同一文件内可见”由附录承载，悬停保持纯补充，无条款冲突。展开按钮、内联定义与两个 i18n 键退役；屏读者通过锚点内隐藏说明获知跳转语义。变异验证与三浏览器断言（含跳转入视口）通过后由 REL-007 重切候选。
