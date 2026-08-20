@@ -149,6 +149,21 @@ test.afterAll(async () => {
 });
 
 async function openWorkbench(page: Page, url = workbenchUrl, total = 4): Promise<void> {
+  // The template scrolls smoothly (html{scroll-behavior:smooth}) and WebKit's
+  // automation scroll honours that, so a click needing a page scroll can be
+  // dispatched while the target is still gliding and silently miss it. Forcing
+  // instant scrolling through CSSOM keeps pointer targets still; the CSP style
+  // hash rejects an injected <style>, so the inline property is the only route.
+  await page.addInitScript(() => {
+    const neutralizeSmoothScroll = (): void => {
+      document.documentElement.style.scrollBehavior = "auto";
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", neutralizeSmoothScroll);
+    } else {
+      neutralizeSmoothScroll();
+    }
+  });
   await page.goto(url);
   await expect(page.locator("meta[name^='dar-']")).toHaveCount(6);
   await expect(page.locator("meta[name='dar-artifact'][content='review-approval-html/1']")).toHaveCount(1);
@@ -222,6 +237,7 @@ test("@A08/@A17 reopening creates active controls and exports an unambiguous reo
   await expect(block(page, "B004").locator(".reopen-status")).toContainText("历史批准保留");
   await expect(block(page, "B004").locator("button.act[data-action]")).toHaveCount(4);
   await block(page, "B004").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B004").locator(".st-chip")).toContainText("通过");
   await page.getByRole("button", { name: "导出回执 JSON" }).click();
   const packet = JSON.parse(await persistenceDialog(page).locator("textarea.export-content").inputValue()) as {
     reopened: string[];
@@ -236,6 +252,7 @@ test("@A08/@A17 reopening creates active controls and exports an unambiguous reo
 test("recovers a decision after immediate reload and reports savedAt plus count", async ({ page }) => {
   await openWorkbench(page);
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.reload();
   await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await expect(page.locator(".persistence-status")).toContainText("已恢复保存的审阅");
@@ -251,6 +268,7 @@ test("@A10/@A22 storage degradation stays visible; explicit export quiets it onl
   await openWorkbench(page);
   await expect(page.locator(".persistence-status")).toContainText("自动保存不可用");
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.getByRole("button", { name: "导出审阅状态" }).click();
   const dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "手动复制" }).click();
@@ -308,6 +326,7 @@ test("@A10/@A22 rejected recovery remains visible beside unsaved and manual-expo
     (globalThis as typeof globalThis & { __failUi3Save?: boolean }).__failUi3Save = false;
   });
   await block(page, "B002").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("通过");
   await expect(status).toContainText("本地自动保存可用");
   await expect(status).not.toContainText("已保存的恢复数据被拒绝");
   await expect.poll(async () => page.evaluate((key) => {
@@ -364,6 +383,7 @@ test("@A22 a pending clipboard success cannot confirm a snapshot after state cha
   await dialog.getByRole("button", { name: "复制", exact: true }).click();
   await dialog.getByRole("button", { name: "关闭" }).click();
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.evaluate(() => {
     (globalThis as typeof globalThis & { __resolveCopy?: () => void }).__resolveCopy?.();
   });
@@ -379,6 +399,7 @@ test("@A10/@A22 download triggering is not success until the digest-stable expli
   });
   await openWorkbench(page);
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.getByRole("button", { name: "导出审阅状态" }).click();
   const dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "下载", exact: true }).click();
@@ -393,6 +414,7 @@ test("@A10/@A22 download triggering is not success until the digest-stable expli
 test("@A18 exact import is atomic; missing-format migration requires visible identity confirmation", async ({ page }) => {
   await openWorkbench(page);
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.getByRole("button", { name: "导入状态或回执" }).click();
   let dialog = persistenceDialog(page);
   await dialog.locator("textarea").fill(badStateJson);
@@ -540,6 +562,7 @@ test("clear save failure leaves memory intact and successful clear preserves all
   await dialog.getByRole("button", { name: "取消" }).click();
   await page.evaluate(() => { (globalThis as typeof globalThis & { __failSave?: boolean }).__failSave = false; });
   await block(page, "B001").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B001").locator(".st-chip")).toContainText("通过");
   await page.getByRole("button", { name: "清空审阅" }).click();
   dialog = persistenceDialog(page);
   await dialog.getByRole("button", { name: "清空并重新开始" }).click();
