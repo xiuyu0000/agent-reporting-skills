@@ -54,9 +54,9 @@ language that stays accurate. These rules are mandatory, not stylistic:
 
 - Prefer the everyday phrase over the professional term. When a professional
   term is genuinely required, reference it with a glossary term node
-  (`termRef`) bound to a glossary entry, so the reviewer gets the in-place
-  definition, its hover preview, and the appendix entry. A bare professional
-  term with no glossary link is a defect.
+  (`termRef`) bound to a glossary entry, so the reviewer gets the hover
+  preview and the in-file appendix entry the term links to. A bare
+  professional term with no glossary link is a defect.
 - The continuation section and the evidence snapshot render inside the
   Approval HTML for the same zero-context human. Write them in reviewer
   language too — never in Agent shorthand, bare identifiers, or untranslated

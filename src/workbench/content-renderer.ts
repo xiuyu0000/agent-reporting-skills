@@ -8,7 +8,6 @@ export interface ContentRenderContext {
   readonly strings: WorkbenchStrings;
   readonly uiLocale: string;
   readonly contentLanguage: string;
-  readonly nextTermDisclosureId: (glossaryId: string) => string;
 }
 
 function appendInline(
@@ -46,47 +45,24 @@ function appendInline(
     case "termRef": {
       const entry = context.glossary.get(node.glossaryId);
       if (!entry) throw new Error("GLOSSARY_REFERENCE_INVALID");
-      const disclosure = ownerDocument.createElement("span");
-      disclosure.className = "term-disclosure";
-      const definitionId = context.nextTermDisclosureId(node.glossaryId);
-      const toggle = ownerDocument.createElement("button");
-      toggle.className = "term-disclosure-toggle";
-      toggle.setAttribute("type", "button");
-      toggle.setAttribute("aria-expanded", "false");
-      toggle.setAttribute("aria-controls", definitionId);
-      // Hover/focus preview only supplements the click disclosure and the
-      // glossary appendix (spec §7.2: hovers must never be the only carrier).
-      toggle.setAttribute("data-tip", entry.definition);
+      // One affordance, two channels: hovering or focusing the term previews
+      // the definition, activating it jumps to the in-file glossary appendix.
+      // The hover stays a supplement — the appendix the link targets is the
+      // in-file carrier spec §7.2 requires.
+      const anchor = ownerDocument.createElement("a");
+      anchor.className = "term-ref";
+      anchor.href = `#glossary-${node.glossaryId}`;
+      anchor.setAttribute("data-internal-ref", "true");
+      anchor.setAttribute("data-tip", entry.definition);
       const label = ownerDocument.createElement("span");
       label.lang = context.contentLanguage;
       label.textContent = node.text ?? entry.term;
-      const state = ownerDocument.createElement("span");
-      state.className = "term-disclosure-state";
-      state.lang = context.uiLocale;
-      state.textContent = ` (${context.strings.showDefinition})`;
-      toggle.append(label, state);
-      const definition = ownerDocument.createElement("span");
-      definition.className = "term-definition";
-      definition.id = definitionId;
-      definition.lang = context.contentLanguage;
-      definition.hidden = true;
-      definition.textContent = ` — ${entry.definition}`;
-      const anchor = ownerDocument.createElement("a");
-      anchor.className = "term-ref term-glossary-link";
-      anchor.href = `#glossary-${node.glossaryId}`;
-      anchor.setAttribute("data-internal-ref", "true");
-      anchor.lang = context.uiLocale;
-      anchor.textContent = context.strings.glossaryJump;
-      toggle.addEventListener("click", () => {
-        const expanded = toggle.getAttribute("aria-expanded") === "true";
-        toggle.setAttribute("aria-expanded", String(!expanded));
-        definition.hidden = expanded;
-        state.textContent = ` (${expanded
-          ? context.strings.showDefinition
-          : context.strings.hideDefinition})`;
-      });
-      disclosure.append(toggle, definition, ownerDocument.createTextNode(" "), anchor);
-      parent.appendChild(disclosure);
+      const jumpHint = ownerDocument.createElement("span");
+      jumpHint.className = "visually-hidden";
+      jumpHint.lang = context.uiLocale;
+      jumpHint.textContent = ` (${context.strings.glossaryJump})`;
+      anchor.append(label, jumpHint);
+      parent.appendChild(anchor);
       break;
     }
   }

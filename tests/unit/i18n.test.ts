@@ -34,7 +34,7 @@ describe("workbench locale tables", () => {
     expect(Object.keys(stringsFor("zh-CN")).sort()).toEqual(Object.keys(stringsFor("en")).sort());
     expect(stringsFor("zh-CN").skipToMain).toBe("跳到决策块");
     expect(stringsFor("en").skipToMain).toBe("Skip to decision blocks");
-    expect(stringsFor("zh-CN").showDefinition).toBe("展开定义");
+    expect(stringsFor("zh-CN").glossaryJump).toBe("跳到术语表");
     expect(stringsFor("en").glossaryJump).toBe("Go to glossary");
   });
 

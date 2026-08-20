@@ -565,23 +565,17 @@ describe("safe content renderer and bootstrap", () => {
     expect(external?.rel).toBe("noopener noreferrer");
     expect(external?.textContent).toContain("延伸阅读");
     expect(external?.querySelector("span.link-kind")?.lang).toBe("zh-CN");
+    // A term is one anchor: hover/focus previews the definition via data-tip,
+    // activating it jumps to the in-file glossary appendix. No expand button.
     const termLink = ownerDocument.querySelector("a.term-ref");
     expect(termLink?.href).toBe("#glossary-G-001");
     expect(ownerDocument.querySelectorAll(termLink?.hash ?? "#missing")).toHaveLength(1);
-    const termToggle = ownerDocument.querySelector("button.term-disclosure-toggle");
-    const definitionId = termToggle?.getAttribute("aria-controls") ?? "missing";
-    const termDefinition = ownerDocument.querySelector(`#${definitionId}`);
-    expect(termToggle?.getAttribute("type")).toBe("button");
-    expect(termToggle?.getAttribute("aria-expanded")).toBe("false");
-    expect(termToggle?.getAttribute("data-tip")).toBe("Every downstream dependency.");
-    expect(termToggle?.textContent).toContain("展开定义");
-    expect(termDefinition?.hidden).toBe(true);
-    expect(termDefinition?.textContent).toContain("Every downstream dependency.");
-    termToggle?.click();
-    expect(termToggle?.getAttribute("aria-expanded")).toBe("true");
-    expect(termToggle?.textContent).toContain("收起定义");
-    expect(termDefinition?.hidden).toBe(false);
-    expect(termLink?.textContent).toBe("跳到术语表");
+    expect(termLink?.getAttribute("data-internal-ref")).toBe("true");
+    expect(termLink?.getAttribute("data-tip")).toBe("Every downstream dependency.");
+    expect(termLink?.textContent).toContain("跳到术语表");
+    expect(termLink?.querySelector("span.visually-hidden")?.textContent).toContain("跳到术语表");
+    expect(ownerDocument.querySelector("button.term-disclosure-toggle")).toBeNull();
+    expect(ownerDocument.querySelector(".term-definition")).toBeNull();
     const blockContext = ownerDocument.querySelector("article#block-B001")?.querySelector("details.block-context");
     expect(blockContext?.textContent).toContain("D-001");
     expect(blockContext?.textContent).toContain("本轮有变更");
@@ -631,7 +625,7 @@ describe("safe content renderer and bootstrap", () => {
           type: "paragraph",
           content: [{ type: "link", text: "unsafe", href }],
         },
-        { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en", nextTermDisclosureId: () => "term-definition-test" },
+        { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en" },
       )).toThrow("UNSAFE_LINK");
     }
   });
@@ -674,7 +668,7 @@ describe("safe content renderer and bootstrap", () => {
     expect(() => renderContentNode(
       ownerDocument as unknown as Document,
       { type: "paragraph", content: [{ type: "termRef", glossaryId: "G-404" }] },
-      { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en", nextTermDisclosureId: () => "term-definition-test" },
+      { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en" },
     )).toThrow("GLOSSARY_REFERENCE_INVALID");
     expect(() => renderContentNode(
       ownerDocument as unknown as Document,
@@ -685,7 +679,7 @@ describe("safe content renderer and bootstrap", () => {
         nodes: [{ id: "A", label: "Alpha" }],
         edges: [{ from: "A", to: "B" }],
       } as ContentNode,
-      { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en", nextTermDisclosureId: () => "term-definition-test" },
+      { glossary: new Map(), strings: stringsFor("en"), uiLocale: "en", contentLanguage: "en" },
     )).toThrow("FLOW_REFERENCE_INVALID");
   });
 

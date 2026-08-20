@@ -288,15 +288,16 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   await expect(page.locator(".flow-arrow")).toHaveCount(3);
   await expect(page.locator(".flow-loop")).toHaveCount(1);
   await expect(page.locator(".flow-alternative")).toContainText("A → B");
-  await expect(page.locator("a.term-ref")).toHaveAttribute("href", "#glossary-G-001");
+  // One anchor per term: hover/focus previews the definition (data-tip),
+  // activating jumps to the in-file glossary appendix. No expand button.
+  const termRef = page.locator("a.term-ref");
+  await expect(termRef).toHaveAttribute("href", "#glossary-G-001");
+  await expect(termRef).toHaveAttribute("data-tip", "Every downstream dependency.");
   await expect(page.locator("#glossary-G-001")).toHaveCount(1);
-  const termToggle = page.locator("button.term-disclosure-toggle");
-  await expect(termToggle).toHaveAttribute("aria-expanded", "false");
-  await termToggle.focus();
+  await expect(page.locator("button.term-disclosure-toggle")).toHaveCount(0);
+  await termRef.focus();
   await page.keyboard.press("Enter");
-  await expect(termToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator(".term-definition")).toBeVisible();
-  await expect(page.locator(".term-definition")).toContainText("Every downstream dependency.");
+  await expect(page.locator("#glossary-G-001")).toBeInViewport();
   const blockContext = page.locator("article#block-B001 details.block-context");
   await expect(blockContext).toContainText("D-001");
   await expect(blockContext).toContainText("本轮有变更");
