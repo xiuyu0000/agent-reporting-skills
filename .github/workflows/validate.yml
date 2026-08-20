@@ -156,6 +156,22 @@ jobs:
         run: node -e 'if (process.versions.node !== "24.19.0") process.exit(1)'
       - name: Run blocking browser suite
         run: npm run test:browser -- --project="${{ matrix.project }}"
+      # `retain-on-failure` traces and error context land in
+      # `test-results/playwright/` but vanish with the runner unless uploaded:
+      # run 32240378500 attempt 1 (a webkit flake) kept zero artifacts, forcing
+      # diagnosis from the line-reporter log alone. Artifact names are immutable
+      # within a run and shared across re-run attempts, so the run_attempt
+      # suffix keeps a failed re-run from colliding with an earlier attempt's
+      # upload; `ignore` covers failures that happen before any test writes
+      # output.
+      - name: Upload Playwright failure traces
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: playwright-results-${{ matrix.project }}-attempt-${{ github.run_attempt }}
+          path: test-results/playwright/**
+          retention-days: 7
+          if-no-files-found: ignore
 
   firefox-smoke:
     runs-on: ubuntu-latest
@@ -196,3 +212,12 @@ jobs:
             | grep -Eq '^Total: [1-9][0-9]* tests? in [1-9][0-9]* files?$'
       - name: Run blocking Firefox smoke lane
         run: npm run test:browser -- --project=firefox --grep '@bootstrap|protocol digest golden|@A01|@A19|@A20'
+      # Same failure-trace upload contract as the browser matrix above.
+      - name: Upload Playwright failure traces
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: playwright-results-firefox-attempt-${{ github.run_attempt }}
+          path: test-results/playwright/**
+          retention-days: 7
+          if-no-files-found: ignore
