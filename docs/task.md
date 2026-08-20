@@ -3,7 +3,7 @@
 > - 文档状态：已确认，执行中
 > - 计划版本：0.2-execution
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
-> - 当前波次：W7 · 真实试点与指标验证（PIL-001 `blocked`、MET-001 `deferred`）；W8 · 发布门回归修复（REL-002 `done`）与 W7 无依赖，可独立收口
+> - 当前波次：W7 · 真实试点与指标验证（PIL-001 于 2026-08-20 `done`：一个经用户确认真实且有用的案例完成完整闭环，validation=pass，内容保持私有；MET-001 `deferred` 等待 3–5 份合格样本）
 > - 协调者：主实施 Agent
 > - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
@@ -213,7 +213,7 @@ flowchart TD
 | W4 | PRQ-PRO-001 与 PRQ-IO-001 先并行；合入后恢复 UI-003 与 VAL-001；UI-003 完成后启动 GEN-001；GEN 后补 PRQ-CON-IO-001；CON 预检再并行补 PRQ-CON-PRO-001 与 PRQ-CON-VAL-001，三前置均合入后再 CON-001、ASM-001 | prerequisite 写域互斥；CON/ASM 只按 DAG 解锁，PRQ-CON-PRO + PRQ-CON-VAL → CON → ASM 严格收口 | 全部前置门、组件门和分发表面门通过 |
 | W5 | INT-001 先执行；真实 fresh final reply 发现产品合同缺口后，冻结 INT 并串行完成 PRQ-INT-SKL-001，再回到 INT | prerequisite 期间只有 Skill body/test 窄写权；INT acceptance 写域保持冻结 | prerequisite fixed-SHA/CI 合入，随后同协议 fresh reply 与 A01–A22 全量回归通过 |
 | W6 | REL-001 | 独占 README/CI/dist | 集成门通过 |
-| W7 | PIL-001；MET-001 deferred | 真实使用 | 发布候选完成；指标等样本 |
+| W7 | PIL-001 `done`（2026-08-20）；MET-001 deferred | 真实使用 | 真实案例闭环经用户确认；指标等样本 |
 | W8 | REL-002 | 单线程；与 W7 无写入交集 | 候选 HEAD 全量门（含 `scan:legacy-surface`）恢复全绿 |
 | W9 | UI-004、VAL-002、RND-002 三 lane 并行；DOC-001 独立；全部合入后由 REL-003 重切候选 | 三 lane 写域互斥（workbench / cli-validate / transition）；REL-003 串行收口 | 四项契约缺口各有失败-通过变异证明；候选重建且全部门全绿 |
 | W10 | IO-001、VAL-003、GEN-002、TEL-002；REL-004 收口重切 | 单线程；四个缺口分属 CLI I/O、validate/consume、generators 与 telemetry | 五项缺口各有失败-通过变异证明；候选重建且全部门全绿 |
@@ -223,7 +223,7 @@ flowchart TD
 | W14 | CI-002 浏览器 lane 容器化 | 单线程；只写 `.github/**`、锁步断言测试与文档台账 | 用户审批回执（round 1 全 PASS）授权；PR 自验证四 job 全绿；锁步断言经双向变异验证 |
 | W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
 
-W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
+W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
 W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品行为。它只修复 2026-08-17 规划文档跟踪化在候选分支上引入的发布门回归：`docs/{spec,design,task}.md` 记录了已退役的 v0.1 实现与迁移口径，被 `scan:legacy-surface` 当作当前公开承诺而阻断。W8 恢复该门，并补上一条能在 `npm run test:unit` 中复现同类回归的测试。
 
@@ -258,7 +258,7 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | PRQ-INT-SKL-001 | fresh final reply 精确绑定 handoff 身份与 uncertainty count | ASM-001 | surface-prereq | `done` | prq_int_skl Agent | Skill body、skill-workflow test/fixture | fresh final reply gate |
 | INT-001 | A01–A22、浏览器、安全和 reader isolation 全通过 | 全部组件任务、PRQ-INT-SKL-001 | integration | `done` | w4_integration Agent | acceptance tests/evidence only | Integration gate |
 | REL-001 | README/CI/v0.2 ZIP 与新接口一致、可回滚 | INT-001 | release | `done` | w6_release Agent | README、CI、dist、专属 release E2E | Release gate |
-| PIL-001 | 一份真实业务方案完成闭环 | REL-001 | pilot | `blocked` | 用户 + 协调者 | 脱敏本地证据 | Pilot gate |
+| PIL-001 | 一份真实业务方案完成闭环 | REL-001 | pilot | `done` | 用户 + 协调者 | 脱敏本地证据 | Pilot gate |
 | MET-001 | 3–5 份真实方案验证时间/轮次/负担指标 | PIL-001 | metrics | `deferred` | 未分配 | 内容无关指标摘要 | Spec §6.3 |
 | REL-002 | 恢复候选 HEAD 的 `scan:legacy-surface` 门并防止同类回归复发 | REL-001 | release | `done` | w8_release_gate Agent | legacy-surface scanner、专属回归测试、CI 触发面 | Release gate |
 | UI-004 | 随手记编辑绑定自身来源块；被拒动作给出可理解的本地化提示 | REL-002 | ui | `done` | w9_ui_feedback Agent | `src/workbench/{interactions,i18n}.ts`、i18n/reducer-interactions/actions 测试 | A20；Spec §9.3、§13.5 |
@@ -915,7 +915,7 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 
 ### PIL-001 · 首份真实业务方案闭环
 
-- **状态 / owner_role / owner / last_updated**：`blocked` / product pilot owner / 用户 + 协调者 / 2026-08-13
+- **状态 / owner_role / owner / last_updated**：`done` / product pilot owner / 用户 + 协调者 / 2026-08-20
 - **Outcome**：一份非调研元方案的真实业务方案完成生成→审批→packet→修订或定稿闭环，并记录内容无关负担反馈。
 - **Depends on / unlocks**：REL-001 / MET-001 样本累计。
 - **Parallel / conflicts**：不与发布候选文件写入并行；不得把真实内容提交到公开仓库。
@@ -930,8 +930,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
   ```
 
   预期：功能门全部通过，用户确认可用；失败则回到对应组件任务，不伪称真实有效。
-- **Completion evidence**：尚无。
-- **Blocker / unblock**：REL-001 已 done；GitHub Issue #61 已登记于 W7；当前仅缺用户提供符合触发边界的真实业务方案、真实审批目标和私有输出目录授权。用户提供后切 `in_progress`；不得用 fixture、演示内容或协调者自造材料代替。
+- **Completion evidence**：PIL-001: status=completed; validation=pass; content remains private. 一个真实业务方案在用户授权的私有输出根内完成生成→审批→回执→消费→定稿的完整闭环：双产物由经 `verify:dist` 与摘要核对的候选 ZIP 运行时生成，回执经 `validate packet` 验证，消费产出定稿轮且正文摘要在定稿前后逐字节一致；用户于 2026-08-20 确认该案例真实且有用，并单独授权以内容无关模板关闭 Issue #61 与本条去标识记录。诚实缺口：Design §13.4 的内容无关负担指标未采集——用户对指标状态目录选择暂不授权，按 runbook 只在私有收口记录中登记该授权阻塞，不作任何 CLI 背书的指标声明；负担证据留待 MET-001 样本期在获授权后补足。
+- **Blocker / unblock**：无。MET-001 样本累计自本案例起为 0（无指标授权即不计入），继续 `deferred`。
 
 ### MET-001 · 3–5 份真实方案指标验证
 
@@ -1412,3 +1412,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-19 的 W14 记录：apt 退化的根治按用户要求以双受众审批文档裁决——9 个决策块（4 个 T2）经审批工作台 round 1 全 PASS 后定稿。获批方案为官方 Playwright 容器镜像：browser 矩阵与 firefox-smoke 运行在按 digest 固定的 `v1.62.1-noble` 内，浏览器与系统依赖来自镜像，apt 与浏览器下载从 job 图中整体消失；容器内 `setup-node` 继续精确钉 Node 24.19.0（宿主 tool cache 挂载），镜像 tag 与 npm 版本的锁步由新增单元测试断言并经双向变异验证；W12 的安装脚本与浏览器缓存步骤按获批处置退役删除（Git 历史即回退路径）；`concurrency` 只取消 PR 分支上被取代的 run。调研由 8 个并行研究/核查 agent 完成并全部标注一手来源；备选的分层缓解方案（B005）作为已批准规格保留待命。CI-002 与 W13 的 DOC-002 同 PR 链交付，候选产物摘要不变。
 
 2026-08-19 的 W15 记录：用户在真实使用审批台后提出 5 条反馈，逐条裁定如下。(1) 整体配色与特殊信息重设计——部分采纳：调色板与布局是用户 2026-08-18 批准并于 DES-019/§11.8 冻结的契约，未经新原型批准不整体更换；在契约 token 内落实了表头强调与斑马纹等可读性增强，配色重设计作为开放提案留给用户裁决。(2) 证据快照与审批上下文不易读——采纳：呈现层面板结构已存在，缺口主要在写作侧；Skill 写作规范新增强制条款（零上下文直白语言、专业名词必须以 termRef 绑定术语表、逻辑/流程用 steps/table/flow 结构化、交付前零上下文自检）。(3) 同数字/同 chip 再触发不能取消——采纳并修正为分动作语义：chip 标注 `aria-pressed` 却不实现开关是真实缺陷；`PASS` 重复触发直接撤销，输入型动作重复触发打开预填编辑器并内置显式撤销按钮，避免一次按键销毁已输入文字（spec §9.1 撤销要求、§9.3 修改要求同时满足）。(4) 块内可视化与术语链接未做——采纳：机制（termRef 点击展开、术语表附录、flow SVG）此前已存在但 CI 审批文档的写作未使用；补 termRef 悬停/聚焦预览（仅补充，spec §7.2 悬停约束不变）并以写作规范强制后续文档使用。(5) 随手记与块无关联——采纳：协议层随手记始终绑定块且清单行带跳转链接，缺口是编辑器不显示写入目标；新增"记到块 B00x · 标题"目标行随当前块实时同步。全部修复经单测/浏览器断言与双向变异验证；REL-006 重切候选。
+
+2026-08-20 的 W7 记录：PIL-001 完成。一次用户授权的真实业务审批闭环在私有输出根内走完全流程——候选 ZIP 运行时经 §6.2 预检与摘要核对、交付双产物、审批者在工作台完成全量裁决、回执经 validate packet 验证、consume 产出定稿轮且定稿不改正文的不变量在真实数据上成立。用户确认案例真实且有用，并单独授权以内容无关模板关闭 Issue #61 及本条去标识记录；除该模板句外，一切标题、ID、路径、工件名与业务细节保持私有。指标状态目录授权仍未授予，故无 record-usage 调用、无 CLI 指标声明；MET-001 保持 deferred，等待授权与 3–5 份合格样本。

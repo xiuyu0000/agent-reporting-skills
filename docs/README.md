@@ -32,7 +32,7 @@
 
 v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 的真实使用门：
 
-- **PIL-001**（`blocked`，Issue #61）：等待用户提供符合触发边界的真实业务方案、真实审批目标与私有输出根授权。
+- **PIL-001**（`done`，2026-08-20，Issue #61 已按内容无关模板关闭）：一个经用户确认真实且有用的案例完成完整闭环；PIL-001: status=completed; validation=pass; content remains private. 负担指标因指标目录未授权而未采集（私有收口记录在案）。
 - **MET-001**（`deferred`，Issue #62）：等待累计 3–5 份真实案例。
 
 此外有若干候选冻结后的维护波次，均不改变 W7 的阻塞条件：
@@ -46,7 +46,7 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **W14 / CI-002**（`done`）：apt 退化根治经用户审批工作台回执（round 1 全 PASS）授权：浏览器 lane 全部改跑按 digest 固定的官方 Playwright 容器镜像，apt 与浏览器下载移出 CI 关键路径；Node 24.19.0 钉版在容器内保持，镜像/npm 版本锁步由变异验证的单元测试守护。只写 `.github/**` 与测试，候选字节不变。
 - **W15 / UI-006、REL-006**（`done`）：用户实际使用审批台后的 5 条反馈逐条裁定并落地——动作 chip 兑现 aria-pressed 开关语义（PASS 重复触发即撤销，输入型动作走预填编辑器 + 显式撤销）、随手记编辑器显示写入目标块、termRef 悬停定义预览（仅补充）、契约内表格可读性增强、Skill 写作规范强制零上下文直白语言与术语绑定。配色重设计未采纳（DES-019 契约冻结，理由已呈用户）。候选按 REL-006 重切。
 
-绿色 CI、fixture、演示内容与 replay no-op 都不能关闭 PIL-001 与 MET-001 这两项。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
+绿色 CI、fixture、演示内容与 replay no-op 仍不能关闭 MET-001。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 
 ## 4. 分支上下文
 
