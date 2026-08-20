@@ -62,7 +62,10 @@ Fill the contract in this order:
 5. Preserve constraints, risks, open questions, and source conflicts as
    separate fields.
 6. Add independently decidable blocks in proposal narrative order.
-7. Add only glossary entries needed to understand the proposal offline.
+7. Add only glossary entries needed to understand the proposal offline, and
+   bind every professional term left in prose to its entry with a `termRef`
+   node; an unlinked professional term is an authoring defect (see the
+   audience contract's plain-language rules).
 8. Preserve approval history, current frozen IDs, ID high-water marks, consumed
    packets, topic mappings, impact assessments, and feedback resolutions.
 

@@ -7,7 +7,7 @@
 > - 协调者：主实施 Agent
 > - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88`（2026-08-19 DOC-002 补录 DES-019/§11.8 后重算；2026-08-18 DOC-001 值为 `351936e60706be85b34c79f4420efb775666316265c7eefe61162137cd9fba52`）
+> - Design 基线：`docs/design.md` · SHA-256 `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871`（2026-08-19 W15 补充 §11.3/§11.4 后重算；同日 DOC-002 值为 `be03aef113b8a52bd249f499b92881a794f561431dbdd19f98ca0aafbaef2f88`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -221,6 +221,7 @@ flowchart TD
 | W12 | CI-001 浏览器安装硬化 | 单线程；只写 `.github/**` | 安装步骤有界、可重试、可降级；PR #69 自验证与 PR #68 复跑全绿 |
 | W13 | DOC-002 视觉契约固化 | 文档-only；只写 spec/design/task/handoff 及摘要回填 | 三份规划文档同步修订、摘要重新绑定、文档门全绿 |
 | W14 | CI-002 浏览器 lane 容器化 | 单线程；只写 `.github/**`、锁步断言测试与文档台账 | 用户审批回执（round 1 全 PASS）授权；PR 自验证四 job 全绿；锁步断言经双向变异验证 |
+| W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
 
 W0–W6 的 milestone 均已关闭，当前波次为 W7。W7 不是代码波次：它只能由一次用户授权的真实业务闭环（PIL-001）和随后累计的 3–5 份真实案例（MET-001）解除，绿色 CI、fixture 与 replay no-op 都不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -275,6 +276,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | CI-001 | 浏览器安装步骤有界、可重试、可降级，不再无限挂起 | REL-005 | infra | `done` | w12_ci Agent | `.github/workflows/validate.yml`、`.github/scripts/install-playwright.sh` | PR #69 自验证与 PR #68 复跑全绿 |
 | DOC-002 | 审批台视觉契约固化为需求条款与工程决定 | UI-005、CI-001 | control | `done` | 协调者 | `docs/{spec,design,task}.md`、`docs/claude-code-handoff.md` 摘要 | Spec §18.2 影响审计；文档门 |
 | CI-002 | 浏览器 lane 容器化：apt 与浏览器下载移出 CI 关键路径 | CI-001、DOC-002 | infra | `done` | w14_ci Agent | `.github/workflows/validate.yml`、锁步断言测试、docs 台账 | 用户审批回执；PR 自验证全绿 |
+| UI-006 | 同动作开关语义、随手记目标可见、术语悬停预览与写作规范强化 | CI-002 | ui | `done` | w15_ui Agent | `src/workbench/**`、Skill references、workbench 测试 | A20；用户 2026-08-19 使用反馈 |
+| REL-006 | 按 W15 重切候选并重新绑定摘要 | UI-006 | release | `done` | w15_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1242,6 +1245,38 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：授权链：用户 2026-08-19 审批工作台 round 1 回执 9/9 全 PASS，经 `validate packet` 验证后 `consume` 定稿（round 2，status `finalized`，全块冻结）。自验证 run `32238656661`（PR #71）四 job 全绿：Initialize containers 45s/27s/26s（chromium/webkit/firefox），容器内 `setup-node` 命中挂载 tool cache 仅 1s、零网络下载，安装步骤在三个 lane 均不复存在；套件 22s/1m08s/13s，browser job 全程 1m19s/1m48s/52s——对照 W12 前的 3h05m 静默挂起与 W12 后每 run 5–13 分钟的退化税。Node 24.19.0 断言三 lane 全过。锁步断言经双向变异验证：镜像 tag 漂移为 v1.61.0 时 2 断言红、去掉 `--ipc=host` 时 1 断言红、还原后 5/5 绿；Node 24.19.0 下 unit 537/537（含新增 5 项）。产品字节零变更，候选 ZIP/manifest 摘要保持 REL-005 值。
 - **Blocker / unblock**：无。apt 退化的 B 计划（分浏览器裁剪 + 镜像降级 + 版本键控缓存）作为已批准的备选规格保留在审批文档 B005，仅在容器方案失效时启用。
 
+### UI-006 · 工作台使用反馈修复
+
+- **状态 / owner_role / owner / last_updated**：`done` / ui engineer / w15_ui Agent / 2026-08-19
+- **Outcome**：用户实际使用审批台后提出的 5 条反馈逐条裁定并落地：动作 chip 兑现 `aria-pressed` 开关语义（PASS 重复触发撤销回待处理；输入型动作重复触发打开预填编辑器并内置显式撤销按钮）；随手记编辑器显示写入目标块；termRef 增加悬停/聚焦定义预览（仅补充，点击展开与术语表附录不变）；表格表头/斑马纹等契约内可读性增强；Skill 写作规范新增零上下文直白语言、termRef 强制绑定与结构化可视化要求。
+- **Depends on / unlocks**：CI-002 / REL-006。
+- **Parallel / conflicts**：单线程；写 `src/workbench/{interactions,content-renderer,shell,i18n}.ts`、`skills/.../references/{audience-contracts,review-protocols}.md` 与对应测试。
+- **Write scope**：见上；不改协议、Schema、CLI 或调色板 token（DES-019/§11.8 不变）。
+- **Refs**：Spec §9.1（撤销要求）、§9.3、§7.2（悬停只能补充）、§13.5；Design §11.3/§11.4（2026-08-19 补充）；用户 2026-08-19 五条使用反馈。
+- **Implementation contract**：同动作开关只对 `PASS` 直接撤销；`EDIT`/`TOPIC`/`HOLD` 重复触发必须走预填编辑器，防止一次按键销毁已输入文字；撤销在编辑器与状态芯片两处均为显式按钮。随手记目标行随当前块与编辑态实时同步。悬停预览不得成为定义的唯一载体。调色板与布局 token 严格保持 §11.8 值；新增样式只使用既有 token。
+- **Validation**：
+
+  ```bash
+  npm run test:unit
+  npm run test:browser -- --project=chromium
+  npm run test:browser -- --project=webkit
+  npm run test:browser -- --project=firefox
+  ```
+
+  预期：unit 538/538；三浏览器 100 pass + 2 designed skip（新增 @A20 开关/撤销/目标标注用例 ×3）。
+- **Completion evidence**：unit 538/538；chromium 34、webkit 34、firefox 32 pass + 2 designed skip；typecheck/lint/check:generated/acceptance 22/22/bundle 370796/393216 全绿。两处变异验证：移除开关分支 → 新单测红；移除编辑器撤销按钮 → 新单测红；还原后全绿。5 条反馈的裁定记录见 §9 的 2026-08-19 W15 记录（其中配色重设计部分未采纳，理由与替代方案已呈用户）。
+- **Blocker / unblock**：无。
+
+### REL-006 · W15 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w15_release Agent / 2026-08-19
+- **Outcome**：候选按 W15 的工作台修复与写作规范重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Depends on / unlocks**：UI-006 / 无。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-005 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 975548 bytes、SHA-256 `31aee980f839f1ac388829da362415616cbe5fc693e901ad7a4b1c7b5ecaf869`；manifest SHA-256 `c8594010d431a7e4e6902a3bd5b7536d132b63e382440f54d25d679bc65274c2`；entryCount 仍为 11。摘要已同步到 handoff §1、§6.2 预检常量与 `tests/unit/claude-handoff.test.ts`。此前各次重切的摘要保留在 REL-001..REL-005 的历史证据中。
+- **Blocker / unblock**：无。PIL-001 的 round 1 需以本卡摘要（而非 REL-005 摘要）重新生成。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1375,3 +1410,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-19 的 W12/W13 记录：PR #68（W11 审批台改版）首跑 CI 时，webkit lane 的 `playwright install-deps` 在 Azure 内部 apt 镜像退化后静默挂起超过 3 小时，用户指令暂停该 run、搁置 PR #68，先以独立分支修复 CI。W12 / CI-001 由此而来：安装步骤拆为“浏览器下载（致命）/系统依赖（可降级）”两阶段，带界重试与缓存，经 PR #69 自验证 run `32226504889` 与 PR #68 复跑 run `32229834599` 双双全绿后，按用户指令先合并 #69、再合并 #68，两者与候选产物零交集，候选摘要不变。W13 / DOC-002 随后消除 W11 遗留的契约缺口：spec §1 仍整体排除 CSS 数值，而用户已把审批台视觉系统批准为需求——修订 spec（§1 例外、§7.2 条款、§17.2 收敛行、§18.1 记录）、design（DES-019、§11.8）与本文，并按 DOC-001 先例重新绑定三文档摘要。apt 镜像退化的根治方案（容器镜像等）作为 W14 调研提案单列，以审批文档形式交用户裁决后再实施。
 
 2026-08-19 的 W14 记录：apt 退化的根治按用户要求以双受众审批文档裁决——9 个决策块（4 个 T2）经审批工作台 round 1 全 PASS 后定稿。获批方案为官方 Playwright 容器镜像：browser 矩阵与 firefox-smoke 运行在按 digest 固定的 `v1.62.1-noble` 内，浏览器与系统依赖来自镜像，apt 与浏览器下载从 job 图中整体消失；容器内 `setup-node` 继续精确钉 Node 24.19.0（宿主 tool cache 挂载），镜像 tag 与 npm 版本的锁步由新增单元测试断言并经双向变异验证；W12 的安装脚本与浏览器缓存步骤按获批处置退役删除（Git 历史即回退路径）；`concurrency` 只取消 PR 分支上被取代的 run。调研由 8 个并行研究/核查 agent 完成并全部标注一手来源；备选的分层缓解方案（B005）作为已批准规格保留待命。CI-002 与 W13 的 DOC-002 同 PR 链交付，候选产物摘要不变。
+
+2026-08-19 的 W15 记录：用户在真实使用审批台后提出 5 条反馈，逐条裁定如下。(1) 整体配色与特殊信息重设计——部分采纳：调色板与布局是用户 2026-08-18 批准并于 DES-019/§11.8 冻结的契约，未经新原型批准不整体更换；在契约 token 内落实了表头强调与斑马纹等可读性增强，配色重设计作为开放提案留给用户裁决。(2) 证据快照与审批上下文不易读——采纳：呈现层面板结构已存在，缺口主要在写作侧；Skill 写作规范新增强制条款（零上下文直白语言、专业名词必须以 termRef 绑定术语表、逻辑/流程用 steps/table/flow 结构化、交付前零上下文自检）。(3) 同数字/同 chip 再触发不能取消——采纳并修正为分动作语义：chip 标注 `aria-pressed` 却不实现开关是真实缺陷；`PASS` 重复触发直接撤销，输入型动作重复触发打开预填编辑器并内置显式撤销按钮，避免一次按键销毁已输入文字（spec §9.1 撤销要求、§9.3 修改要求同时满足）。(4) 块内可视化与术语链接未做——采纳：机制（termRef 点击展开、术语表附录、flow SVG）此前已存在但 CI 审批文档的写作未使用；补 termRef 悬停/聚焦预览（仅补充，spec §7.2 悬停约束不变）并以写作规范强制后续文档使用。(5) 随手记与块无关联——采纳：协议层随手记始终绑定块且清单行带跳转链接，缺口是编辑器不显示写入目标；新增"记到块 B00x · 标题"目标行随当前块实时同步。全部修复经单测/浏览器断言与双向变异验证；REL-006 重切候选。

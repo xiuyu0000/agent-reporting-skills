@@ -54,6 +54,9 @@ function appendInline(
       toggle.setAttribute("type", "button");
       toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-controls", definitionId);
+      // Hover/focus preview only supplements the click disclosure and the
+      // glossary appendix (spec §7.2: hovers must never be the only carrier).
+      toggle.setAttribute("data-tip", entry.definition);
       const label = ownerDocument.createElement("span");
       label.lang = context.contentLanguage;
       label.textContent = node.text ?? entry.term;

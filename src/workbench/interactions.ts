@@ -108,6 +108,7 @@ interface RailControls {
   readonly overallSubmit: HTMLButtonElement;
   readonly noteFold: HTMLDetailsElement;
   readonly topicFold: HTMLDetailsElement;
+  readonly noteTarget: HTMLElement;
 }
 
 // The prototype keeps the rail compact: records are listed, and the editor that
@@ -417,8 +418,7 @@ export function mountReviewInteractions({
       button.addEventListener("click", () => {
         currentBlockId = block.id;
         renderCurrentBlock();
-        if (action === "PASS") applyPass(block.id);
-        else openDecisionEditor(block.id, action, button);
+        activateAction(block.id, action, button);
       });
     }
     sideNote.addEventListener("click", () => {
@@ -553,7 +553,12 @@ export function mountReviewInteractions({
   overall.placeholder = strings.overallPlaceholder;
   const overallSubmit = buttonWithText(document, strings.saveOverall);
 
+  // The note editor writes to a specific block (spec §9.2 keeps every side note
+  // block-bound), so the fold names its target before the input.
+  const noteTarget = document.createElement("p");
+  noteTarget.className = "note-target";
   const noteFold = railFold(document, strings.addSideNote, [
+    noteTarget,
     labelControl(document, strings.sideNotes, noteInput),
     noteButtons,
   ]);
@@ -597,6 +602,7 @@ export function mountReviewInteractions({
     overallSubmit,
     noteFold,
     topicFold,
+    noteTarget,
   };
 
   const dialog = document.createElement("dialog");
@@ -678,6 +684,13 @@ export function mountReviewInteractions({
       article.className = parts.join(" ");
     }
     rail.currentBlock.textContent = `${strings.currentBlock}: ${currentBlockId ?? strings.none}`;
+    const noteTargetId = editingNote?.blockId ?? currentBlockId;
+    const noteTargetBlock = noteTargetId === undefined
+      ? undefined
+      : documentValue.blocks.find((value) => value.id === noteTargetId);
+    rail.noteTarget.textContent = noteTargetBlock === undefined
+      ? strings.noteTargetNone
+      : `${strings.noteTarget} ${noteTargetBlock.id} · ${noteTargetBlock.title}`;
   }
 
   // One `.d-list` row: the block link (or a plain marker for a global record),
@@ -976,6 +989,22 @@ export function mountReviewInteractions({
     focusBlock(next);
   }
 
+  // The action chips carry `aria-pressed`, so re-activating the recorded action
+  // honours toggle semantics (spec §9.1 requires revocation back to pending).
+  // PASS holds no reviewer text and unsets immediately; the input-bearing
+  // actions reopen their prefilled editor instead — unsetting them on a single
+  // press would destroy typed review text — and the editor offers the explicit
+  // revoke button.
+  function activateAction(blockId: string, action: DecisionAction, opener: HTMLElement): void {
+    const existing = state.decisionsByBlock.get(blockId);
+    if (existing?.action === action && action === "PASS") {
+      dispatch({ type: "UNSET_DECISION", blockId }, strings.decisionUndone);
+      return;
+    }
+    if (action === "PASS") applyPass(blockId);
+    else openDecisionEditor(blockId, action, opener);
+  }
+
   function applyPass(blockId: string): void {
     const controls = blockControls.get(blockId);
     if (controls === undefined) return;
@@ -1069,6 +1098,17 @@ export function mountReviewInteractions({
     const buttons = document.createElement("div");
     buttons.className = "dialog-actions";
     buttons.append(save, cancel);
+    if (existing?.action === action) {
+      // Editing an already-recorded decision: revocation lives here so a
+      // repeated chip press never silently deletes typed review text.
+      const revoke = buttonWithText(document, strings.undoDecision, "secondary-action dialog-delete");
+      revoke.addEventListener("click", () => {
+        if (dispatch({ type: "UNSET_DECISION", blockId }, strings.decisionUndone)) {
+          closeEditor(true);
+        }
+      });
+      buttons.append(revoke);
+    }
     dialog.replaceChildren(heading, blockLabel, dialogQuote(quote), fields, error, buttons);
     dialog.showModal();
     const firstField = dialog.querySelector<HTMLElement>("input,textarea");
@@ -1181,7 +1221,10 @@ export function mountReviewInteractions({
       };
     if (dispatch(action, strings.save)) resetNoteEditor();
   });
-  rail.noteCancel.addEventListener("click", resetNoteEditor);
+  rail.noteCancel.addEventListener("click", () => {
+    resetNoteEditor();
+    renderCurrentBlock();
+  });
   rail.topicSubmit.addEventListener("click", () => {
     const action: ReviewAction = editingGlobalTopicId === undefined
       ? { type: "ADD_TOPIC", title: rail.topicTitle.value, note: rail.topicNote.value }
@@ -1267,8 +1310,7 @@ export function mountReviewInteractions({
     }
     const opener = controls.actionButtons.get(action);
     if (opener === undefined) return;
-    if (action === "PASS") applyPass(currentBlockId);
-    else openDecisionEditor(currentBlockId, action, opener);
+    activateAction(currentBlockId, action, opener);
   });
 
   if (typeof window !== "undefined" && typeof window.addEventListener === "function") {

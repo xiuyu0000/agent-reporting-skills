@@ -432,3 +432,42 @@ test("@A20 a rejected action reports an understandable hint instead of a machine
   await expect(status).not.toContainText("NOTE_REQUIRED");
   await expect(page.locator(".side-note-list")).toContainText("尚未记录随手记");
 });
+
+test("@A20 same-action toggle, guarded revocation, and note target labeling", async ({ page }) => {
+  await openWorkbench(page);
+
+  // PASS toggles off from the chip: aria-pressed advertises toggle semantics,
+  // so re-activating the recorded action revokes it (spec §9.1).
+  await block(page, "B002").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("通过");
+  await expect(block(page, "B002").locator("button[data-action='PASS']"))
+    .toHaveAttribute("aria-pressed", "true");
+  await block(page, "B002").locator("button[data-action='PASS']").click();
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("待处理");
+  await expect(block(page, "B002").locator("button[data-action='PASS']"))
+    .toHaveAttribute("aria-pressed", "false");
+
+  // The number key follows the same toggle: re-pass, step back, unset.
+  await page.keyboard.press("1");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("通过");
+  await page.keyboard.press("k");
+  await page.keyboard.press("1");
+  await expect(block(page, "B002").locator(".st-chip")).toContainText("待处理");
+
+  // A recorded EDIT never unsets on a repeat press: the prefilled editor
+  // opens instead, and revocation is its explicit button.
+  await block(page, "B003").locator("button[data-action='EDIT']").click();
+  const dialog = page.locator("dialog[open]");
+  await dialog.locator("textarea").fill("Tighten the boundary.");
+  await dialog.getByRole("button", { name: "保存" }).click();
+  await expect(block(page, "B003").locator(".st-chip")).toContainText("修改");
+  await block(page, "B003").locator("button[data-action='EDIT']").click();
+  await expect(dialog.locator("textarea")).toHaveValue("Tighten the boundary.");
+  await dialog.getByRole("button", { name: "撤销决定" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(block(page, "B003").locator(".st-chip")).toContainText("待处理");
+
+  // The rail note editor names the block it writes to.
+  await block(page, "B004").locator("button.act.sidenote").click();
+  await expect(page.locator(".note-target")).toContainText("记到块 B004");
+});
