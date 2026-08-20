@@ -23,11 +23,27 @@ or a code-only task without a separate approval deliverable.
 
 ## Requirements and install
 
-- Node.js 24.x (`>=24 <25`) is required to run the installed CLI.
-- The v0.2 ZIP contains the complete 11-file Skill and needs no `npm install` or
-  `node_modules` at runtime.
+- The validated contract runtime is Node.js 24 LTS (`>=24 <25`); the CLI has no
+  runtime version gate and its full init/render/validate cycle is smoke-tested
+  on Node 22 and 26, but byte-reproducibility is asserted only on Node 24.
+- The v0.2 ZIP contains the complete 11-file Skill and needs no `npm install`,
+  `node_modules`, or network access at runtime.
 - Development from this repository uses the committed npm lockfile and
   `npm ci`.
+
+The Skill follows the open Agent Skills format (agentskills.io) with
+spec-only frontmatter, so any adopting client can load it. Verified platforms:
+
+| Platform | Install | Invoke |
+|---|---|---|
+| Claude Code | `unzip … -d ~/.claude/skills/` (or project `.claude/skills/`) | `/deliver-dual-audience-report` or model-triggered |
+| Claude Cowork / claude.ai | Customize → Skills → Upload the ZIP as-is (root is the skill folder) | model-triggered; needs code execution enabled |
+| OpenAI Codex | `unzip … -d ~/.agents/skills/` (legacy `~/.codex/skills` also read) | `$deliver-dual-audience-report`, `/skills`, or implicit via `agents/openai.yaml` |
+| Kimi Code CLI / Kimi Work | same `~/.agents/skills/`, or `~/.kimi-code/skills/`; Kimi Work uploads via its Skills panel | `/skill:deliver-dual-audience-report` or model-triggered |
+
+The detailed per-platform guide — runtime caveats (Cowork VM and Codex cloud
+Node versions), configuration flags, troubleshooting, and the full review
+workflow — is [docs/platform-usage.md](docs/platform-usage.md).
 
 Install the release candidate ZIP:
 
@@ -42,10 +58,6 @@ Or clone this repository and link the complete Skill directory:
 ln -s "$PWD/skills/deliver-dual-audience-report" \
   "$HOME/.agents/skills/deliver-dual-audience-report"
 ```
-
-Codex installations that use `~/.codex/skills` may link the same directory.
-Claude Code may use `~/.claude/skills`. Invoke the Skill explicitly with
-`$deliver-dual-audience-report` when the trigger contract applies.
 
 ## v0.2 CLI workflow
 

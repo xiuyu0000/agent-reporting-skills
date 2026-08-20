@@ -12,6 +12,7 @@
 | [design.md](design.md) | 技术设计：如何实现 spec，以及为什么采用这些工程选择 | 已确认，实施基线（0.2-implementation-baseline） | 2026-08-17 | 3b（工程决定事实源） |
 | [task.md](task.md) | 实施施工单：波次、DAG、任务卡、写入边界与完成证据 | 已确认，执行中（W7） | 2026-08-17 | 3c（实施顺序与状态） |
 | [claude-code-handoff.md](claude-code-handoff.md) | 运行交接：候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook、授权与停止条件 | 现行运行快照 | 2026-08-17 | 4（操作快照） |
+| [platform-usage.md](platform-usage.md) | 跨平台使用指南：Claude Code / Cowork / Codex / Kimi 的安装、调用、运行时事实与故障排查 | 现行 | 2026-08-20 | 使用指南（不定义行为） |
 | [int-001-external-evidence-2026-08-13.json](int-001-external-evidence-2026-08-13.json) | INT-001 外部读者隔离与 A14 边界的内容无关证据记录 | 历史证据，不可变 | 2026-08-13 | 证据，不是指令 |
 
 `docs/` 下没有其他现行文档。如果在某个分支或工作树里看到未列入本表的 `docs/` 文件，先判断它是否已被本表中的文档取代，再决定合并或删除，不要直接当作现行事实使用。
