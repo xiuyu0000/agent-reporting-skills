@@ -18,10 +18,13 @@ and the tracked planning sources it lists: [spec](docs/spec.md),
 2026-08-17, so the same version is available in every worktree and branch;
 `docs/调研/` remains local, private, and `.gitignore`-excluded.
 
-The v0.2 candidate is on `codex/v0.2.0`; do not use the older root `main`
-worktree for this workflow. The handoff records the exact baseline, release
-evidence, remaining PIL-001/MET-001 work, required user authorization, and
-the mandatory stop conditions.
+`codex/v0.2.0` is the integration branch for this workflow: base PRs on it and
+read candidate state from it. Since 2026-08-20, `main` is kept tree-identical
+to `codex/v0.2.0` by an `-s ours` sync merge after each integration change, so
+either checkout carries the same content; pilot flows still require the
+dedicated clean worktree and the extracted ZIP runtime the handoff prescribes.
+The handoff records the exact baseline, release evidence, remaining MET-001
+work, required user authorization, and the mandatory stop conditions.
 
 These repository entry points travel with a repository clone/worktree, not
 with the release ZIP. The ZIP intentionally contains only the installed Skill
