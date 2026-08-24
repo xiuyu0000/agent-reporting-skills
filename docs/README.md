@@ -13,6 +13,7 @@
 | [task.md](task.md) | 实施施工单：波次、DAG、任务卡、写入边界与完成证据 | 已确认，执行中（W7） | 2026-08-17 | 3c（实施顺序与状态） |
 | [claude-code-handoff.md](claude-code-handoff.md) | 运行交接：候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook、授权与停止条件 | 现行运行快照 | 2026-08-17 | 4（操作快照） |
 | [platform-usage.md](platform-usage.md) | 跨平台使用指南：Claude Code / Cowork / Codex / Kimi 的安装、调用、运行时事实与故障排查 | 现行 | 2026-08-20 | 使用指南（不定义行为） |
+| [local-development.md](local-development.md) | 本地开发与验证：工具链版本、一次性准备、门禁跑法与已记录的执行注意事项 | 现行操作记录 | 2026-08-23 | 4（操作快照；不定义需求或设计） |
 | [int-001-external-evidence-2026-08-13.json](int-001-external-evidence-2026-08-13.json) | INT-001 外部读者隔离与 A14 边界的内容无关证据记录 | 历史证据，不可变 | 2026-08-13 | 证据，不是指令 |
 
 `docs/` 下没有其他现行文档。如果在某个分支或工作树里看到未列入本表的 `docs/` 文件，先判断它是否已被本表中的文档取代，再决定合并或删除，不要直接当作现行事实使用。
@@ -47,6 +48,8 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **W14 / CI-002**（`done`）：apt 退化根治经用户审批工作台回执（round 1 全 PASS）授权：浏览器 lane 全部改跑按 digest 固定的官方 Playwright 容器镜像，apt 与浏览器下载移出 CI 关键路径；Node 24.19.0 钉版在容器内保持，镜像/npm 版本锁步由变异验证的单元测试守护。只写 `.github/**` 与测试，候选字节不变。
 - **W15 / UI-006、REL-006**（`done`）：用户实际使用审批台后的 5 条反馈逐条裁定并落地——动作 chip 兑现 aria-pressed 开关语义（PASS 重复触发即撤销，输入型动作走预填编辑器 + 显式撤销）、随手记编辑器显示写入目标块、termRef 悬停定义预览（仅补充）、契约内表格可读性增强、Skill 写作规范强制零上下文直白语言与术语绑定。配色重设计未采纳（DES-019 契约冻结，理由已呈用户）。候选按 REL-006 重切。
 - **W17 / UI-007、REL-007**（`done`）：按用户 2026-08-20 反馈把 termRef 简化为单一锚点——悬停/聚焦预览定义、点击直接跳转术语表附录，去掉“展开定义”按钮与独立跳转链接。候选按 REL-007 重切。
+- **W19 / SKL-003、REL-008**（`done`）：按用户指令确保 Skill 在 Claude Code、Claude Cowork、Codex 与 Kimi 四个平台可用——frontmatter 依开放规范补 `compatibility` 运行时声明（SKL-001 的逐字节钉点同步），新增 [platform-usage.md](platform-usage.md) 四平台指南，README 安装节改为平台矩阵。运行时事实按「合同运行时 Node 24 vs 实测可运行 22/26」两层如实表述，因为 Cowork 沙箱与 Codex 云端镜像的默认 Node 低于 24。分发面变化由 REL-008 重切候选。
+- **W20 / 仓库卫生与本地验证环境**（`done`）：经用户明确授权补齐 `.gitignore` 未覆盖的四个工具链产出目录（否则 handoff §6.2 的干净树预检在任何一次构建或测试后必然失败），并修正 `dist/` 自 v0.1 遗留的裸忽略规则使新发布产物对 `git status` 可见；新增 [local-development.md](local-development.md) 固化本地工具链与门禁跑法，其中 §5.1 记录了一条**未修复**的审批台滚动竞态（仅在三引擎合并跑且宿主 CPU 饱和时复现，修复属产品变更须另立波次）。产品与测试代码零改动，候选摘要不变。
 
 绿色 CI、fixture、演示内容与 replay no-op 仍不能关闭 MET-001。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 

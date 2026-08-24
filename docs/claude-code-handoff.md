@@ -73,7 +73,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `f976f73b4715ed1578fd1c0685ac70ae23c50c4436fedddedc3ac35c15a75a58` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `29df6d460b2d51aa3d0e02892c9fcbfbc34403920af4f6ccb2fd676ae0ed560f` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text

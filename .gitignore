@@ -1,6 +1,26 @@
+# Python caches left by the retired v0.1 scripts.
 __pycache__/
 *.py[cod]
+
+# macOS Finder metadata.
 .DS_Store
-dist/
+
+# Release artifacts are tracked deliverables and must stay visible to
+# `git status`; everything else under dist/ is scratch. A bare `dist/` here
+# dates from v0.1 (commit 03fc118), before the v0.2 ZIP and manifest became
+# tracked files, and it silently hid any newly built release artifact.
+dist/*
+!dist/*.zip
+!dist/*.manifest.json
+
+# Private research material. Never tracked; asserted by tests/unit/public-tree.
 docs/调研
+
+# Toolchain outputs. None of these are tracked, and leaving them unignored
+# breaks the preflight gate `test -z "$(git status --porcelain)"` that
+# docs/claude-code-handoff.md section 6.2 requires before a pilot.
+node_modules/
+build/
+coverage/
+test-results/
 .playwright-cli/
