@@ -223,6 +223,7 @@ flowchart TD
 | W14 | CI-002 浏览器 lane 容器化 | 单线程；只写 `.github/**`、锁步断言测试与文档台账 | 用户审批回执（round 1 全 PASS）授权；PR 自验证四 job 全绿；锁步断言经双向变异验证 |
 | W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
 | W17 | UI-007 术语交互简化；REL-007 收口重切 | 单线程；写 workbench 渲染器与测试 | termRef 单锚点（悬停预览 + 点击跳附录）；三浏览器全绿；候选重建 |
+| W19 | SKL-003 跨平台可用性与使用指南；REL-008 收口重切 | 单线程；写 SKILL frontmatter、README、docs 指南与测试钉点 | 四平台机制经文档+本机实测核对；官方验证器通过；候选重建 |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -281,6 +282,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | REL-006 | 按 W15 重切候选并重新绑定摘要 | UI-006 | release | `done` | w15_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 | UI-007 | termRef 简化为悬停预览 + 点击跳术语表的单一锚点 | UI-006 | ui | `done` | w17_ui Agent | `src/workbench/{content-renderer,bootstrap,shell,i18n}.ts`、renderer 测试 | A19；用户 2026-08-20 反馈 |
 | REL-007 | 按 W17 重切候选并重新绑定摘要 | UI-007 | release | `done` | w17_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
+| SKL-003 | Skill 可被 Claude Code/Cowork/Codex/Kimi 使用并有使用指南 | REL-007 | surface | `done` | w19_surface Agent | SKILL frontmatter、`docs/platform-usage.md`、README、skill-workflow 测试钉点 | 官方验证器 + 四平台核对 |
+| REL-008 | 按 W19 重切候选并重新绑定摘要 | SKL-003 | release | `done` | w19_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1310,6 +1313,35 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：新候选 ZIP 为 974385 bytes、SHA-256 `e33d05ba296e5b4436c49179c9bac34ea2dd9fc3a9a04090d464176d1eb49e1c`；manifest SHA-256 `3d20833ce1398d23e5793851869d2b57c366d61a2779dffe7a4ce2794a922fa6`；entryCount 仍为 11。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-006 历史证据中。
 - **Blocker / unblock**：无。后续新渲染的审批文档自动获得新交互；已定稿的历史产物不回溯重生成。
 
+### SKL-003 · 跨平台可用性与使用指南
+
+- **状态 / owner_role / owner / last_updated**：`done` / Skill surface engineer / w19_surface Agent / 2026-08-20
+- **Outcome**：Skill 在 Claude Code、Claude Cowork（含 claude.ai）、OpenAI Codex 与 Kimi（Kimi Code CLI / Kimi Work）四个平台的安装、调用与运行时口径经官方文档调研 + 本机实测核对成立；frontmatter 依开放规范补 `compatibility` 字段声明运行时要求；新增 [platform-usage.md](platform-usage.md) 详细指南并重写 README 安装节为平台矩阵。
+- **Depends on / unlocks**：REL-007 / REL-008。
+- **Write scope**：`skills/deliver-dual-audience-report/SKILL.md`（仅 frontmatter 追加 `compatibility`，254 字符 ≤ 规范 500 上限）、`tests/unit/skill-workflow.test.ts`（SKL-001 逐字节钉点同步）、`docs/platform-usage.md`（新建）、根 README、docs/README 索引。
+- **Refs**：开放 Agent Skills 规范（frontmatter 2 必填 + 4 可选；`compatibility` 是声明运行时需求的唯一规范机制）；四平台官方文档（4 个并行调研 agent，一手来源）；用户 2026-08-20 指令。
+- **Implementation contract**：frontmatter 只用规范字段，保证 claude.ai/Cowork 上传的硬校验通过（实测 name 28/64、description 758/1024、compatibility 254/500）；`description` 语义不变；`agents/openai.yaml` 原样保留（Codex 原生消费）。指南必须如实区分「合同运行时 Node 24」与「实测可运行 Node 22/26」两层，并注明平台机制核对日期。
+- **Validation**：
+
+  ```bash
+  SKILLS_REF_BIN=<pinned> npm run validate:skill
+  npm run test:unit
+  npm run test:e2e -- installed-skill legacy-interface
+  ```
+
+  预期：固定版官方验证器 Valid；unit 538/538；installed/legacy 12/12。
+- **Completion evidence**：固定版 skills-ref 对仓库源与安装副本均 Valid；unit 538/538；installed+legacy 12/12。本机实测：Claude Code（~/.claude/skills 安装后技能清单实时刷新为 v0.2）、Codex CLI 0.148（`skill_search` stable 特性确认、`~/.agents/skills` 规范目录安装）、Kimi Code CLI（`--skills-dir`/`extra_skill_dirs` 确认、共用 `~/.agents/skills`）；CLI init/render/validate 全流程在 Node 24.19.0（合同）、22.23.2、26.7.0 三版本通过；本机两处退役 v0.1 旧装副本（~/.claude/skills 与 ~/.codex/skills）已替换/清理为当前候选。Cowork 依官方上传通道与 frontmatter 硬校验核对（ZIP 布局与字段长度均合规），未做账号内实传。
+- **Blocker / unblock**：无。
+
+### REL-008 · W19 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w19_release Agent / 2026-08-20
+- **Outcome**：候选按 W19 的 frontmatter 补全重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-007 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 974657 bytes、SHA-256 `0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7`；manifest SHA-256 `0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5`；entryCount 仍为 11。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-007 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本已同步为本候选。
+- **Blocker / unblock**：无。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1453,3 +1485,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-20 的 W17 记录：用户使用重渲染后的试点审批台时提出术语交互仍显冗余——“(展开定义)”按钮加独立“跳到术语表”链接是两个操作三个视觉元素。按其指定的目标形态简化：termRef 渲染为单一锚点，悬停/聚焦即预览定义，点击/Enter 直接跳转文件内术语表附录；spec §7.2 的“同一文件内可见”由附录承载，悬停保持纯补充，无条款冲突。展开按钮、内联定义与两个 i18n 键退役；屏读者通过锚点内隐藏说明获知跳转语义。变异验证与三浏览器断言（含跳转入视口）通过后由 REL-007 重切候选。
 
 2026-08-20 的仓库整理记录：PR #77 合入后按用户指令做一次分支与状态收口。(1) Issue #61 已于 PIL-001 完成当日关闭，Issue #62 追加内容无关状态说明（合格样本数 0，等待指标授权与 3–5 份案例）。(2) `main` 以 `-s ours` 同步合并更新为与 `codex/v0.2.0` 树完全一致（不重写历史；main 独有的 2026-08-17 文档整合提交并入谱系），`codex/v0.2.0` 仍是集成分支与 PR base；CLAUDE/AGENTS/handoff/README 中“main 是旧 v0.1 线”的表述同步订正。(3) 删除已合并的全部远程功能分支（claude/*、codex/w*、codex/prq-*、codex/ci-*、codex/claude-code-handoff、v0.0.1）与陈旧的 `claude/w8-release-gate-repair`（其 PR #64 已 MERGED，分支尖端只是早期堆叠合并的残留 merge 提交），保留 `main` 与 `codex/v0.2.0`；本地清理已合并分支与过期 worktree。v0.1.0 回滚基线是 tag 与 Release 资产，不受分支删除影响。
+
+2026-08-20 的 W19 记录：按用户指令确保 Skill 可被 Claude Code、Claude Cowork、Kimi 与 Codex 使用并补全文档。4 个并行调研 agent 以一手来源核对四平台的技能发现路径、frontmatter 消费、调用方式与沙箱运行时，本机对 Claude Code、Codex CLI 0.148 与 Kimi Code CLI 逐项实测（安装、固定版官方验证器、功能冒烟），并发现且清理了本机两处仍在服役的退役 v0.1 旧装副本。关键运行时事实：CLI 无版本硬拦截，init/render/validate 全流程在 Node 22/24/26 实测通过，但字节可复现与全部发布门只在 Node 24 断言——指南按「合同运行时 vs 实测可运行」两层如实表述（Cowork VM 与 Codex 云端镜像的默认 Node 低于 24）。frontmatter 依开放规范补 `compatibility` 字段（唯一的规范级运行时声明机制，claude.ai/Cowork 上传硬校验的六字段白名单内），SKL-001 的逐字节钉点测试同步；新增 docs/platform-usage.md 四平台指南，README 安装节重写为平台矩阵。分发面变化由 REL-008 重切候选。

@@ -16,10 +16,10 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Candidate branch | `codex/v0.2.0` |
 | Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
 | Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
-| Current artifact source | W9–W11, W15, then W17 (UI-007 one-affordance term references), re-cut by REL-007 on 2026-08-20 |
+| Current artifact source | W9–W11, W15, W17, then W19 (SKL-003 spec-compatibility frontmatter), re-cut by REL-008 on 2026-08-20 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `974385` bytes / `e33d05ba296e5b4436c49179c9bac34ea2dd9fc3a9a04090d464176d1eb49e1c` |
-| Manifest SHA-256 | `3d20833ce1398d23e5793851869d2b57c366d61a2779dffe7a4ce2794a922fa6` |
+| ZIP size / SHA-256 | `974657` bytes / `0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7` |
+| Manifest SHA-256 | `0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5` |
 | Runtime | Node `>=24 <25` |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
@@ -73,7 +73,7 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
 | `design.md` | `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `c133b41ef8e6b3ad899e7f33f53d50c224a332461ac62980a1b012260671831a` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `task.md` | `f976f73b4715ed1578fd1c0685ac70ae23c50c4436fedddedc3ac35c15a75a58` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
@@ -458,8 +458,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  'e33d05ba296e5b4436c49179c9bac34ea2dd9fc3a9a04090d464176d1eb49e1c' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  '3d20833ce1398d23e5793851869d2b57c366d61a2779dffe7a4ce2794a922fa6' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  '0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  '0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 

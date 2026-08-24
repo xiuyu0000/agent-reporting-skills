@@ -21,6 +21,7 @@ const fixturePath = resolve("tests/fixtures/skill-workflow/cases.json");
 const expectedFrontmatter = `---
 name: deliver-dual-audience-report
 description: "Deliver one verified plan as precise Agent-facing Markdown for continuation and a self-contained interactive Approval HTML for decision and feedback. Use only when one primary human reviewer has an explicit approval, review, or item-by-item feedback goal and the initial proposal naturally contains at least 4 independently decidable items; the same contract continues through later revision rounds. Do not use for fewer than 4 natural decision items, multiple or parallel reviewers, exploratory reading without approval, a single Markdown or HTML report, a chat-only answer, code-only work without a separate plan approval deliverable, or the legacy static Agent report plus human narrative HTML workflow. Never split or pad content merely to reach 4 items."
+compatibility: "Requires Node.js on PATH to run scripts/review-delivery.mjs; the validated contract runtime is Node 24 LTS (>=24 <25). No npm install, node_modules, or network access is needed at runtime, and generated artifacts are self-contained offline HTML/Markdown."
 ---
 `;
 
