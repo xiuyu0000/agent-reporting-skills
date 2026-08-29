@@ -12,7 +12,7 @@
 | [design.md](design.md) | 技术设计：如何实现 spec，以及为什么采用这些工程选择 | 已确认，实施基线（0.2-implementation-baseline） | 2026-08-17 | 3b（工程决定事实源） |
 | [task.md](task.md) | 实施施工单：波次、DAG、任务卡、写入边界与完成证据 | 已确认，执行中（W7） | 2026-08-17 | 3c（实施顺序与状态） |
 | [claude-code-handoff.md](claude-code-handoff.md) | 运行交接：候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook、授权与停止条件 | 现行运行快照 | 2026-08-17 | 4（操作快照） |
-| [platform-usage.md](platform-usage.md) | 跨平台使用指南：Claude Code / Cowork / Codex / Kimi 的安装、调用、运行时事实与故障排查 | 现行 | 2026-08-20 | 使用指南（不定义行为） |
+| [platform-usage.md](platform-usage.md) | 跨平台使用指南：Claude Code / Cowork / Codex / Kimi 的安装、调用、运行时事实与故障排查 | 现行 | 2026-08-29 | 使用指南（不定义行为） |
 | [local-development.md](local-development.md) | 本地开发与验证：工具链版本、一次性准备、门禁跑法与已记录的执行注意事项 | 现行操作记录 | 2026-08-23 | 4（操作快照；不定义需求或设计） |
 | [int-001-external-evidence-2026-08-13.json](int-001-external-evidence-2026-08-13.json) | INT-001 外部读者隔离与 A14 边界的内容无关证据记录 | 历史证据，不可变 | 2026-08-13 | 证据，不是指令 |
 
@@ -50,6 +50,7 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **W17 / UI-007、REL-007**（`done`）：按用户 2026-08-20 反馈把 termRef 简化为单一锚点——悬停/聚焦预览定义、点击直接跳转术语表附录，去掉“展开定义”按钮与独立跳转链接。候选按 REL-007 重切。
 - **W19 / SKL-003、REL-008**（`done`）：按用户指令确保 Skill 在 Claude Code、Claude Cowork、Codex 与 Kimi 四个平台可用——frontmatter 依开放规范补 `compatibility` 运行时声明（SKL-001 的逐字节钉点同步），新增 [platform-usage.md](platform-usage.md) 四平台指南，README 安装节改为平台矩阵。运行时事实按「合同运行时 Node 24 vs 实测可运行 22/26」两层如实表述，因为 Cowork 沙箱与 Codex 云端镜像的默认 Node 低于 24。分发面变化由 REL-008 重切候选。
 - **W20 / 仓库卫生与本地验证环境**（`done`）：经用户明确授权补齐 `.gitignore` 未覆盖的四个工具链产出目录（否则 handoff §6.2 的干净树预检在任何一次构建或测试后必然失败），并修正 `dist/` 自 v0.1 遗留的裸忽略规则使新发布产物对 `git status` 可见；新增 [local-development.md](local-development.md) 固化本地工具链与门禁跑法，其中 §5.1 记录了一条**未修复**的审批台滚动竞态（仅在三引擎合并跑且宿主 CPU 饱和时复现，修复属产品变更须另立波次）。产品与测试代码零改动，候选摘要不变。
+- **W22 / 文档订正：Codex 安装路径**（`done`）：[platform-usage.md](platform-usage.md) §5 此前把 `~/.codex/skills/` 写成“仍被兼容读取”的遗留路径，与 Codex 现状相反——Codex 自带的 skill-installer 系统技能明确安装到 `$CODEX_HOME/skills/<skill-name>`（默认 `~/.codex/skills`），且两个目录经实测都被扫描。§5 改为并列呈现两条现行受支持路径（`~/.codex/skills/` 为 Codex 第一方默认，`~/.agents/skills/` 为与 Kimi 共用的跨工具互操作目录），同名技能不可双放的警告保留，“改后需重启”收窄到 `[[skills.config]]` 开关。文档-only，只写 §5 与三份文档的同步位；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选摘要不变。
 
 绿色 CI、fixture、演示内容与 replay no-op 仍不能关闭 MET-001。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 
