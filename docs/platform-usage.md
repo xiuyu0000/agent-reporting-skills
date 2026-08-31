@@ -95,19 +95,29 @@ Codex（CLI 0.148+ 实测）原生支持 Agent Skills，且本 Skill 自带的
 `agents/openai.yaml` 正是 Codex 的产品元数据文件（`display_name`、
 `default_prompt`、`allow_implicit_invocation` 均被消费）。
 
-**安装**（推荐跨工具互操作目录，Codex 与 Kimi 共用）：
+**安装**：两个用户级目录都被 Codex 扫描，且都是现行受支持路径，按需要二选一。
+
+| 目录 | 定位 | 何时选它 |
+|---|---|---|
+| `~/.codex/skills/` | Codex 自身的默认目录。其内置的 skill-installer 系统技能声明安装到 `$CODEX_HOME/skills/<skill-name>`（默认 `~/.codex/skills`），即 Codex 第一方工具今天的落点 | 只在 Codex 里使用本 Skill，或希望与 Codex 自带安装器保持一致 |
+| `~/.agents/skills/` | 跨工具互操作目录，Kimi 也会自动发现（见 §6） | 希望一份安装同时服务 Codex 与 Kimi |
 
 ```bash
+# Codex 默认目录
+mkdir -p ~/.codex/skills
+unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.codex/skills/
+
+# 或：跨工具互操作目录，与 Kimi 共用同一份安装
 mkdir -p ~/.agents/skills
 unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.agents/skills/
 ```
 
-项目级放 `<repo>/.agents/skills/`。旧目录 `~/.codex/skills/` 仍被兼容读取，但属
-遗留路径；不要在两个目录里同时放同名技能。
+项目级放 `<repo>/.agents/skills/`。不要在两个目录里同时放同名技能。
 
 **调用**：会话中 `$deliver-dual-audience-report` 显式提及，或 `/skills` 浏览；
-描述命中时隐式触发（`openai.yaml` 已允许隐式调用）。按技能开关在
-`~/.codex/config.toml` 的 `[[skills.config]]` 配置，改后需重启。
+描述命中时隐式触发（`openai.yaml` 已允许隐式调用）。新装进上述任一目录的技能
+即时可见，不需要重启；按技能开关写在 `~/.codex/config.toml` 的
+`[[skills.config]]` 里，只有改这些开关才需要重启 CLI 生效。
 
 **运行时注意**：
 
@@ -118,8 +128,12 @@ unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.agents/skills/
 - Codex 会整段加载 AGENTS.md 而按需加载技能——不要把本 Skill 正文复制进
   AGENTS.md，写一行指引即可。
 
-**实测记录（2026-08-20）**：`codex features list` 确认 `skill_search` 为 stable；
-安装副本通过固定版官方验证器；Node 24 下 init 冒烟通过。
+**实测记录**：2026-08-20（CLI 0.148）——`codex features list` 确认 `skill_search`
+为 stable；安装副本通过固定版官方验证器；Node 24 下 init 冒烟通过。2026-08-24
+（CLI 0.150.1）复核——`skill_search` 与 `skill_mcp_dependency_install` 均为
+`stable`/`true`；`~/.codex/skills/` 与 `~/.agents/skills/` 各放一份技能后，同一次
+`codex exec` 的技能清单里两者都出现；新装技能未重启任何进程即被列出（用于验证
+的探针技能已清理）。
 
 ## 6. Kimi（Kimi Code CLI 与 Kimi Work）
 
