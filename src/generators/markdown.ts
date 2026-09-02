@@ -126,12 +126,28 @@ function renderContentNode(node: ContentNode): string[] {
           ...body.map((line) => line.length === 0 ? "   " : `   ${line}`),
         ];
       });
+    case "scale":
+      return [
+        `**${escapeMarkdownText(node.title)}** — ${escapeMarkdownText(node.description)}`,
+        `${escapeMarkdownText(node.axis.lowLabel)} → ${escapeMarkdownText(node.axis.highLabel)}`,
+        ...node.items.map((item) => {
+          const value = item.display ?? `${item.position}/100`;
+          const note = item.note === undefined ? "" : ` — ${renderInlineList(item.note)}`;
+          return `- ${escapeMarkdownText(item.label)} (${escapeMarkdownText(value)})${note}`;
+        }),
+      ];
     case "flow":
       return [
         `**${escapeMarkdownText(node.title)}** — ${escapeMarkdownText(node.description)}`,
-        ...node.nodes.map((item) => `- ${escapeMarkdownText(item.id)}: ${escapeMarkdownText(item.label)}`),
+        ...node.nodes.map((item) => {
+          const kind = item.kind === undefined ? "" : ` [${escapeMarkdownText(item.kind)}]`;
+          return `- ${escapeMarkdownText(item.id)}${kind}: ${escapeMarkdownText(item.label)}`;
+        }),
         ...node.edges.map((edge) => {
-          const label = edge.label === undefined ? "" : ` (${escapeMarkdownText(edge.label)})`;
+          const parts = [edge.kind, edge.label]
+            .filter((part): part is string => part !== undefined)
+            .map((part) => escapeMarkdownText(part));
+          const label = parts.length === 0 ? "" : ` (${parts.join(" — ")})`;
           return `- ${escapeMarkdownText(edge.from)} → ${escapeMarkdownText(edge.to)}${label}`;
         }),
       ];

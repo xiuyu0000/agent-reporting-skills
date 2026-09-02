@@ -4,6 +4,11 @@ import type { ErrorObject, ValidateFunction } from "ajv";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormatsModule from "ajv-formats";
 import { describe, expect, it } from "vitest";
+import {
+  validateReviewDocumentSchema,
+  validateReviewPacketSchema,
+  validateReviewStateSchema,
+} from "../../src/protocol/schema.js";
 
 type SchemaName = "review-document" | "review-packet" | "review-state";
 
@@ -123,7 +128,11 @@ function mutate(document: unknown, mutation: Mutation): void {
   else record[finalSegment] = value;
 }
 
-function schemaErrorCode(keyword: string): string {
+function schemaErrorCode(keyword: string, params: Record<string, unknown> = {}): string {
+  // Production narrows a `contains` failure carrying `maxContains` to the more
+  // precise upper-bound code; mirror that so the fixtures record the code the
+  // CLI reports rather than the raw Ajv keyword.
+  if (keyword === "contains" && typeof params.maxContains === "number") return "SCHEMA_MAX_CONTAINS";
   const snakeCase = keyword.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toUpperCase();
   return `SCHEMA_${snakeCase}`;
 }
@@ -139,7 +148,7 @@ function locateError(error: ErrorObject): ExpectedError {
   } else if (error.keyword === "additionalProperties") {
     path += `/${escapePointerSegment(String(error.params.additionalProperty))}`;
   }
-  return { code: schemaErrorCode(error.keyword), path };
+  return { code: schemaErrorCode(error.keyword, error.params), path };
 }
 
 function expectSpecificSchemaError(
@@ -150,6 +159,30 @@ function expectSpecificSchemaError(
   expect(validate(value)).toBe(false);
   const located = (validate.errors ?? []).map(locateError);
   expect(located).toContainEqual(expected);
+}
+
+const productionValidators = {
+  "review-document": validateReviewDocumentSchema,
+  "review-packet": validateReviewPacketSchema,
+  "review-state": validateReviewStateSchema,
+} as const;
+
+/**
+ * `locateError` above derives the code mechanically from the Ajv keyword, so it
+ * agrees with any expectation by construction and cannot notice that the
+ * shipped keyword-to-code map is missing an entry. Assert the mapper the CLI
+ * actually reports through as well.
+ */
+function expectProductionSchemaError(
+  schema: keyof typeof productionValidators,
+  value: unknown,
+  expected: ExpectedError,
+): void {
+  const result = productionValidators[schema](value);
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  const reported = result.errors.map((error) => `${error.code} ${error.path}`);
+  expect(reported).toContain(`${expected.code} ${expected.path}`);
 }
 
 function assertClosedDefinitions(schema: Record<string, unknown>): void {
@@ -286,6 +319,7 @@ describe("public review schemas", () => {
     it(fixture.name, async () => {
       const value = await loadMutatedFixture(fixture);
       expectSpecificSchemaError(validators[fixture.schema], value, fixture.expected);
+      expectProductionSchemaError(fixture.schema, value, fixture.expected);
     });
   }
 

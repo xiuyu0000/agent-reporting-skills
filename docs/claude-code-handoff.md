@@ -16,11 +16,12 @@ create a GitHub Release, disclose a pilot, or operate an external system.
 | Candidate branch | `codex/v0.2.0` |
 | Original release baseline SHA | `dae53e5b76e6507592b37c1a241e7ad6c6e22905` (ancestor gate for §6.2; not the current artifact source) |
 | Original release implementation commit | `0b8e14be96ab57213b20e243134b9f9b1180c67a`, PR [#60](https://github.com/xiuyu0000/agent-reporting-skills/pull/60), CI [run 31693584641](https://github.com/xiuyu0000/agent-reporting-skills/actions/runs/31693584641) |
-| Current artifact source | W9–W11, W15, W17, then W19 (SKL-003 spec-compatibility frontmatter), re-cut by REL-008 on 2026-08-20 |
+| Current artifact source | W9–W11, W15, W17, W19, then W23 (UI-008/UI-009/CTR-003/SKL-004 approval-clarity work), re-cut by REL-009 on 2026-09-02 |
 | Candidate ZIP | `dist/deliver-dual-audience-report-v0.2.0.zip` |
-| ZIP size / SHA-256 | `974657` bytes / `0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7` |
-| Manifest SHA-256 | `0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5` |
+| ZIP size / SHA-256 | `1021851` bytes / `c607212389ff233c0ec69fadc722b235190ac94d11d45cfdb63c92556c1a4b9b` |
+| Manifest SHA-256 | `50fecddd6a0f699d3c42fa9793eb567920f1b7c600f179d76a36121ed517cbb3` |
 | Runtime | Node `>=24 <25` |
+| Protocol surface | `review-document/1` gained optional-only additions in W23 (`scale` node; `kind` on flow nodes and edges). Existing documents are byte-identical and their digests unchanged. The skew is **forward**: a document written by this candidate is **rejected**, never misread, by an older v0.2.0 runtime, whose ZIP carries its own digest-pinned Schema copy. Skill and runtime ship in one ZIP, so mixed-version use is outside the supported path. |
 | v0.2 tag / GitHub Release | Not created; requires separate user authorization |
 
 `dae53e5b76e6507592b37c1a241e7ad6c6e22905` is the original release baseline and
@@ -72,8 +73,8 @@ repository instead of staying locally ignored. Their current SHA-256 values are:
 | Source | SHA-256 | Value at 2026-08-17 handoff time |
 |---|---|---|
 | `spec.md` | `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b` | `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` |
-| `design.md` | `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
-| `task.md` | `524cc352254f221fa0c70496a296b1841fc884572e6d199f8d6e33a86b4a1398` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
+| `design.md` | `a6d55c85d4c3e45a955fd7c76da6992647d11708643c99b065989503799eb63b` | `4c97ab3dd4ced8f3e96c514375ef9b799fe4351facc4fb724fe3dc0e8c058b79` |
+| `task.md` | `ea5517297ecbc7f1b94a692d9f003c391cee2ab10b232132e1704962b72468c8` | `3287e29184d422f9a059bce9a2cdbbce4efacf58a7d971f1eec0cf61871f46df` |
 
 `spec.md` has changed once since the 2026-08-17 consolidation: on 2026-08-19,
 DOC-002 turned the user-approved workbench visual system into contract text
@@ -82,8 +83,11 @@ adding any product capability. `design.md` has changed twice: on 2026-08-18
 DOC-001 corrected DES-017 — the row still claimed the planning sources stay
 gitignored and out of CI, which the consolidation had falsified and REL-002 then
 turned into an executable CI assertion — and on 2026-08-19 DOC-002 added DES-019
-plus the normative §11.8 token list. No other engineering decision moved, and no
-run-time behaviour changed in either revision. `task.md` changes
+plus the normative §11.8 token list; and on 2026-09-02 W23 added DES-020 with the
+§7.3 `scale` node, the optional flow `kind` fields, and the §11.3 term-preview
+and flow-layout records. The first two revisions changed no run-time behaviour;
+the 2026-09-02 one records behaviour that W23 implemented, and it left §11.8
+untouched. `task.md` changes
 whenever wave status or completion evidence changes, which is its normal role.
 Read the tracked files directly rather than reconstructing them from memory, and
 verify a digest before treating a planning source as current.
@@ -458,8 +462,8 @@ test ! -e node_modules || { echo "Use a new worktree with no existing node_modul
 npm ci
 npm run verify:dist
 printf '%s  %s\n' \
-  '0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
-  '0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
+  'c607212389ff233c0ec69fadc722b235190ac94d11d45cfdb63c92556c1a4b9b' 'dist/deliver-dual-audience-report-v0.2.0.zip' \
+  '50fecddd6a0f699d3c42fa9793eb567920f1b7c600f179d76a36121ed517cbb3' 'dist/deliver-dual-audience-report-v0.2.0.manifest.json' \
   | shasum -a 256 -c -
 ```
 

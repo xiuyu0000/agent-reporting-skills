@@ -70,10 +70,16 @@ Fill the contract in this order:
    packets, topic mappings, impact assessments, and feedback resolutions.
 
 Use only supported structured content nodes: paragraphs, one-level lists,
-tables, inert code, controlled callouts, controlled steps, and controlled flows;
-use text, strong text, emphasis, inline code, safe links, and glossary terms
-inline. Reject unknown nodes. Keep table width, flow references, term references,
-and URLs valid. Never insert raw HTML or executable content.
+tables, inert code, controlled callouts, controlled steps, controlled flows, and
+ranked scales; use text, strong text, emphasis, inline code, safe links, and
+glossary terms inline. Reject unknown nodes. Keep table width, flow references,
+term references, scale positions, and URLs valid. Never insert raw HTML or
+executable content.
+
+A flow node and edge may carry an optional `kind`. Use `start`, `step`,
+`decision` or `end` on a node and `then`, `yes`, `no` or `else` on an edge; the
+renderer draws the matching shape and repeats the word in the text alternative,
+so meaning never rests on shape alone.
 
 Refresh time-sensitive sources used by core facts or decisions before render.
 Stop on an unresolved blocking evidence conflict.

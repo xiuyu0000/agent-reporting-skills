@@ -54,6 +54,7 @@ function appendInline(
       anchor.href = `#glossary-${node.glossaryId}`;
       anchor.setAttribute("data-internal-ref", "true");
       anchor.setAttribute("data-tip", entry.definition);
+      anchor.setAttribute("data-tip-lang", context.contentLanguage);
       const label = ownerDocument.createElement("span");
       label.lang = context.contentLanguage;
       label.textContent = node.text ?? entry.term;
@@ -188,6 +189,50 @@ export function renderContentNode(
         list.append(item);
       }
       return list;
+    }
+    case "scale": {
+      // A ranked ladder, a spectrum and a proportion are the same shape: an
+      // ordered set of labelled positions on one named axis. Rendering it as
+      // real text plus a proportional bar means the visible DOM is already the
+      // text equivalent — no colour or length carries meaning on its own.
+      const figure = ownerDocument.createElement("figure");
+      figure.className = "scale";
+      const caption = ownerDocument.createElement("figcaption");
+      const title = ownerDocument.createElement("strong");
+      title.textContent = node.title;
+      const summary = ownerDocument.createElement("span");
+      summary.textContent = node.description;
+      const axis = ownerDocument.createElement("span");
+      axis.className = "scale-axis";
+      axis.textContent = `${node.axis.lowLabel} → ${node.axis.highLabel}`;
+      caption.append(title, summary, axis);
+      const list = ownerDocument.createElement("ol");
+      list.className = "scale-items";
+      for (const item of node.items) {
+        const row = ownerDocument.createElement("li");
+        const label = ownerDocument.createElement("span");
+        label.className = "scale-label";
+        label.textContent = item.label;
+        const track = ownerDocument.createElement("span");
+        track.className = "scale-track";
+        const fill = ownerDocument.createElement("span");
+        fill.className = "scale-fill";
+        fill.style.width = `${item.position}%`;
+        track.append(fill);
+        const value = ownerDocument.createElement("span");
+        value.className = "scale-value";
+        value.textContent = item.display ?? `${item.position}/100`;
+        row.append(label, track, value);
+        if (item.note !== undefined) {
+          const note = ownerDocument.createElement("span");
+          note.className = "scale-note";
+          appendInlineSequence(note, item.note, context);
+          row.append(note);
+        }
+        list.append(row);
+      }
+      figure.append(caption, list);
+      return figure;
     }
     case "flow":
       return renderFlow(ownerDocument, node, context.strings, context.uiLocale);

@@ -1,79 +1,214 @@
 {
   "valid": [
-    { "schema": "review-document", "file": "valid/review-document.json" },
-    { "schema": "review-packet", "file": "valid/review-packet.json" },
-    { "schema": "review-state", "file": "valid/review-state.json" }
+    {
+      "schema": "review-document",
+      "file": "valid/review-document.json"
+    },
+    {
+      "schema": "review-packet",
+      "file": "valid/review-packet.json"
+    },
+    {
+      "schema": "review-state",
+      "file": "valid/review-state.json"
+    }
   ],
   "schemaNegative": [
     {
       "name": "document rejects unknown root fields",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "add", "path": "/validation", "value": { "passed": true } }],
-      "expected": { "code": "SCHEMA_ADDITIONAL_PROPERTIES", "path": "/validation" }
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/validation",
+          "value": {
+            "passed": true
+          }
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_ADDITIONAL_PROPERTIES",
+        "path": "/validation"
+      }
     },
     {
       "name": "T2 requires ask",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "remove", "path": "/blocks/0/ask" }],
-      "expected": { "code": "SCHEMA_REQUIRED", "path": "/blocks/0/ask" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/blocks/0/ask"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/blocks/0/ask"
+      }
     },
     {
       "name": "T2 requires a decision reason",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "remove", "path": "/blocks/0/whyTier" }],
-      "expected": { "code": "SCHEMA_REQUIRED", "path": "/blocks/0/whyTier" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/blocks/0/whyTier"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/blocks/0/whyTier"
+      }
     },
     {
       "name": "a review document contains at least four blocks",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "remove", "path": "/blocks/3" }],
-      "expected": { "code": "SCHEMA_MIN_ITEMS", "path": "/blocks" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/blocks/3"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MIN_ITEMS",
+        "path": "/blocks"
+      }
     },
     {
       "name": "a review document contains at most fifteen blocks",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/2", "path": "/blocks/-" }
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/2",
+          "path": "/blocks/-"
+        }
       ],
-      "expected": { "code": "SCHEMA_MAX_ITEMS", "path": "/blocks" }
+      "expected": {
+        "code": "SCHEMA_MAX_ITEMS",
+        "path": "/blocks"
+      }
     },
     {
       "name": "document rejects more than seven T2 blocks",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" },
-        { "op": "copy", "from": "/blocks/0", "path": "/blocks/-" }
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        },
+        {
+          "op": "copy",
+          "from": "/blocks/0",
+          "path": "/blocks/-"
+        }
       ],
-      "expected": { "code": "SCHEMA_CONTAINS", "path": "/blocks" }
+      "expected": {
+        "code": "SCHEMA_MAX_CONTAINS",
+        "path": "/blocks"
+      }
     },
     {
       "name": "shared items require at least one source",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/evidence/facts/0/sourceRefs", "value": [] }],
-      "expected": { "code": "SCHEMA_MIN_ITEMS", "path": "/evidence/facts/0/sourceRefs" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/evidence/facts/0/sourceRefs",
+          "value": []
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MIN_ITEMS",
+        "path": "/evidence/facts/0/sourceRefs"
+      }
     },
     {
       "name": "shared item sources are unique",
@@ -83,17 +218,32 @@
         {
           "op": "replace",
           "path": "/evidence/facts/0/sourceRefs",
-          "value": ["SRC-001", "SRC-001"]
+          "value": [
+            "SRC-001",
+            "SRC-001"
+          ]
         }
       ],
-      "expected": { "code": "SCHEMA_UNIQUE_ITEMS", "path": "/evidence/facts/0/sourceRefs" }
+      "expected": {
+        "code": "SCHEMA_UNIQUE_ITEMS",
+        "path": "/evidence/facts/0/sourceRefs"
+      }
     },
     {
       "name": "flow node identifiers use the bounded local pattern",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/blocks/1/body/0/nodes/0/id", "value": "1 bad" }],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/blocks/1/body/0/nodes/0/id" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/1/body/0/nodes/0/id",
+          "value": "1 bad"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/blocks/1/body/0/nodes/0/id"
+      }
     },
     {
       "name": "split group identity is stable and opaque",
@@ -103,10 +253,18 @@
         {
           "op": "add",
           "path": "/delivery/splitGroup",
-          "value": { "groupId": "group-1", "part": 1, "total": 2, "reason": "Split review" }
+          "value": {
+            "groupId": "group-1",
+            "part": 1,
+            "total": 2,
+            "reason": "Split review"
+          }
         }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/splitGroup/groupId" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/splitGroup/groupId"
+      }
     },
     {
       "name": "unsafe link schemes are rejected",
@@ -119,7 +277,10 @@
           "value": "javascript:alert(1)"
         }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/continuation/currentState/0/content/4/href" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/continuation/currentState/0/content/4/href"
+      }
     },
     {
       "name": "malformed bracketed URL hosts are rejected",
@@ -132,7 +293,10 @@
           "value": "https://["
         }
       ],
-      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+      "expected": {
+        "code": "SCHEMA_FORMAT",
+        "path": "/continuation/currentState/0/content/4/href"
+      }
     },
     {
       "name": "URL hosts containing markup delimiters are rejected",
@@ -145,7 +309,10 @@
           "value": "https://exa<mple.com"
         }
       ],
-      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+      "expected": {
+        "code": "SCHEMA_FORMAT",
+        "path": "/continuation/currentState/0/content/4/href"
+      }
     },
     {
       "name": "URL values containing NUL are rejected",
@@ -158,14 +325,26 @@
           "value": "https://example.com/\u0000"
         }
       ],
-      "expected": { "code": "SCHEMA_FORMAT", "path": "/continuation/currentState/0/content/4/href" }
+      "expected": {
+        "code": "SCHEMA_FORMAT",
+        "path": "/continuation/currentState/0/content/4/href"
+      }
     },
     {
       "name": "raw HTML is not a content node",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/blocks/3/body/0/type", "value": "rawHtml" }],
-      "expected": { "code": "SCHEMA_CONST", "path": "/blocks/3/body/0/type" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/3/body/0/type",
+          "value": "rawHtml"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_CONST",
+        "path": "/blocks/3/body/0/type"
+      }
     },
     {
       "name": "converted feedback requires a target block",
@@ -193,118 +372,390 @@
       "name": "output paths cannot escape the contract root",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "../private.md" }],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "../private.md"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "Windows drive-qualified output paths are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "C:/private.md" }],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "C:/private.md"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "the current-directory output path is rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/delivery/outputs/agent", "value": "." }],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "."
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing a newline are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\nname.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafe\nname.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing NUL are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u0000name.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafe\u0000name.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing a tab are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\tname.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafe\tname.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing DEL are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u007fname.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafename.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing a C1 control are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u0085name.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafename.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "output paths containing a Unicode line separator are rejected",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/delivery/outputs/agent", "value": "unsafe\u2028name.md" }
+        {
+          "op": "replace",
+          "path": "/delivery/outputs/agent",
+          "value": "unsafe name.md"
+        }
       ],
-      "expected": { "code": "SCHEMA_PATTERN", "path": "/delivery/outputs/agent" }
+      "expected": {
+        "code": "SCHEMA_PATTERN",
+        "path": "/delivery/outputs/agent"
+      }
     },
     {
       "name": "new packets never emit legacy actions",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/decisions/0/action", "value": "TRIM" }],
-      "expected": { "code": "SCHEMA_CONST", "path": "/decisions/0/action" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/decisions/0/action",
+          "value": "TRIM"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_CONST",
+        "path": "/decisions/0/action"
+      }
     },
     {
       "name": "new packets also reject the legacy EXPAND action",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/decisions/0/action", "value": "EXPAND" }],
-      "expected": { "code": "SCHEMA_CONST", "path": "/decisions/0/action" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/decisions/0/action",
+          "value": "EXPAND"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_CONST",
+        "path": "/decisions/0/action"
+      }
     },
     {
       "name": "EDIT requires a note",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "remove", "path": "/decisions/1/note" }],
-      "expected": { "code": "SCHEMA_REQUIRED", "path": "/decisions/1/note" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/decisions/1/note"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/decisions/1/note"
+      }
     },
     {
       "name": "packet high water includes source",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "remove", "path": "/idHighWater/source" }],
-      "expected": { "code": "SCHEMA_REQUIRED", "path": "/idHighWater/source" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/idHighWater/source"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/idHighWater/source"
+      }
     },
     {
       "name": "state cannot claim packet progress authority",
       "schema": "review-state",
       "base": "valid/review-state.json",
-      "mutations": [{ "op": "add", "path": "/progress", "value": { "decided": 2, "total": 4 } }],
-      "expected": { "code": "SCHEMA_ADDITIONAL_PROPERTIES", "path": "/progress" }
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/progress",
+          "value": {
+            "decided": 2,
+            "total": 4
+          }
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_ADDITIONAL_PROPERTIES",
+        "path": "/progress"
+      }
     },
     {
       "name": "state format is exact",
       "schema": "review-state",
       "base": "valid/review-state.json",
-      "mutations": [{ "op": "replace", "path": "/format", "value": "review-state/2" }],
-      "expected": { "code": "SCHEMA_CONST", "path": "/format" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/format",
+          "value": "review-state/2"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_CONST",
+        "path": "/format"
+      }
+    },
+    {
+      "name": "scale rejects a position above the protocol maximum",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/2/body/1/items/0/position",
+          "value": 101
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MAXIMUM",
+        "path": "/blocks/2/body/1/items/0/position"
+      }
+    },
+    {
+      "name": "scale rejects a negative position",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/2/body/1/items/0/position",
+          "value": -1
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MINIMUM",
+        "path": "/blocks/2/body/1/items/0/position"
+      }
+    },
+    {
+      "name": "scale rejects a fractional position",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/2/body/1/items/0/position",
+          "value": 3.5
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_TYPE",
+        "path": "/blocks/2/body/1/items/0/position"
+      }
+    },
+    {
+      "name": "scale rejects a single item",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/2/body/1/items",
+          "value": [
+            {
+              "label": "Only",
+              "position": 5
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MIN_ITEMS",
+        "path": "/blocks/2/body/1/items"
+      }
+    },
+    {
+      "name": "scale rejects an unknown item field",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/blocks/2/body/1/items/0/weight",
+          "value": 3
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_ADDITIONAL_PROPERTIES",
+        "path": "/blocks/2/body/1/items/0/weight"
+      }
+    },
+    {
+      "name": "scale rejects an empty axis label",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/2/body/1/axis/lowLabel",
+          "value": ""
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_MIN_LENGTH",
+        "path": "/blocks/2/body/1/axis/lowLabel"
+      }
+    },
+    {
+      "name": "scale requires an axis",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/blocks/2/body/1/axis"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_REQUIRED",
+        "path": "/blocks/2/body/1/axis"
+      }
+    },
+    {
+      "name": "flow rejects an unknown node kind",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/blocks/1/body/0/nodes/0/kind",
+          "value": "maybe"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_ENUM",
+        "path": "/blocks/1/body/0/nodes/0/kind"
+      }
+    },
+    {
+      "name": "flow rejects an unknown edge kind",
+      "schema": "review-document",
+      "base": "valid/review-document.json",
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/blocks/1/body/0/edges/0/kind",
+          "value": "perhaps"
+        }
+      ],
+      "expected": {
+        "code": "SCHEMA_ENUM",
+        "path": "/blocks/1/body/0/edges/0/kind"
+      }
     }
   ],
   "protocolNegative": [
@@ -312,54 +763,115 @@
       "name": "duplicate block IDs fail in protocol validation",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/blocks/1/id", "value": "B001" }],
-      "expected": { "code": "DUPLICATE_ID", "path": "/blocks/1/id" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/1/id",
+          "value": "B001"
+        }
+      ],
+      "expected": {
+        "code": "DUPLICATE_ID",
+        "path": "/blocks/1/id"
+      }
     },
     {
       "name": "dangling source refs fail in protocol validation",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/evidence/facts/0/sourceRefs/1", "value": "SRC-999" }],
-      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/evidence/facts/0/sourceRefs/1" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/evidence/facts/0/sourceRefs/1",
+          "value": "SRC-999"
+        }
+      ],
+      "expected": {
+        "code": "UNKNOWN_REFERENCE",
+        "path": "/evidence/facts/0/sourceRefs/1"
+      }
     },
     {
       "name": "conflict refs must resolve to evidence items",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/evidence/conflicts/0/itemRefs/2", "value": "D-999" }
+        {
+          "op": "replace",
+          "path": "/evidence/conflicts/0/itemRefs/2",
+          "value": "D-999"
+        }
       ],
-      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/evidence/conflicts/0/itemRefs/2" }
+      "expected": {
+        "code": "UNKNOWN_REFERENCE",
+        "path": "/evidence/conflicts/0/itemRefs/2"
+      }
     },
     {
       "name": "next action IDs are unique",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "copy", "from": "/continuation/nextActions/0", "path": "/continuation/nextActions/-" }
+        {
+          "op": "copy",
+          "from": "/continuation/nextActions/0",
+          "path": "/continuation/nextActions/-"
+        }
       ],
-      "expected": { "code": "DUPLICATE_ID", "path": "/continuation/nextActions/1/id" }
+      "expected": {
+        "code": "DUPLICATE_ID",
+        "path": "/continuation/nextActions/1/id"
+      }
     },
     {
       "name": "BCP-47 structure is checked after the coarse schema gate",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/document/language", "value": "en-abc" }],
-      "expected": { "code": "INVALID_LANGUAGE_TAG", "path": "/document/language" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/document/language",
+          "value": "en-abc"
+        }
+      ],
+      "expected": {
+        "code": "INVALID_LANGUAGE_TAG",
+        "path": "/document/language"
+      }
     },
     {
       "name": "dependency cycles fail in protocol validation",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/blocks/0/dependencies", "value": ["B002"] }],
-      "expected": { "code": "DEPENDENCY_CYCLE", "path": "/blocks/0/dependencies/0" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/0/dependencies",
+          "value": [
+            "B002"
+          ]
+        }
+      ],
+      "expected": {
+        "code": "DEPENDENCY_CYCLE",
+        "path": "/blocks/0/dependencies/0"
+      }
     },
     {
       "name": "frozen blocks require approval history",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "add", "path": "/approvals/currentFrozen/-", "value": "B001" }],
-      "expected": { "code": "FROZEN_WITHOUT_APPROVAL", "path": "/approvals/currentFrozen/0" }
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/approvals/currentFrozen/-",
+          "value": "B001"
+        }
+      ],
+      "expected": {
+        "code": "FROZEN_WITHOUT_APPROVAL",
+        "path": "/approvals/currentFrozen/0"
+      }
     },
     {
       "name": "a frozen block approval digest must match its current content",
@@ -375,7 +887,11 @@
             "approvedContentDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
           }
         },
-        { "op": "add", "path": "/approvals/currentFrozen/-", "value": "B004" }
+        {
+          "op": "add",
+          "path": "/approvals/currentFrozen/-",
+          "value": "B004"
+        }
       ],
       "expected": {
         "code": "APPROVAL_DIGEST_MISMATCH",
@@ -396,70 +912,148 @@
             "approvedContentDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
           }
         },
-        { "op": "add", "path": "/approvals/currentFrozen/-", "value": "B004" }
+        {
+          "op": "add",
+          "path": "/approvals/currentFrozen/-",
+          "value": "B004"
+        }
       ],
-      "expected": { "code": "FUTURE_APPROVAL", "path": "/approvals/history/0/approvedRound" }
+      "expected": {
+        "code": "FUTURE_APPROVAL",
+        "path": "/approvals/history/0/approvedRound"
+      }
     },
     {
       "name": "table rows must match header width",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "remove", "path": "/blocks/0/body/0/rows/0/1" }],
-      "expected": { "code": "TABLE_WIDTH_MISMATCH", "path": "/blocks/0/body/0/rows/0" }
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "/blocks/0/body/0/rows/0/1"
+        }
+      ],
+      "expected": {
+        "code": "TABLE_WIDTH_MISMATCH",
+        "path": "/blocks/0/body/0/rows/0"
+      }
     },
     {
       "name": "flow edges must reference local nodes",
       "schema": "review-document",
       "base": "valid/review-document.json",
-      "mutations": [{ "op": "replace", "path": "/blocks/1/body/0/edges/0/to", "value": "missing" }],
-      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/blocks/1/body/0/edges/0/to" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/blocks/1/body/0/edges/0/to",
+          "value": "missing"
+        }
+      ],
+      "expected": {
+        "code": "UNKNOWN_REFERENCE",
+        "path": "/blocks/1/body/0/edges/0/to"
+      }
     },
     {
       "name": "term refs must reference the glossary",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/continuation/currentState/0/content/5/glossaryId", "value": "G-999" }
+        {
+          "op": "replace",
+          "path": "/continuation/currentState/0/content/5/glossaryId",
+          "value": "G-999"
+        }
       ],
-      "expected": { "code": "UNKNOWN_REFERENCE", "path": "/continuation/currentState/0/content/5/glossaryId" }
+      "expected": {
+        "code": "UNKNOWN_REFERENCE",
+        "path": "/continuation/currentState/0/content/5/glossaryId"
+      }
     },
     {
       "name": "packet progress is derived from decisions",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/progress/decided", "value": 3 }],
-      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/progress/decided" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/progress/decided",
+          "value": 3
+        }
+      ],
+      "expected": {
+        "code": "DERIVED_VALUE_MISMATCH",
+        "path": "/progress/decided"
+      }
     },
     {
       "name": "packet partial is derived from decided and total",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/progress/partial", "value": true }],
-      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/progress/partial" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/progress/partial",
+          "value": true
+        }
+      ],
+      "expected": {
+        "code": "DERIVED_VALUE_MISMATCH",
+        "path": "/progress/partial"
+      }
     },
     {
       "name": "packet action stats are derived from decisions",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/stats/PASS", "value": 2 }],
-      "expected": { "code": "DERIVED_VALUE_MISMATCH", "path": "/stats/PASS" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/stats/PASS",
+          "value": 2
+        }
+      ],
+      "expected": {
+        "code": "DERIVED_VALUE_MISMATCH",
+        "path": "/stats/PASS"
+      }
     },
     {
       "name": "a block can have only one current packet decision",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
-      "mutations": [{ "op": "replace", "path": "/decisions/1/blockId", "value": "B001" }],
-      "expected": { "code": "DUPLICATE_DECISION", "path": "/decisions/1/blockId" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/decisions/1/blockId",
+          "value": "B001"
+        }
+      ],
+      "expected": {
+        "code": "DUPLICATE_DECISION",
+        "path": "/decisions/1/blockId"
+      }
     },
     {
       "name": "frozen-carried and reopened packet sets are disjoint",
       "schema": "review-packet",
       "base": "valid/review-packet.json",
       "mutations": [
-        { "op": "add", "path": "/frozenCarried/-", "value": "B004" },
-        { "op": "add", "path": "/reopened/-", "value": "B004" }
+        {
+          "op": "add",
+          "path": "/frozenCarried/-",
+          "value": "B004"
+        },
+        {
+          "op": "add",
+          "path": "/reopened/-",
+          "value": "B004"
+        }
       ],
-      "expected": { "code": "FROZEN_REOPENED_OVERLAP", "path": "/reopened/0" }
+      "expected": {
+        "code": "FROZEN_REOPENED_OVERLAP",
+        "path": "/reopened/0"
+      }
     },
     {
       "name": "packet review digest binds the exact source document",
@@ -480,7 +1074,10 @@
           "mutations": []
         }
       ],
-      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/reviewDigest" }
+      "expected": {
+        "code": "IDENTITY_MISMATCH",
+        "path": "/doc/reviewDigest"
+      }
     },
     {
       "name": "TOPIC decisions require one same-source topic",
@@ -493,14 +1090,26 @@
           "value": "TOP-999"
         }
       ],
-      "expected": { "code": "TOPIC_MAPPING_MISMATCH", "path": "/decisions/2/topicId" }
+      "expected": {
+        "code": "TOPIC_MAPPING_MISMATCH",
+        "path": "/decisions/2/topicId"
+      }
     },
     {
       "name": "state identity must match the loaded document",
       "schema": "review-state",
       "base": "valid/review-state.json",
-      "mutations": [{ "op": "replace", "path": "/doc/id", "value": "RD-EEEEEEEEEEEEEEEEEEEE" }],
-      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/id" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/doc/id",
+          "value": "RD-EEEEEEEEEEEEEEEEEEEE"
+        }
+      ],
+      "expected": {
+        "code": "IDENTITY_MISMATCH",
+        "path": "/doc/id"
+      }
     },
     {
       "name": "state review digest binds the exact source document",
@@ -521,21 +1130,37 @@
           "mutations": []
         }
       ],
-      "expected": { "code": "IDENTITY_MISMATCH", "path": "/doc/reviewDigest" }
+      "expected": {
+        "code": "IDENTITY_MISMATCH",
+        "path": "/doc/reviewDigest"
+      }
     },
     {
       "name": "state high water cannot regress",
       "schema": "review-state",
       "base": "valid/review-state.json",
-      "mutations": [{ "op": "replace", "path": "/idHighWater/block", "value": 3 }],
-      "expected": { "code": "HIGH_WATER_REGRESSION", "path": "/idHighWater/block" }
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/idHighWater/block",
+          "value": 3
+        }
+      ],
+      "expected": {
+        "code": "HIGH_WATER_REGRESSION",
+        "path": "/idHighWater/block"
+      }
     },
     {
       "name": "consumed packet history preserves the prior append-only prefix",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/document/round", "value": 3 },
+        {
+          "op": "replace",
+          "path": "/document/round",
+          "value": 3
+        },
         {
           "op": "replace",
           "path": "/lineage/previousReviewDigest",
@@ -556,7 +1181,11 @@
           "schema": "review-document",
           "base": "valid/review-document.json",
           "mutations": [
-            { "op": "replace", "path": "/document/round", "value": 2 },
+            {
+              "op": "replace",
+              "path": "/document/round",
+              "value": 2
+            },
             {
               "op": "replace",
               "path": "/lineage/previousReviewDigest",
@@ -573,14 +1202,21 @@
           ]
         }
       ],
-      "expected": { "code": "APPEND_ONLY_VIOLATION", "path": "/lineage/consumedPackets/0" }
+      "expected": {
+        "code": "APPEND_ONLY_VIOLATION",
+        "path": "/lineage/consumedPackets/0"
+      }
     },
     {
       "name": "feedback resolution history preserves the prior append-only prefix",
       "schema": "review-document",
       "base": "valid/review-document.json",
       "mutations": [
-        { "op": "replace", "path": "/document/round", "value": 3 },
+        {
+          "op": "replace",
+          "path": "/document/round",
+          "value": 3
+        },
         {
           "op": "add",
           "path": "/lineage/consumedPackets/-",
@@ -596,7 +1232,11 @@
           "schema": "review-document",
           "base": "valid/review-document.json",
           "mutations": [
-            { "op": "replace", "path": "/document/round", "value": 2 },
+            {
+              "op": "replace",
+              "path": "/document/round",
+              "value": 2
+            },
             {
               "op": "add",
               "path": "/lineage/consumedPackets/-",
@@ -619,7 +1259,10 @@
           ]
         }
       ],
-      "expected": { "code": "APPEND_ONLY_VIOLATION", "path": "/lineage/feedbackResolutions/0" }
+      "expected": {
+        "code": "APPEND_ONLY_VIOLATION",
+        "path": "/lineage/feedbackResolutions/0"
+      }
     },
     {
       "name": "feedback resolutions bind a consumed source packet",

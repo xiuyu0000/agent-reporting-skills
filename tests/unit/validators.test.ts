@@ -103,6 +103,39 @@ describe("delivery business gate", () => {
     paragraph.content.push({ type: "link", text: "unsafe", href: "javascript:alert(1)" });
     expect(errorCodes(validateDeliverableDocument(unsafeLink))).toContain("SCHEMA_FORMAT");
 
+    // A scale item's note is inline content too, so it must fail closed the
+    // same way; the traversal for it is a separate branch from the paragraph's.
+    const unsafeScaleNote = reviewDocumentFixture();
+    unsafeScaleNote.blocks[0]?.body.push({
+      type: "scale",
+      title: "Carrier strength",
+      description: "How reliably each carrier holds a rule.",
+      axis: { lowLabel: "weakest", highLabel: "strongest" },
+      items: [
+        { label: "Spoken", position: 5 },
+        {
+          label: "Checked",
+          position: 95,
+          note: [{ type: "link", text: "unsafe", href: "javascript:alert(1)" }],
+        },
+      ],
+    });
+    expect(errorCodes(validateDeliverableDocument(unsafeScaleNote))).toContain("SCHEMA_FORMAT");
+
+    // And an unknown glossary reference inside that same note.
+    const danglingTerm = reviewDocumentFixture();
+    danglingTerm.blocks[0]?.body.push({
+      type: "scale",
+      title: "Carrier strength",
+      description: "How reliably each carrier holds a rule.",
+      axis: { lowLabel: "weakest", highLabel: "strongest" },
+      items: [
+        { label: "Spoken", position: 5 },
+        { label: "Checked", position: 95, note: [{ type: "termRef", glossaryId: "G-999" }] },
+      ],
+    });
+    expect(errorCodes(validateDeliverableDocument(danglingTerm))).toContain("UNKNOWN_REFERENCE");
+
     const privateDocument = reviewDocumentFixture();
     privateDocument.evidence.risks.push(["Author", "ization: Bearer abcdefghijk"].join(""));
     expect(errorCodes(validateDeliverableDocument(privateDocument))).toContain("PRIVACY_VIOLATION");

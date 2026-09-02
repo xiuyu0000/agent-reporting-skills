@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
+import { validateReviewDocument, type ReviewDocumentV1 } from "../../src/protocol/index.js";
 
 interface WorkflowFixture {
   readonly verificationScope: string;
@@ -15,6 +16,7 @@ const skillPath = resolve(skillRoot, "SKILL.md");
 const protocolPath = resolve(skillRoot, "references/review-protocols.md");
 const audiencePath = resolve(skillRoot, "references/audience-contracts.md");
 const evidencePath = resolve(skillRoot, "references/evidence-and-privacy.md");
+const examplesPath = resolve(skillRoot, "references/approval-writing-examples.md");
 const agentTemplatePath = resolve(skillRoot, "assets/agent-context.template.md");
 const fixturePath = resolve("tests/fixtures/skill-workflow/cases.json");
 
@@ -88,10 +90,12 @@ describe("SKL-002 Skill workflow surface", () => {
       readFile(protocolPath, "utf8"),
       readFile(audiencePath, "utf8"),
       readFile(evidencePath, "utf8"),
+      readFile(examplesPath, "utf8"),
     ]);
     const expectedDirectTargets = [
       "references/review-protocols.md",
       "references/audience-contracts.md",
+      "references/approval-writing-examples.md",
       "references/evidence-and-privacy.md",
       "references/review-document.schema.json",
       "references/review-packet.schema.json",
@@ -207,6 +211,92 @@ describe("SKL-002 Skill workflow surface", () => {
     expect(corpus).toMatch(/reopen.*preserv.*approval history/iu);
     expect(corpus).toMatch(/consume.*already authored/iu);
     expect(corpus).toMatch(/do not authorize changes to external systems/iu);
+  });
+
+  it("ships only worked examples the CLI actually accepts", async () => {
+    // Authors copy these verbatim. A snippet the schema rejects is worse than
+    // no example: it teaches a shape the CLI refuses.
+    const examples = await readFile(examplesPath, "utf8");
+    const snippets = [...examples.matchAll(/```json\n([\s\S]*?)```/gu)]
+      .map((match) => match[1] ?? "");
+    expect(snippets.length).toBeGreaterThanOrEqual(6);
+
+    const base = JSON.parse(
+      await readFile(resolve("tests/fixtures/schemas/valid/review-document.json"), "utf8"),
+    ) as ReviewDocumentV1;
+
+    for (const [index, snippet] of snippets.entries()) {
+      const parsed = JSON.parse(snippet) as Record<string, unknown>;
+      const candidate = structuredClone(base);
+      const block = candidate.blocks[0];
+      expect(block, `snippet ${index}`).toBeDefined();
+      if (!block) continue;
+      if (typeof parsed.type === "string") {
+        block.body = [parsed as unknown as ReviewDocumentV1["blocks"][number]["body"][number]];
+      } else {
+        // The termRef pair carries a glossary entry, a body and an `ask`.
+        // Append rather than replace: the fixture's own term references must
+        // keep resolving, or the splice invents failures the snippet has not.
+        const glossary = parsed.glossary as ReviewDocumentV1["glossary"] | undefined;
+        if (glossary !== undefined) {
+          candidate.glossary = [...candidate.glossary, ...glossary];
+          candidate.lineage.idHighWater.glossary = Math.max(
+            candidate.lineage.idHighWater.glossary,
+            ...candidate.glossary.map((entry) => Number(entry.id.replace(/\D+/gu, "")) || 0),
+          );
+        }
+        block.body = parsed.body as ReviewDocumentV1["blocks"][number]["body"];
+        if (typeof parsed.ask === "string" && block.tier === "T2") block.ask = parsed.ask;
+      }
+      const result = validateReviewDocument(candidate);
+      const codes = result.ok ? [] : result.errors.map((error) => `${error.code} ${error.path}`);
+      expect(codes, `snippet ${index}: ${snippet.slice(0, 60)}`).toEqual([]);
+    }
+  });
+
+  it("keeps the plain-language rules triggerable, carrier-typed, and example-backed", async () => {
+    const skill = await readFile(skillPath, "utf8");
+    const body = normalizeWhitespace(bodyOf(skill));
+    const audience = normalizeWhitespace(await readFile(audiencePath, "utf8"));
+    const examples = normalizeWhitespace(await readFile(examplesPath, "utf8"));
+
+    // The writing stage must route to the writing rules, not only the check stage.
+    expect(body).toMatch(/audience-contracts\.md.*before writing block bodies/iu);
+    expect(body).toMatch(/name the relationship it expresses and choose its carrier/iu);
+
+    // A carrier table with a positive trigger, not a permission ceiling.
+    expect(audience).toMatch(/Choose the carrier before writing the prose/iu);
+    expect(audience).toMatch(/Prose is the carrier of last resort/iu);
+    for (const carrier of ["`steps`", "`table`", "`flow`", "`callout`", "`code`"]) {
+      expect(audience, carrier).toContain(carrier);
+    }
+
+    // The countable defect trigger, and the clause that keeps it spec-compatible:
+    // structure is mandated, a picture never is (spec §7.2).
+    expect(audience).toMatch(/defective when all three hold/iu);
+    expect(audience).toMatch(/A diagram is never required/iu);
+
+    // Term binding, including the plain-string fields that cannot carry a termRef.
+    expect(audience).toMatch(/bare professional term with no glossary link is a defect/iu);
+    expect(audience).toMatch(/plain strings and cannot carry a .*termRef/iu);
+    expect(audience).toMatch(/`ask`.*one sentence the reviewer must answer/iu);
+
+    // Flow authoring: takeaway description, reader-facing labels.
+    expect(audience).toMatch(/description.*as the takeaway/iu);
+    expect(audience).toMatch(/never a block id or an internal code name/iu);
+
+    // Reader isolation is a fixed question set with a recorded outcome.
+    expect(audience).toMatch(/what is being decided overall/iu);
+    expect(audience).toMatch(/what happens if the answer is yes/iu);
+    expect(audience).toMatch(/which terms could you not define/iu);
+    expect(audience).toMatch(/continuation\.validationEvidence/iu);
+
+    // Worked examples exist for every carrier the table names.
+    expect(examples).toMatch(/Ordered actions become steps/iu);
+    expect(examples).toMatch(/Compared options become a table/iu);
+    expect(examples).toMatch(/A branch becomes a flow/iu);
+    expect(examples).toMatch(/A professional term becomes a termRef/iu);
+    expect(examples).toMatch(/Defects to recognise/iu);
   });
 
   it("requires current output confirmation, complete split handoff, and four-class disclosure", async () => {

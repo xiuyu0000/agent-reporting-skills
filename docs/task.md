@@ -5,9 +5,9 @@
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
 > - 当前波次：W7 · 真实试点与指标验证（PIL-001 于 2026-08-20 `done`：一个经用户确认真实且有用的案例完成完整闭环，validation=pass，内容保持私有；MET-001 `deferred` 等待 3–5 份合格样本）
 > - 协调者：主实施 Agent
-> - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
+> - 最后更新：2026-09-02（新增 W23：UI-008 流程图布局重写、UI-009 术语预览脱离裁剪容器、CTR-003 内容模型补 `scale` 与 flow `kind`、SKL-004 写作规范可执行化，REL-009 重切候选；需求条款未变更，spec 摘要不变）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`（2026-08-20 W17 修订 §11.3 术语交互后重算；2026-08-19 W15 值为 `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871`）
+> - Design 基线：`docs/design.md` · SHA-256 `a6d55c85d4c3e45a955fd7c76da6992647d11708643c99b065989503799eb63b`（2026-09-02 W23 补录 DES-020 并修订 §7.3/§11.3 后重算；2026-08-20 W17 值为 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -224,6 +224,7 @@ flowchart TD
 | W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
 | W17 | UI-007 术语交互简化；REL-007 收口重切 | 单线程；写 workbench 渲染器与测试 | termRef 单锚点（悬停预览 + 点击跳附录）；三浏览器全绿；候选重建 |
 | W19 | SKL-003 跨平台可用性与使用指南；REL-008 收口重切 | 单线程；写 SKILL frontmatter、README、docs 指南与测试钉点 | 四平台机制经文档+本机实测核对；官方验证器通过；候选重建 |
+| W23 | UI-008、UI-009 先行并实测字节余量；CTR-003 按余量决定范围；SKL-004 并行；REL-009 收口重切 | 单线程；写 `src/workbench/**`、`src/protocol/**`、公共 Schema、Skill 写作规范与测试 | 三张用户截图场景逐一消除且有变异验证；三浏览器全绿；字节门未放宽；候选重建 |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -284,6 +285,11 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | REL-007 | 按 W17 重切候选并重新绑定摘要 | UI-007 | release | `done` | w17_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 | SKL-003 | Skill 可被 Claude Code/Cowork/Codex/Kimi 使用并有使用指南 | REL-007 | surface | `done` | w19_surface Agent | SKILL frontmatter、`docs/platform-usage.md`、README、skill-workflow 测试钉点 | 官方验证器 + 四平台核对 |
 | REL-008 | 按 W19 重切候选并重新绑定摘要 | SKL-003 | release | `done` | w19_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
+| UI-008 | flow 布局与标签放置消除确定性重叠 | REL-008 | ui | `done` | w23 Agent | `src/workbench/flow-layout.ts`（新增）、`flow-renderer.ts`、`shell.ts`、flow-layout/renderer 测试 | A19；用户 2026-09-02 反馈 2 |
+| UI-009 | 术语定义预览脱离一切滚动裁剪容器 | REL-008 | ui | `done` | w23 Agent | `src/workbench/term-tip.ts`（新增）、`interactions.ts`、`shell.ts`、workbench-render 测试 | A19/A20；用户 2026-09-02 反馈 3 |
+| CTR-003 | 内容模型补 `scale` 节点与 flow `kind`，扩表达力 | UI-008 | protocol | `done` | w23 Agent | 公共 Schema、生成物、`invariants.ts`、`document-content.ts`、renderer/generator/i18n、schema 与 renderer 测试 | Design §7.3/§13.2；用户 2026-09-02 反馈 2 |
+| SKL-004 | 写作规范以载体选择作强制触发，并配工作示例 | REL-008 | surface | `done` | w23 Agent | `SKILL.md`、`references/{audience-contracts,approval-writing-examples}.md`、release SKILL_FILES、skill-workflow 测试 | Spec §7.2；用户 2026-09-02 反馈 1 |
+| REL-009 | 按 W23 重切候选并重新绑定摘要 | UI-008、UI-009、CTR-003、SKL-004 | release | `done` | w23 Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 与 installed-skill 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1342,6 +1348,83 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：新候选 ZIP 为 974657 bytes、SHA-256 `0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7`；manifest SHA-256 `0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5`；entryCount 仍为 11。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-007 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本已同步为本候选。
 - **Blocker / unblock**：无。
 
+### UI-008 · flow 布局与标签避让
+
+- **状态 / owner_role / owner / last_updated**：`done` / UI engineer / w23 Agent / 2026-09-02
+- **Outcome**：flow 图不再出现确定性的标签重叠。节点按边集分层而不是按数组下标摆放，跨层边与回边绕列侧走，边标签在自身路径法向上做避让搜索，`viewBox` 由成品几何测得。
+- **Depends on / unlocks**：REL-008 / CTR-003、REL-009。
+- **Parallel / conflicts**：与 UI-009 共写 `shell.ts`，串行合并；不与 CTR-003 并行（同写 flow-renderer）。
+- **Write scope**：`src/workbench/flow-layout.ts`（新增）、`src/workbench/flow-renderer.ts`、`src/workbench/shell.ts` 的 `.flow*` 规则、`tests/unit/flow-layout.test.ts`（新增）、`tests/unit/content-renderer.test.ts`、`tests/browser/workbench-render.spec.ts`。
+- **Refs**：Design DES-020、§7.3、§11.3；Spec §7.2、§13.5；[viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md) §6 阶段 1。
+- **Implementation contract**：几何全部为纯算术，不调用任何浏览器测量 API——单元测试的 DOM 桩没有 `getBBox`/`getComputedTextLength`。文字替代改用节点 label 而非本地 id（消除与 Design §11.3/§7.3 的既有背离）。不新增 `:root` token，不改 §11.8 的任何条目。过长边标签在图上省略，原串完整保留在文字清单与 `<title>`。
+- **Failure rules**：任一几何不变量（标签互不相交、标签不压节点框、标签不落在他边路径上、每边一条独立路径）被破坏即失败；不得以放宽断言代替修复。
+- **Validation**：
+
+  ```bash
+  npx vitest run --project unit tests/unit/flow-layout.test.ts
+  npm run test:browser -- --project=chromium
+  npm run check:bundle-size
+  ```
+
+- **Completion evidence**：新增 69 条几何不变量断言，覆盖用户报告的七节点图、互逆边、平行边、跨层边、同层双自环、超长 CJK 标签、无源纯环与单节点。双向变异验证：关闭避让搜索后 7 条失败，改回按下标分列的旧布局后 5 条失败，还原后 69/69 通过。真实 Chromium 实测同一张图 7 标签 0 冲突、0 `crowded`，`viewBox` 由固定 720 变为按内容测得（链式图 < 320，窄视口缩放不再把标签压到不可读）。
+- **Blocker / unblock**：无。
+
+### UI-009 · 术语预览脱离滚动裁剪容器
+
+- **状态 / owner_role / owner / last_updated**：`done` / UI engineer / w23 Agent / 2026-09-02
+- **Outcome**：术语定义预览在表格、代码块、侧栏与折叠上下文区内均完整可见。
+- **Depends on / unlocks**：REL-008 / REL-009。
+- **Parallel / conflicts**：与 UI-008 共写 `shell.ts`，串行合并。
+- **Write scope**：`src/workbench/term-tip.ts`（新增）、`src/workbench/interactions.ts` 的挂载点、`src/workbench/shell.ts` 的 `.term-tip` 规则、`tests/browser/workbench-render.spec.ts`。
+- **Refs**：Design DES-020、§11.3；Spec §7.2 第 159 行、§13.5；[viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md) §2.2、§6 阶段 1。
+- **Implementation contract**：预览挂在 `<body>` 上并 `position:fixed`，支持时叠加 `popover` 进入 top layer。定位由脚本计算，不使用 CSS anchor positioning（三引擎矩阵里只有 Chromium 支持）。`a.term-ref` 的 `data-tip` 属性与 `.table-region` 的 `overflow-x:auto`、`tabindex=0` 全部保留——Design §11.3 要求宽表只在自身可聚焦容器内横向滚动。预览随锚点滚动重定位而不是一律隐藏：一律隐藏会与页面的平滑锚点滚动竞争。
+- **Failure rules**：预览被任一祖先裁剪、超出视口、不可命中、`Esc` 吞掉块级键盘契约，或表格失去自身横向滚动，均为失败。
+- **Validation**：
+
+  ```bash
+  npm run test:browser -- --project=chromium
+  npm run test:browser -- --project=webkit
+  npm run test:browser -- --project=firefox
+  ```
+
+- **Completion evidence**：新增浏览器断言对表头首行与表体首行两个位置各取九点命中测试，三引擎均 9/9 命中且完整落在视口内，`aria-describedby` 正确绑定，`Esc` 关闭，表格仍 `tabindex=0`。宿主 CPU 饱和下三引擎各三次复跑全通过。顺带闭合了旧实现不满足的 WCAG 2.1 SC 1.4.13（原 `pointer-events:none` 且无 `Esc`）。[local-development.md](local-development.md) §5.1 记录的 termRef 跳转竞态与本项无关：带本改动 12/12 通过、去掉本改动 10/12 通过，属既有产品竞态，本轮未修。
+- **Blocker / unblock**：无。
+
+### CTR-003 · 内容模型补 `scale` 与 flow `kind`
+
+- **状态 / owner_role / owner / last_updated**：`done` / protocol engineer / w23 Agent / 2026-09-02
+- **Outcome**：审批面多出一种可视形态（强弱阶梯／光谱／占比），流程图节点与边可以声明语义类型。
+- **Depends on / unlocks**：UI-008 / REL-009。
+- **Parallel / conflicts**：独占公共 Schema 与生成物；不与 UI-008 并行。
+- **Write scope**：`skills/**/references/review-document.schema.json`、`src/protocol/{types,schema,schema.browser}.generated.ts`、`src/protocol/invariants.ts`、`src/cli/validate/document-content.ts`、`src/workbench/{content-renderer,flow-layout,flow-renderer,i18n,shell}.ts`、`src/generators/markdown.ts`、schema 与 renderer 夹具/测试。
+- **Refs**：Design DES-020、§7.3、§13.2「新增节点必须同时增加 Schema、renderer、a11y 文本、正反夹具和浏览器测试」；[viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md) §3.5、§6 阶段 3。
+- **Implementation contract**：全部字段可选或全新，`/1` 内加法；旧 `/1` 校验器遇未知 `type` 在 `oneOf` 每个分支上失败关闭，只会拒收不会误读。Design §7.1 原本禁止给 `/1` 封闭对象增加任何字段，本轮按用户批准把该禁令收窄为「不得增加**必填**字段」并在该节记录理由与原文；向前的版本偏斜必须在 handoff §1 显式声明，不得只留在变更请求里。`scale` 渲染为真实文本加成比例条，可见 DOM 即等价文字，颜色与长度都不单独承义。渲染器不做数字或本地化格式化，`display` 由作者给出以保持字节确定。新节点必须登记进 `document-content.ts` 的内容遍历——其终结 `else` 分支默认节点是 flow，漏登记会同时逃过内部链接检查与占位符检查。
+- **Failure rules**：字节门不得放宽；穷尽 switch 有任一遗漏、或 `ContentNode` 新成员未进入 CLI 遍历，即为失败。
+- **Completion evidence**：`ContentNode` 由 7 个成员增至 8 个。实测成本：flow `kind` 两个可选枚举 2068 字节；`scale` 9007 字节，其中 6775 字节仅来自「成为 `ContentNode` 联合成员」这一事实（Ajv 在每个 ContentNode 使用点复制联合判别），`note: InlineNode[]` 只占 357 字节。因此原计划的第二个节点（选项对比矩阵 `matrix`）**未实施**：任何新成员的地板价约 6.8 KB，落地后余量 1840 字节，装不下。该项作为已登记的延后项，需用户就字节门另行裁决。
+- **Blocker / unblock**：无；`matrix` 延后，理由见上。
+
+### SKL-004 · 写作规范可执行化
+
+- **状态 / owner_role / owner / last_updated**：`done` / surface engineer / w23 Agent / 2026-09-02
+- **Outcome**：直白语言规范从「有强制措辞、无触发条件」变为「有可判定触发条件、有载体选择表、有工作示例、有回归钉点」。
+- **Depends on / unlocks**：REL-008 / REL-009。
+- **Parallel / conflicts**：只写 Skill 文本与测试；与 UI/CTR 无写入交集。
+- **Write scope**：`skills/**/SKILL.md`、`references/audience-contracts.md`、`references/approval-writing-examples.md`（新增）、`tools/release-build.mjs` 的 `SKILL_FILES`、`tests/unit/{skill-workflow,claude-handoff}.test.ts`、`tests/e2e/installed-skill.test.ts`。
+- **Refs**：Spec §7.2 第 158/161 行；W15/UI-006 先例（新增强制写作规则未改 spec）；[viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md) §2.3、§3.4 红线 L4、§6 阶段 2。
+- **Implementation contract**：规则只强制**结构**，绝不强制**图**——spec §7.2「不要求每个复杂块强制配图」精确禁止「∀ 复杂块 → 含图」这一形状。每条新规则须通过一道检查：合规作者是否仍可交付一个没有图的复杂块。修复阶段门错位：`audience-contracts.md` 原本只在「检查产物」阶段被读到，而全部写作规则都住在其中。
+- **Failure rules**：任一新规则没有对应的 `skill-workflow` 正则钉点即失败；`SKILL.md` 正文超过 500 行、frontmatter 非逐字节一致、参考文件出现本地 Markdown 链接均失败。
+- **Completion evidence**：新增载体选择表（五种关系→五种载体）、可数缺陷触发条件（仅 paragraph/list + 超四句或 80 显示列 + 含表中关系）、termRef 字段边界（列出十类不能承载 termRef 的纯字符串字段）、flow 两个必填串的写法、四问读者隔离题集与 `validationEvidence` 记录要求，以及一份含五组「散文→结构」对照与七条缺陷清单的新参考文件。全部由 `tests/unit/skill-workflow.test.ts` 的新增断言组钉住。分发条目由 11 增至 12，`release-build.mjs`、`claude-handoff.test.ts` 与 `installed-skill.test.ts` 同步。
+- **Blocker / unblock**：无。
+
+### REL-009 · W23 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w23 Agent / 2026-09-02
+- **Outcome**：候选按 W23 的 workbench、协议与 Skill 变更重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-008 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 1021851 bytes、SHA-256 `c607212389ff233c0ec69fadc722b235190ac94d11d45cfdb63c92556c1a4b9b`；manifest SHA-256 `50fecddd6a0f699d3c42fa9793eb567920f1b7c600f179d76a36121ed517cbb3`；entryCount 由 11 增至 12（新增 `references/approval-writing-examples.md`）。工作台 shell 391376/393216 字节，字节门未放宽。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`。
+- **Blocker / unblock**：本机安装副本尚未同步为本候选（需用户授权后执行）。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1491,3 +1574,20 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-23 的 W20 记录（仓库卫生与本地验证环境，无产品字节变更）：用户明确授权本轮修改 `.gitignore`——该文件按本文 §1.3 与 §7 归用户所有、实施任务一律禁改，此处依 [README.md](README.md) §2 的权威顺序（用户当前明确指令优先于规划文档）执行，规则本身不放宽。(1) `.gitignore` 此前只有 6 条，工具链产出的 `node_modules/`、`build/`、`coverage/`、`test-results/` 四个目录既未跟踪也未忽略，导致任何一次 `npm ci`、`npm run build`、`npm run test:coverage` 或 `npm run test:browser` 之后 [claude-code-handoff.md](claude-code-handoff.md) §6.2 的预检 `test -z "$(git status --porcelain)"` 必然失败。四者的产出点分别是 `npm ci`、`tools/build.mjs:28`、Vitest 覆盖率默认目录与 `playwright.config.ts` 的 `outputDir`，已逐条溯源而非猜测；`.tsbuildinfo`、`playwright-report/`、`blob-report/` 在本仓库配置下不会产生，故不加投机条目。(2) 顺带修正 `dist/` 的一条遗留规则：裸 `dist/` 来自初始提交 `03fc118`（v0.1 时期，彼时 dist 下没有任何跟踪文件），而 v0.2 的 ZIP 与 manifest 是 force-add 进来的跟踪交付物，于是「新构建出来的发布产物对 `git status` 不可见」。改为 `dist/*` 加 `!dist/*.zip`、`!dist/*.manifest.json`，已实测：三个既有跟踪文件不受影响，新出现的 `dist/*.zip` 可见，`dist/.release-txn` 等中间产物仍被忽略；忽略规则从不作用于已跟踪路径，`.github/workflows/validate.yml` 的 `git ls-files --error-unmatch` 与 `git diff --exit-code` 两道发布门行为不变。(3) 新增 [local-development.md](local-development.md) 记录本地工具链版本、一次性准备命令、门禁跑法，以及两条已实测的执行事实：Node 解析（版本管理器默认版本落在合同区间之外时，仓库外目录会拿到低版本，而 design §16 已把该控制手段定为安装文档与 preflight、CLI 不做运行时硬拦截，故只在环境侧收口）与 §5.1 的浏览器竞态。(4) §5.1 是一条**记录未修复**项：三引擎合并跑且宿主 CPU 饱和时 `@A19` 的 termRef 跳转断言失败；实测排除了「断言超时太短」（提到 15s 仍轮询 34 次不落点）与「focus/keypress 拆分投错元素」（改 `locator.press` 仍复现）两种解释，失败点直读 DOM 显示 `location.hash` 已正确、目标可见未隐藏，但页面停在 `scrollY=581`（应约 2050）且焦点被重置到 `BODY`，指向审批台焦点/重绘逻辑与浏览器锚点平滑滚动相互竞争。修复要动 `src/workbench/`，属产品变更须另立波次并重切候选，本轮不改测试、不改 `playwright.config.ts`，以免用超时或 retry 掩盖产品侧竞态。CI 不受影响（三引擎本就分 job 分容器）。本轮改动集合为 `.gitignore`、`docs/README.md`、`docs/task.md`（本记录）、`docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）与新增的 `docs/local-development.md`；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。本分支在 W19/PR #79 合入后重基到其之上，冲突只出现在三处「双方各自追加」的文档位置（索引表行、波次记录、task.md 摘要行），已按保留双方并重算摘要的方式收敛；同时补上 W19 在 [README.md](README.md) §3 缺失的波次条目，使三份文档回到 §6.3 要求的一致状态。
 
 2026-08-29 的 W22 记录（文档订正，无产品字节变更）：[platform-usage.md](platform-usage.md) §5 关于 Codex 安装路径的表述与 Codex 现状相反，按用户 2026-08-24 在 CLI 0.150.1（指南原文写于 0.148）上采集的证据订正。原文把 `~/.agents/skills/` 定为推荐目录、把 `~/.codex/skills/` 写成“仍被兼容读取，但属遗留路径”。证据反驳该定性：(1) Codex 自带的 skill-installer 系统技能位于 `~/.codex/skills/.system/skill-installer/SKILL.md`，其「Behavior and Options」逐字声明 “Installs into `$CODEX_HOME/skills/<skill-name>` (defaults to `~/.codex/skills`).”，即该目录正是 Codex 第一方安装器今天的落点，不是遗留面；(2) 两个目录都被真实扫描——装在 `~/.codex/skills/deliver-dual-audience-report` 的技能与临时放在 `~/.agents/skills/zz-interop-probe/SKILL.md` 的探针技能出现在同一次 `codex exec` 的技能清单里，两个探针随后清理；(3) `codex features list` 显示 `skill_search` 与 `skill_mcp_dependency_install` 均为 `stable`/`true`；(4) 新装技能未重启任何进程即被列出，所以原文的“改后需重启”只对 `~/.codex/config.toml` 的 `[[skills.config]]` 开关成立，不适用于新增技能目录。本轮据此把 §5 的安装段改为并列呈现两条现行受支持路径并给出各自的选择条件（只用 Codex 或与其安装器保持一致选前者；要让一份安装同时服务 Codex 与 Kimi 选后者），保留「不要在两个目录里同时放同名技能」的原有警告，把重启说明收窄到配置开关，并把 §5 的实测记录改为 2026-08-20/0.148 与 2026-08-24/0.150.1 两条并存。证据 (1) 与 (3) 已在本轮由协调者在本机复核（`codex --version` 为 0.150.1，installer 文本与 features 输出逐字一致）；(2) 与 (4) 的探针已清理，按用户采集记录采信。本轮改动集合为 `docs/platform-usage.md`（仅 §5）、`docs/README.md`（§1 最后更新与 §3 波次条目）、`docs/task.md`（本记录）与 `docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。指南 §8 故障排查表里仍写着“遗留 `~/.codex/skills/`”，因用户本轮明确限定只改 §5 而未一并订正，作为已知遗留待用户裁决。
+
+
+2026-09-02 的 W23 记录（审批面表达清晰度；候选重切）：用户在真实使用审批 HTML 后提出三条问题——(1) 内容精炼但不直白，逻辑/流程/复杂概念的可视化不足，理解门槛偏高；(2) 流程图的边标签与箭头线重叠，且可视化形式过于单一；(3) 术语悬停解释在表格靠上位置被截断。变更请求与影响判定落在 [viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md)，用户于同日批准全部三项裁决。
+
+**影响判定**：三条修复均不构成 spec 需求条款变更，因此未另立 ADR。判定依据是 spec §1 把全部 CSS/DOM 排除出契约、只重新纳入 §11.8 那一个孤岛，而边标签几何与提示定位都不在该清单内；spec §8.2/§8.3 从不枚举内容节点种类，节点分类学属 design §7.3，且 design §13.2 早已把 `ContentNode` 定为扩展点；R1 更是既有条款的合规缺口而非契约缺口——spec §7.2 第 158 行已以「必须」要求判断所需的解释与流程在同一文件内可见或可原地展开。实测确认 `docs/spec.md` 摘要在本轮前后完全一致（`2459bf72…8279124b`）。
+
+**四条红线全程成立**：未新增或修改任何 `:root` token 与 1280/340 布局常量；未改阅读顺序；未提高 `393216` 字节门；写作规范只强制结构不强制配图（spec §7.2「不要求每个复杂块强制配图」精确禁止的是「∀ 复杂块 → 含图」这一规则形状，而 steps/table/callout 都不是配图）。
+
+**根因与修复**：(2a) 布局是确定性冲突而非渲染意外——节点按数组下标摆成固定二列，边标签钉在线段中点，标签坐标因此塌缩成离散格点，「两条边标签像素级重合」的条件退化为 `2r₁+k₁ == 2r₂+k₂`，唯一缓解 `paint-order:stroke` 只在单个 text 元素内部生效，对后画的兄弟元素无效，反而使重合的两个标签互相擦除字形。改为按边集分层 + 侧向绕行 + 法向避让搜索 + 实色底板。(3) `.scroll-region{overflow-x:auto}` 使 CSS 把另一轴计算为 `auto`，表格容器因此同时垂直裁剪，而提示固定向上展开，靠上位置整块落在内容盒之上。改为 `<body>` 级单例固定定位并在支持时叠加 `popover`。(1) 阶段门错位是单条影响最大的机制性原因：`SKILL.md` 把 `audience-contracts.md` 归到「检查产物之前」读，而全部直白语言规则都住在其中，作者写完整份合同都不会读到管辖写作的规则；已在写作阶段交叉链接，并补上载体选择表、可数触发条件、termRef 字段边界与工作示例。
+
+**字节预算是本轮的实际约束**：起始余量 23583 字节（369633/393216），落地 391376/393216，余 1840 字节。分配为 flow 布局与提示 9772、flow `kind` 2068、`scale` 9007（其中 6775 仅来自成为 `ContentNode` 联合成员这一事实）、预览滚动跟随 137、自环标签外移 13，复审阶段的正确性修复（精确线段相交、cubic 采样、水平离屏判定、焦点保持、提示语言标注、预览高度上限）再用 1199，另有 372+81 字节由边几何与采样器去重、以及删除三个未引用的 i18n 键回收。原计划的第二个新节点 `matrix`（选项对比矩阵）因此**未实施**——任何新联合成员的地板价约 6.8 KB，实测装不下。这是按红线 L3 的取舍，不是遗漏。
+
+**顺带修正的既有背离**：flow 文字替代此前输出 `A: 标签` 与 `A → B` 的本地 id 形式，与 design §11.3/§7.3 规定的「由 title、description、节点标签和边关系构成」相反，本轮改为节点 label（同名时才附 id 消歧）。旧悬停提示 `pointer-events:none` 且无 `Esc`，不满足 WCAG 2.1 SC 1.4.13（axe 无该项自动规则，故此前门禁一直通过），新实现闭合。
+
+**未修与待裁决**：(a) [local-development.md](local-development.md) §5.1 记录的 termRef 跳转竞态仍未修——本轮实测带本改动 12/12 通过、去掉本改动 10/12 通过，确认属既有产品竞态且未被本轮加剧，修复仍须另立波次；(b) design 的字节门契约值与实现值长期不一致（§11.8 不变式仍写 `358400`，实现为 `393216`，另有 `docs/design.md` §6.1、§11.1、§13.1、§16 与本文 §7 表格共八处陈旧表述），成因是 W11/UI-005 提高上限后 W13/DOC-002 固化 §11.8 时抄了旧数字；订正 §11.8 的不变式条目即修改 §11.8，按 spec §7.2 属需求变更，故本轮不动，作为独立文档订正待用户裁决；(c) `matrix` 节点如需实施，须先就字节门作出裁决。
+
+**本轮改动集合**：`src/workbench/**`（新增 `flow-layout.ts`、`term-tip.ts`）、`src/protocol/{invariants,*.generated}.ts`、`src/cli/validate/document-content.ts`、`src/generators/markdown.ts`、公共 `review-document.schema.json`、`skills/**`（新增 `references/approval-writing-examples.md`）、`tools/release-build.mjs`、`tests/**`、`dist/**`，以及 spec 以外的四份规划文档。spec 零改动。
