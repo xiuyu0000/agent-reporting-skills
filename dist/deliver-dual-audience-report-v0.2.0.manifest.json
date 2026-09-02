@@ -5,9 +5,9 @@
   "node": ">=24 <25",
   "archive": {
     "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
-    "byteLength": 977145,
-    "digest": "sha256:4ffa311cf4bfe2c09ca758f2d4f81487b87b7c2e2698fe709a7f4c63eeef8a9e",
-    "entryCount": 11,
+    "byteLength": 1024339,
+    "digest": "sha256:cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4",
+    "entryCount": 12,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
     "mode": "0644",
@@ -16,8 +16,8 @@
   "files": [
     {
       "path": "deliver-dual-audience-report/SKILL.md",
-      "byteLength": 12403,
-      "digest": "sha256:56dbbe4161ff5e3ea40a918d1737b51c06f7ed47e930629782af9edeb638793d"
+      "byteLength": 13202,
+      "digest": "sha256:043b4aaf4717ff5f065de64deeae881b33dd09c6b0255f20f9dab5310d6a1dd0"
     },
     {
       "path": "deliver-dual-audience-report/agents/openai.yaml",
@@ -31,13 +31,18 @@
     },
     {
       "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
-      "byteLength": 369589,
-      "digest": "sha256:9c4de3499142b0c1f34d2f1d12cf1689e22a23e11bc16d57bc61e8754946e44f"
+      "byteLength": 391332,
+      "digest": "sha256:ead517def51ddc63f681dca76f56e48db38a63e34283567df9797d4a58b298bc"
+    },
+    {
+      "path": "deliver-dual-audience-report/references/approval-writing-examples.md",
+      "byteLength": 9457,
+      "digest": "sha256:e23088885a3af462e43bdcfe665cd0fc716161932dd835d41b641eef4ea59f5b"
     },
     {
       "path": "deliver-dual-audience-report/references/audience-contracts.md",
-      "byteLength": 6666,
-      "digest": "sha256:7863eb6cd63a7d1f89b1c676fcd2bf049dc113496c30b85238a9b599b5563e9c"
+      "byteLength": 10133,
+      "digest": "sha256:ee0ce695e1bea845241fa4e8c04c5e3b6fb5a56db7fd69cef14d168621427b2e"
     },
     {
       "path": "deliver-dual-audience-report/references/evidence-and-privacy.md",
@@ -46,8 +51,8 @@
     },
     {
       "path": "deliver-dual-audience-report/references/review-document.schema.json",
-      "byteLength": 26325,
-      "digest": "sha256:c08db5778e712983392dc1ae0f8223a499b4ada9abfefc2afb561275c1c8516d"
+      "byteLength": 27765,
+      "digest": "sha256:762cf219541cef27f76b838d44239a948a43aefd6fd05380ebe2d89c487c39b2"
     },
     {
       "path": "deliver-dual-audience-report/references/review-packet.schema.json",
@@ -56,8 +61,8 @@
     },
     {
       "path": "deliver-dual-audience-report/references/review-protocols.md",
-      "byteLength": 16981,
-      "digest": "sha256:ccaf114f9c1cd6c6b67f35d631f33b71dd913c88c731c365c1ffe716326e0858"
+      "byteLength": 17285,
+      "digest": "sha256:cbd8a2150e11d0590c76323cbd87c63ed12c65636fd4287e52ff08d6b1f02bd2"
     },
     {
       "path": "deliver-dual-audience-report/references/review-state.schema.json",
@@ -66,8 +71,8 @@
     },
     {
       "path": "deliver-dual-audience-report/scripts/review-delivery.mjs",
-      "byteLength": 521856,
-      "digest": "sha256:086963194498e7278ab50eb8a1046f90f141e6a7e34c4734d68d243bbd8a4bf8"
+      "byteLength": 531628,
+      "digest": "sha256:960f18e0ed1db15b43cb13de69a8bc9c9edfb8a6e93e46802fcb4bc74cd628ba"
     }
   ],
   "reproducibility": {

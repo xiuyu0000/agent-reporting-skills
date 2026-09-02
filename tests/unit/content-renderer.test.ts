@@ -457,16 +457,30 @@ function enrichedDocument(): ReviewDocumentV1 {
       title: "Directed flow",
       description: "Four directional cases",
       nodes: [
-        { id: "A", label: "Alpha" },
-        { id: "B", label: "Beta" },
-        { id: "C", label: "Gamma" },
+        { id: "A", label: "Alpha", kind: "start" },
+        { id: "B", label: "Beta", kind: "decision" },
+        { id: "C", label: "Gamma", kind: "end" },
         { id: "D", label: "Delta" },
       ],
       edges: [
         { from: "A", to: "B", label: cases.injectionText },
-        { from: "B", to: "A", label: "reverse" },
+        { from: "B", to: "A", label: "reverse", kind: "no" },
         { from: "A", to: "C", label: "down" },
         { from: "D", to: "D", label: "loop" },
+      ],
+    },
+    {
+      type: "scale",
+      title: "Carrier strength",
+      description: "How reliably each carrier holds a rule.",
+      axis: { lowLabel: "weakest", highLabel: "strongest" },
+      items: [
+        { label: "Spoken", position: 0, display: "lowest" },
+        {
+          label: "Checked",
+          position: 100,
+          note: [{ type: "text", text: cases.injectionText }],
+        },
       ],
     },
   ];
@@ -598,10 +612,45 @@ describe("safe content renderer and bootstrap", () => {
     expect(arrows).toHaveLength(4);
     expect(new Set(arrows.map((arrow) => arrow.getAttribute("points"))).size).toBe(4);
     const loop = ownerDocument.querySelector("path.flow-loop");
-    expect(loop?.getAttribute("d")).toContain("M 400");
-    expect(loop?.getAttribute("d")).toContain("C 330");
-    expect(ownerDocument.querySelectorAll("text.flow-label")[0]?.textContent).toBe(cases.injectionText);
-    expect(ownerDocument.querySelector("details.flow-alternative")?.textContent).toContain("A → B");
+    // Geometry is asserted as invariants rather than fixed coordinates; the
+    // layout engine is free to move nodes as long as nothing collides.
+    expect(loop?.getAttribute("d")).toMatch(/^M [\d.]+ [\d.]+ C /);
+    // An over-long label is elided in the picture but never interpreted, and the
+    // authored string survives verbatim in the text alternative.
+    const drawnLabel = ownerDocument.querySelectorAll("text.flow-label")[0]?.textContent ?? "";
+    expect(drawnLabel.endsWith("\u2026")).toBe(true);
+    const kept = drawnLabel.slice(0, -1);
+    // Must keep a usable prefix: `startsWith("")` is true for a bare ellipsis.
+    expect(kept.length).toBeGreaterThan(20);
+    expect(cases.injectionText.startsWith(kept)).toBe(true);
+    expect(ownerDocument.querySelectorAll("title").some(
+      (node) => node.textContent === cases.injectionText,
+    )).toBe(true);
+    // The text alternative speaks node labels, not local ids (design §11.3).
+    const alternative = ownerDocument.querySelector("details.flow-alternative")?.textContent ?? "";
+    expect(alternative).toContain("Alpha → Beta");
+    expect(alternative).toContain(cases.injectionText);
+    expect(alternative).not.toContain("A → B");
+    // A decision node is a hexagon and a terminal node a pill, but shape is never
+    // the only channel: the kind word is repeated in the text alternative.
+    expect(ownerDocument.querySelectorAll("polygon.flow-node-decision")).toHaveLength(1);
+    expect(ownerDocument.querySelectorAll("rect.flow-node-start")).toHaveLength(1);
+    expect(ownerDocument.querySelectorAll("rect.flow-node-end")).toHaveLength(1);
+    expect(alternative).toContain("Alpha (开始)");
+    expect(alternative).toContain("Beta (判断)");
+    expect(alternative).toContain("Gamma (结束)");
+    // A plain step adds no word rather than a redundant one.
+    expect(alternative).toContain("Delta流程连接关系");
+    // An edge with a kind but no label still draws a word, and the alternative
+    // states both the kind and the label.
+    expect(alternative).toContain("Beta → Alpha: 否 — reverse");
+    const scale = ownerDocument.querySelector("figure.scale");
+    expect(scale?.querySelectorAll("li")).toHaveLength(2);
+    expect(scale?.textContent).toContain("weakest → strongest");
+    expect(scale?.textContent).toContain("lowest");
+    // A position with no display falls back to a stated number, never to length alone.
+    expect(scale?.textContent).toContain("100/100");
+    expect(scale?.querySelector("span.scale-note")?.textContent).toBe(cases.injectionText);
     expect(ownerDocument.querySelector("div.table-region")?.tabIndex).toBe(0);
     expect(ownerDocument.querySelector("div.code-region")?.tabIndex).toBe(0);
     expect(ownerDocument.querySelectorAll("code").some((node) => node.textContent.includes(cases.injectionText))).toBe(true);

@@ -1,7 +1,7 @@
 # `docs/` 文档索引
 
 > - 文档状态：现行
-> - 最后更新：2026-08-17
+> - 最后更新：2026-09-03
 > - 作用：说明 `docs/` 下每份文档的职责、当前状态、权威顺序与维护规则。本文不重复其他文档的内容，只负责导航与治理。
 
 ## 1. 现行文档
@@ -9,11 +9,12 @@
 | 文档 | 职责 | 状态 | 最后更新 | 权威层级 |
 |---|---|---|---|---|
 | [spec.md](spec.md) | 需求契约：Skill 必须表现成什么样、边界与验收标准 | 已确认，需求基线（0.2-baseline） | 2026-08-17 | 3a（产品需求事实源） |
-| [design.md](design.md) | 技术设计：如何实现 spec，以及为什么采用这些工程选择 | 已确认，实施基线（0.2-implementation-baseline） | 2026-08-17 | 3b（工程决定事实源） |
-| [task.md](task.md) | 实施施工单：波次、DAG、任务卡、写入边界与完成证据 | 已确认，执行中（W7） | 2026-08-17 | 3c（实施顺序与状态） |
-| [claude-code-handoff.md](claude-code-handoff.md) | 运行交接：候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook、授权与停止条件 | 现行运行快照 | 2026-08-17 | 4（操作快照） |
+| [design.md](design.md) | 技术设计：如何实现 spec，以及为什么采用这些工程选择 | 已确认，实施基线（0.2-implementation-baseline） | 2026-09-03 | 3b（工程决定事实源） |
+| [task.md](task.md) | 实施施工单：波次、DAG、任务卡、写入边界与完成证据 | 已确认，执行中（W7） | 2026-09-03 | 3c（实施顺序与状态） |
+| [claude-code-handoff.md](claude-code-handoff.md) | 运行交接：候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook、授权与停止条件 | 现行运行快照 | 2026-09-03 | 4（操作快照） |
 | [platform-usage.md](platform-usage.md) | 跨平台使用指南：Claude Code / Cowork / Codex / Kimi 的安装、调用、运行时事实与故障排查 | 现行 | 2026-08-29 | 使用指南（不定义行为） |
 | [local-development.md](local-development.md) | 本地开发与验证：工具链版本、一次性准备、门禁跑法与已记录的执行注意事项 | 现行操作记录 | 2026-08-23 | 4（操作快照；不定义需求或设计） |
+| [viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md) | VIZ-001 变更请求：审批 HTML 表达清晰度与可视化的需求、影响判定与实施方案 | 已获用户 2026-09-02 批准，W24 已实施 | 2026-09-02 | 变更记录（不定义需求；需求仍以 spec 为准） |
 | [int-001-external-evidence-2026-08-13.json](int-001-external-evidence-2026-08-13.json) | INT-001 外部读者隔离与 A14 边界的内容无关证据记录 | 历史证据，不可变 | 2026-08-13 | 证据，不是指令 |
 
 `docs/` 下没有其他现行文档。如果在某个分支或工作树里看到未列入本表的 `docs/` 文件，先判断它是否已被本表中的文档取代，再决定合并或删除，不要直接当作现行事实使用。
@@ -52,6 +53,7 @@ v0.2 的 W0–W6 已全部完成并产出发布候选，剩余工作只有 W7 �
 - **W20 / 仓库卫生与本地验证环境**（`done`）：经用户明确授权补齐 `.gitignore` 未覆盖的四个工具链产出目录（否则 handoff §6.2 的干净树预检在任何一次构建或测试后必然失败），并修正 `dist/` 自 v0.1 遗留的裸忽略规则使新发布产物对 `git status` 可见；新增 [local-development.md](local-development.md) 固化本地工具链与门禁跑法，其中 §5.1 记录了一条**未修复**的审批台滚动竞态（仅在三引擎合并跑且宿主 CPU 饱和时复现，修复属产品变更须另立波次）。产品与测试代码零改动，候选摘要不变。
 - **W22 / 文档订正：Codex 安装路径**（`done`）：[platform-usage.md](platform-usage.md) §5 此前把 `~/.codex/skills/` 写成“仍被兼容读取”的遗留路径，与 Codex 现状相反——Codex 自带的 skill-installer 系统技能明确安装到 `$CODEX_HOME/skills/<skill-name>`（默认 `~/.codex/skills`），且两个目录经实测都被扫描。§5 改为并列呈现两条现行受支持路径（`~/.codex/skills/` 为 Codex 第一方默认，`~/.agents/skills/` 为与 Kimi 共用的跨工具互操作目录），同名技能不可双放的警告保留，“改后需重启”收窄到 `[[skills.config]]` 开关。文档-only，只写 §5 与三份文档的同步位；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选摘要不变。
 - **W23 / UI-008、VAL-004、REL-009**（`done`）：真实试点中一份规范 JSON 49,994 字节（Base64 66,660 字符）的合同在 WebKit 浏览器中被工作台以 `DOCUMENT_ENCODING_INVALID` 拒载——WebKit 解析器把超过 65,536 code unit 的模板文本续入第二个文本节点，而读取端要求恰好一个。读取端改为接受任意非空的纯文本节点序列；render 与 validate delivery/batch 在规范 JSON 达到 47,616 字节时携带载荷预算 `warnings`。候选按 REL-009 重切。
+- **W24 / UI-009、UI-010、CTR-003、SKL-004、REL-010**（`done`）：按用户 2026-09-02 的三条使用反馈修复审批面表达清晰度。flow 改为按边集分层并对边标签做避让搜索（原实现按数组下标摆成固定二列、标签钉在线段中点，重叠是确定性的）；术语定义预览从滚动容器内的 `::after` 伪元素改为 `<body>` 级单例（`overflow-x:auto` 会使 CSS 把另一轴计算为 `auto`，因此表格同时垂直裁剪）；`ContentNode` 增加 `scale` 节点，`FlowGraphNode`/`FlowGraphEdge` 增加可选 `kind`；Skill 写作规范改为以载体选择作强制触发并配工作示例。影响判定见 [viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md)：**不构成 spec 需求条款变更**，spec 摘要前后一致。字节门未放宽（2026-09-02 首次落地 391376/393216，余 1840；2026-09-03 重排到 W23 之上后 391339/393216，余 1877），原计划的第二个新节点 `matrix` 因此未实施。协议面为纯可选加法：既有文档字节与摘要不变，偏斜是向前的（新文档在旧 v0.2.0 运行时下被拒收而非误读），声明见 [claude-code-handoff.md](claude-code-handoff.md) §1。候选按 REL-010 重切，新摘要同见该节。
 
 绿色 CI、fixture、演示内容与 replay no-op 仍不能关闭 MET-001。候选分支、候选 SHA、ZIP/manifest 摘要与逐步 runbook 见 [claude-code-handoff.md](claude-code-handoff.md)；任务级状态见 [task.md](task.md) §4。v0.2 tag 与 GitHub Release 均未创建，且需要单独授权。
 

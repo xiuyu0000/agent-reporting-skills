@@ -202,6 +202,12 @@ function collectContentLinkErrors(
           blockId,
         );
       }
+    } else if (node.type === "scale" && Array.isArray(node.items)) {
+      for (const [itemIndex, itemValue] of node.items.entries()) {
+        const item = asRecord(itemValue);
+        if (item?.note === undefined) continue;
+        collectInlineLinkErrors(item.note, `${nodePath}/items/${itemIndex}/note`, errors, blockId);
+      }
     }
   }
 }
@@ -314,6 +320,18 @@ function validateContentNodes(
         }
         break;
       }
+      case "scale":
+        for (const [itemIndex, item] of node.items.entries()) {
+          if (item.note === undefined) continue;
+          validateInlineNodes(
+            item.note,
+            `${nodePath}/items/${itemIndex}/note`,
+            glossaryIds,
+            errors,
+            blockId,
+          );
+        }
+        break;
       case "code":
         break;
     }

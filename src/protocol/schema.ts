@@ -148,6 +148,7 @@ const SCHEMA_ERROR_CODES: Readonly<Record<string, SchemaErrorCode>> = {
   maxItems: "SCHEMA_MAX_ITEMS",
   minItems: "SCHEMA_MIN_ITEMS",
   minLength: "SCHEMA_MIN_LENGTH",
+  maximum: "SCHEMA_MAXIMUM",
   minimum: "SCHEMA_MINIMUM",
   oneOf: "SCHEMA_ONE_OF",
   pattern: "SCHEMA_PATTERN",

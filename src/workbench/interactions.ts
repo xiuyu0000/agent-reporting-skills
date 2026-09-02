@@ -26,6 +26,7 @@ import {
   type BulkPassPreview,
   type ReviewFilter,
 } from "./selectors.js";
+import { mountTermTip } from "./term-tip.js";
 
 interface InteractionLandmarks {
   readonly header: HTMLElement;
@@ -1316,6 +1317,7 @@ export function mountReviewInteractions({
   if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
     window.addEventListener("resize", syncHeaderOffset);
   }
+  mountTermTip(document);
   render();
   return {
     getState: () => cloneWorkbenchReviewState(state),

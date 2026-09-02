@@ -184,6 +184,22 @@
               ]
             }
           ]
+        },
+        {
+          "type": "scale",
+          "title": "How strongly each carrier binds",
+          "description": "A rule survives only as well as the carrier it sits on.",
+          "axis": { "lowLabel": "weakest", "highLabel": "strongest" },
+          "items": [
+            { "label": "Spoken agreement", "position": 5, "display": "lowest" },
+            {
+              "label": "Prompt text",
+              "position": 45,
+              "display": "probabilistic",
+              "note": [{ "type": "text", "text": "Decays as the context grows." }]
+            },
+            { "label": "Blocking check", "position": 95, "display": "deterministic" }
+          ]
         }
       ],
       "dependencies": [],

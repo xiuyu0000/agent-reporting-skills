@@ -12,7 +12,7 @@ export namespace ReviewDocumentSchema {
   export type DocumentId = string;
   export type ZonedDateTime = string;
   export type ContentNode =
-    ParagraphNode | ListNode | TableNode | CodeNode | CalloutNode | StepsNode | FlowNode;
+    ParagraphNode | ListNode | TableNode | CodeNode | CalloutNode | StepsNode | FlowNode | ScaleNode;
   export type InlineNode =
     TextNode | StrongNode | EmphasisNode | InlineCodeNode | LinkNode | TermRefNode;
   export type GlossaryId = string;
@@ -180,11 +180,36 @@ export namespace ReviewDocumentSchema {
   export interface FlowGraphNode {
     id: string;
     label: NonEmptyString;
+    kind?: "start" | "step" | "decision" | "end";
   }
   export interface FlowGraphEdge {
     from: string;
     to: string;
     label?: NonEmptyString;
+    kind?: "then" | "yes" | "no" | "else";
+  }
+  export interface ScaleNode {
+    type: "scale";
+    title: NonEmptyString;
+    description: NonEmptyString;
+    axis: ScaleAxis;
+    /**
+     * @minItems 2
+     */
+    items: ScaleItem[];
+  }
+  export interface ScaleAxis {
+    lowLabel: NonEmptyString;
+    highLabel: NonEmptyString;
+  }
+  export interface ScaleItem {
+    label: NonEmptyString;
+    position: number;
+    display?: NonEmptyString;
+    /**
+     * @minItems 1
+     */
+    note?: InlineNode[];
   }
   export interface NextAction {
     id: ActionId;

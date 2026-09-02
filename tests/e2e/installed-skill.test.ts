@@ -34,6 +34,7 @@ const EXPECTED_SKILL_FILES = [
   "agents/openai.yaml",
   "assets/agent-context.template.md",
   "assets/review-workbench.template.html",
+  "references/approval-writing-examples.md",
   "references/audience-contracts.md",
   "references/evidence-and-privacy.md",
   "references/review-document.schema.json",

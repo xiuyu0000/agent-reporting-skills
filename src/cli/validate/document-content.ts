@@ -61,7 +61,19 @@ export function visitReviewDocumentContent(
           visitText(step.title, `${nodePath}/items/${stepIndex}/title`);
           visitContent(step.content, `${nodePath}/items/${stepIndex}/content`);
         });
+      } else if (node.type === "scale") {
+        visitText(node.title, `${nodePath}/title`);
+        visitText(node.description, `${nodePath}/description`);
+        visitText(node.axis.lowLabel, `${nodePath}/axis/lowLabel`);
+        visitText(node.axis.highLabel, `${nodePath}/axis/highLabel`);
+        node.items.forEach((item, itemIndex) => {
+          visitText(item.label, `${nodePath}/items/${itemIndex}/label`);
+          visitText(item.display, `${nodePath}/items/${itemIndex}/display`);
+          if (item.note !== undefined) visitInline(item.note, `${nodePath}/items/${itemIndex}/note`);
+        });
       } else {
+        // Every other kind is exhausted above; this branch is the flow node. A
+        // new ContentNode kind must be added before this `else`, never after it.
         visitText(node.title, `${nodePath}/title`);
         visitText(node.description, `${nodePath}/description`);
         node.nodes.forEach((item, itemIndex) => visitText(item.label, `${nodePath}/nodes/${itemIndex}/label`));
