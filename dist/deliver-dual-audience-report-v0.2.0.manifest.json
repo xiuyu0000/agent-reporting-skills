@@ -5,8 +5,8 @@
   "node": ">=24 <25",
   "archive": {
     "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
-    "byteLength": 974657,
-    "digest": "sha256:0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7",
+    "byteLength": 977145,
+    "digest": "sha256:4ffa311cf4bfe2c09ca758f2d4f81487b87b7c2e2698fe709a7f4c63eeef8a9e",
     "entryCount": 11,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
@@ -16,8 +16,8 @@
   "files": [
     {
       "path": "deliver-dual-audience-report/SKILL.md",
-      "byteLength": 11896,
-      "digest": "sha256:e790e4f172d0fccf2c69766cc42b24b4dc647462b6670ead35e4a7a8991c9949"
+      "byteLength": 12403,
+      "digest": "sha256:56dbbe4161ff5e3ea40a918d1737b51c06f7ed47e930629782af9edeb638793d"
     },
     {
       "path": "deliver-dual-audience-report/agents/openai.yaml",
@@ -31,8 +31,8 @@
     },
     {
       "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
-      "byteLength": 369626,
-      "digest": "sha256:241371fc47d7e17f39e9f6b9fa7f1f620c3052f13617f785ec7456a5b854c273"
+      "byteLength": 369589,
+      "digest": "sha256:9c4de3499142b0c1f34d2f1d12cf1689e22a23e11bc16d57bc61e8754946e44f"
     },
     {
       "path": "deliver-dual-audience-report/references/audience-contracts.md",
@@ -56,8 +56,8 @@
     },
     {
       "path": "deliver-dual-audience-report/references/review-protocols.md",
-      "byteLength": 16391,
-      "digest": "sha256:bad28c6485b47986692d2f75534cdd294781116fca61f60aa9f7a0e00f2c3e0f"
+      "byteLength": 16981,
+      "digest": "sha256:ccaf114f9c1cd6c6b67f35d631f33b71dd913c88c731c365c1ffe716326e0858"
     },
     {
       "path": "deliver-dual-audience-report/references/review-state.schema.json",
@@ -66,8 +66,8 @@
     },
     {
       "path": "deliver-dual-audience-report/scripts/review-delivery.mjs",
-      "byteLength": 520428,
-      "digest": "sha256:39aa9ed05ef81edfb60420b0e6c50ed616e0c65a0ec43ab5fa22968bb8574846"
+      "byteLength": 521856,
+      "digest": "sha256:086963194498e7278ab50eb8a1046f90f141e6a7e34c4734d68d243bbd8a4bf8"
     }
   ],
   "reproducibility": {

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { APPROVAL_PAYLOAD_LIMIT_BYTES } from "../../src/cli/validate/payload.js";
 import {
   blockContentDigest,
   canonicalJson,
@@ -11,6 +12,7 @@ import {
   validateReviewDocument,
   type ReviewDocumentV1,
 } from "../../src/protocol/index.js";
+import { padDocumentTo } from "../fixtures/validate/payload.js";
 
 interface RenderCases {
   injectionText: string;
@@ -185,6 +187,20 @@ test.beforeAll(async () => {
   const encoded = Buffer.from(canonicalJson(documentValue), "utf8").toString("base64");
   const valid = fillTemplate(template, documentValue, encoded);
   await addPage("valid", valid);
+  // Past 65,536 Base64 characters WebKit's parser continues the payload in a
+  // second template text node; the other engines keep one node.
+  const oversizedDocument = padDocumentTo(documentValue, APPROVAL_PAYLOAD_LIMIT_BYTES + 4_096);
+  await addPage(
+    "oversized",
+    fillTemplate(
+      template,
+      oversizedDocument,
+      Buffer.from(canonicalJson(oversizedDocument), "utf8").toString("base64"),
+    ),
+  );
+  await addPage("payload-element", fillTemplate(template, documentValue, `${encoded}<b>x</b>`));
+  await addPage("payload-empty", fillTemplate(template, documentValue, ""));
+  await addPage("payload-comment", fillTemplate(template, documentValue, `${encoded}<!--x-->`));
   await addPage(
     "bad-base64",
     fillTemplate(template, documentValue, "A==="),
@@ -547,6 +563,28 @@ test("a11y-shell keeps focus visible and the 320px page free of horizontal overf
   expect(codeScroll.contentLang).toBe("en");
 });
 
+test("@A19 load a payload that WebKit splits into several template text nodes", async ({ page, browserName }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(pageUrl("oversized"));
+  await expect(page.locator("article.blk")).toHaveCount(4);
+  await expect(page.locator(".error-panel")).toHaveCount(0);
+  const payload = await page.evaluate(() => {
+    const data = document.querySelector<HTMLTemplateElement>("template#review-document-data");
+    const nodes = data === null ? [] : [...data.content.childNodes];
+    return {
+      nodes: nodes.length,
+      allText: nodes.every((node) => node.nodeType === Node.TEXT_NODE),
+      characters: data?.content.textContent?.length ?? 0,
+    };
+  });
+  expect(payload.characters).toBeGreaterThan(65_536);
+  expect(payload.allText).toBe(true);
+  if (browserName === "webkit") expect(payload.nodes).toBeGreaterThan(1);
+  else expect(payload.nodes).toBeGreaterThanOrEqual(1);
+  expect(pageErrors).toEqual([]);
+});
+
 test("@A19 fail closed for payload, identity, URL, and CSP tampering", async ({ page, browserName }) => {
   const runtimeRequests: string[] = [];
   let allowedNavigation = "";
@@ -563,6 +601,9 @@ test("@A19 fail closed for payload, identity, URL, and CSP tampering", async ({ 
     runtimeRequests.push(request.url());
   });
   for (const [name, code] of [
+    ["payload-element", "DOCUMENT_ENCODING_INVALID"],
+    ["payload-empty", "DOCUMENT_ENCODING_INVALID"],
+    ["payload-comment", "DOCUMENT_ENCODING_INVALID"],
     ["bad-base64", "DOCUMENT_BASE64_INVALID"],
     ["bad-utf8", "DOCUMENT_UTF8_INVALID"],
     ["bad-meta", "META_IDENTITY_MISMATCH"],

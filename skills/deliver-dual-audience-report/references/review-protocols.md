@@ -128,6 +128,15 @@ rounds.
 Use the successful batch handoff to report the group reason, total, each part's
 judgment boundary, and both generated paths for every part.
 
+Treat a `warnings` entry with code `APPROVAL_PAYLOAD_NEAR_LIMIT` or
+`APPROVAL_PAYLOAD_OVER_LIMIT` as a size signal of the same kind: the canonical
+contract is within 1,536 bytes of, or past, the 49,152-byte payload that
+workbenches generated before the multi-text-node reader can load in WebKit
+browsers (`payloadBytes` and `limitBytes` carry the counts; `path` names the
+document or the `/batch/parts/N` part). Prefer trimming non-semantic fields or
+splitting in round 1, because each later round adds roughly 700–800 bytes of
+approval bookkeeping. A warning never blocks the delivery.
+
 ## Apply review actions
 
 Use exactly four block actions:

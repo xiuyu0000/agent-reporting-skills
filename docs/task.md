@@ -5,9 +5,9 @@
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
 > - 当前波次：W7 · 真实试点与指标验证（PIL-001 于 2026-08-20 `done`：一个经用户确认真实且有用的案例完成完整闭环，validation=pass，内容保持私有；MET-001 `deferred` 等待 3–5 份合格样本）
 > - 协调者：主实施 Agent
-> - 最后更新：2026-08-18（新增 W9：UI-004、VAL-002、RND-002 三个契约缺口修复，DOC-001 订正 DES-017，REL-003 按修复后的源码重切候选并重新绑定全部已记录摘要；需求条款未变更）
+> - 最后更新：2026-09-02（新增 W23：UI-008 工作台接受 WebKit 解析器拆分出的多个载荷文本节点、VAL-004 render/validate 成功结果携带载荷预算 `warnings`，REL-009 重切候选；需求条款未变更，spec 摘要不变）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`（2026-08-20 W17 修订 §11.3 术语交互后重算；2026-08-19 W15 值为 `3c729a692669bee54c81b7cdf7ecfa1b1c06c5e367b2f78fab4cdbe0edc1e871`）
+> - Design 基线：`docs/design.md` · SHA-256 `25952e6eb7c885ccb1c22955d53514d648613f95b647c4cc7be188501763789d`（2026-09-02 W23 补录 DES-020 与 validate 一节的 `DeliveryWarning` 后重算；2026-08-20 W17 值为 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -224,6 +224,7 @@ flowchart TD
 | W15 | UI-006 工作台使用反馈修复；REL-006 收口重切 | 单线程；写 workbench、Skill 写作规范与测试 | 用户 5 条使用反馈逐条裁定并落地；三浏览器全绿；候选重建 |
 | W17 | UI-007 术语交互简化；REL-007 收口重切 | 单线程；写 workbench 渲染器与测试 | termRef 单锚点（悬停预览 + 点击跳附录）；三浏览器全绿；候选重建 |
 | W19 | SKL-003 跨平台可用性与使用指南；REL-008 收口重切 | 单线程；写 SKILL frontmatter、README、docs 指南与测试钉点 | 四平台机制经文档+本机实测核对；官方验证器通过；候选重建 |
+| W23 | UI-008 审批载荷多文本节点读取；VAL-004 载荷预算告警；REL-009 收口重切 | 单线程；写 workbench bootstrap、validate/render 成功结果、Skill 说明与测试 | 三浏览器全绿（含 WebKit 拆分载荷用例）；告警单元/e2e 用例；候选重建（tag/Release 仍需单独授权） |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -284,6 +285,9 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | REL-007 | 按 W17 重切候选并重新绑定摘要 | UI-007 | release | `done` | w17_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 | SKL-003 | Skill 可被 Claude Code/Cowork/Codex/Kimi 使用并有使用指南 | REL-007 | surface | `done` | w19_surface Agent | SKILL frontmatter、`docs/platform-usage.md`、README、skill-workflow 测试钉点 | 官方验证器 + 四平台核对 |
 | REL-008 | 按 W19 重切候选并重新绑定摘要 | SKL-003 | release | `done` | w19_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
+| UI-008 | 工作台接受 WebKit 解析器拆分出的多个载荷文本节点，超过 65,536 Base64 字符的合同不再被拒载 | REL-008 | ui | `done` | w23_ui Agent | `src/workbench/bootstrap.ts`、render browser test | A19；用户 2026-09-02 实证反馈 |
+| VAL-004 | render/validate delivery/batch 成功结果在规范 JSON 达到 47,616 字节时携带载荷预算 `warnings` | UI-008 | cli | `done` | w23_validate Agent | `src/cli/validate/{payload,types,command}.ts`、`src/cli/render/**`、Skill 说明、payload 测试 | Design §validate `DeliveryWarning` |
+| REL-009 | 按 W23 重切候选并重新绑定摘要 | UI-008、VAL-004 | release | `done` | w23_release Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1342,6 +1346,54 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：新候选 ZIP 为 974657 bytes、SHA-256 `0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7`；manifest SHA-256 `0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5`；entryCount 仍为 11。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-007 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本已同步为本候选。
 - **Blocker / unblock**：无。
 
+### UI-008 · 审批载荷多文本节点读取
+
+- **状态 / owner_role / owner / last_updated**：`done` / UI engineer / w23_ui Agent / 2026-09-02
+- **Outcome**：工作台接受 WebKit 解析器拆分出的多个载荷文本节点；超过 65,536 Base64 字符（49,152 规范字节）的合同在 Safari 与全部 iOS 浏览器不再以 `DOCUMENT_ENCODING_INVALID` 拒载。
+- **Depends on / unlocks**：REL-008 / VAL-004、REL-009。
+- **Parallel / conflicts**：只写 `bootstrap.ts` 的 `readLandmarks` 与 render browser spec；与 VAL-004 无写入交集。
+- **Write scope**：`src/workbench/bootstrap.ts`、`tests/browser/workbench-render.spec.ts`、`tests/fixtures/validate/payload.ts`。
+- **Refs**：Design DES-020、§11.1；本文 §9 的 2026-09-02 W23 记录。
+- **Implementation contract**：`template#review-document-data` 的内容须是任意非空的纯文本节点序列，解码继续用 `textContent` 拼接；出现元素、注释或空内容仍以 `DOCUMENT_ENCODING_INVALID` 拒载；Base64、UTF-8、JSON 与身份元数据的后续校验不变。
+- **Failure rules**：任一非文本子节点或空载荷被接受，或任一引擎未渲染超限载荷的全部块，即为失败；不得以放宽后续校验换取可读。
+- **Validation**：
+
+  ```bash
+  npm run test:browser
+  ```
+
+- **Completion evidence**：render browser spec 新增超限载荷页（规范 JSON 比 49,152 字节多 4,096 字节；WebKit 断言拆成多个文本节点、其余引擎至少一个，三引擎均渲染全部块且无页面错误）与 `payload-element`、`payload-empty`、`payload-comment` 三个篡改页（均报 `DOCUMENT_ENCODING_INVALID`）。用同尺寸合成合同（5 块、49,994 字节）核对：旧模板在 WebKit 拒载、Chromium/Firefox 正常；新模板三引擎均渲染 5 块，WebKit 载荷为 2 个文本节点。
+- **Blocker / unblock**：无。
+
+### VAL-004 · 载荷预算告警
+
+- **状态 / owner_role / owner / last_updated**：`done` / CLI engineer / w23_validate Agent / 2026-09-02
+- **Outcome**：render 与 validate delivery/batch 的成功结果在规范 JSON 达到 47,616 字节时携带 `warnings`（`APPROVAL_PAYLOAD_NEAR_LIMIT`；超过 49,152 字节为 `APPROVAL_PAYLOAD_OVER_LIMIT`），作者能在第 1 轮裁剪或拆分。
+- **Depends on / unlocks**：UI-008 / REL-009。
+- **Parallel / conflicts**：只写 validate/render 的成功分支与类型；不改错误分支、退出码、handoff 或任何生成字节。
+- **Write scope**：`src/cli/validate/{payload,types,index,command}.ts`、`src/cli/render/{index,types}.ts`、`skills/**/SKILL.md`、`references/review-protocols.md`、`tests/unit/payload-budget.test.ts`、`tests/e2e/payload-warning.test.ts`、`tests/fixtures/validate/payload.ts`。
+- **Refs**：Design DES-020 与 validate 一节的 `DeliveryWarning`；本文 §9 的 2026-09-02 W23 记录。
+- **Implementation contract**：阈值 47,616 = 49,152 − 1,536（预留约两轮各 700–800 字节的定稿记账）；字节数按规范 JSON 的 UTF-8 长度计，即 Approval HTML 内 Base64 载荷的解码长度；单文档路径固定 `/document`，拆分组按 part 升序 `/batch/parts/N`；`warnings` 只在至少一条告警存在时出现，且只出现在成功分支。
+- **Failure rules**：告警改变退出码、handoff 或生成字节，或成功分支在无告警时携带空数组，即为失败。
+- **Validation**：
+
+  ```bash
+  npx vitest run --project unit tests/unit/payload-budget.test.ts
+  npm run test:e2e
+  ```
+
+- **Completion evidence**：单元用例钉住「65,536 Base64 字符 ↔ 49,152 字节」的推导、与生成器一致的规范字节计量、47,616/49,152 的告警与升级边界、以及 `/document` 与 `/batch/parts/N` 的寻址；e2e 用例覆盖 render 与 validate 的近限合同（退出码不变）、预留以下无 `warnings` 键与超限升级、拆分组按 part 升序寻址；`design.md` validate 一节记录 `DeliveryWarning`，SKILL 与 review-protocols 补处置指引。
+- **Blocker / unblock**：无。
+
+### REL-009 · W23 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w23_release Agent / 2026-09-02
+- **Outcome**：候选按 W23 的多文本节点载荷读取器与载荷预算告警重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-008 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 977145 bytes、SHA-256 `4ffa311cf4bfe2c09ca758f2d4f81487b87b7c2e2698fe709a7f4c63eeef8a9e`；manifest SHA-256 `65749c26fa7b4c4230310f2cbda9cc4a19bfcf3dfce41353b1f0d082f336cf5d`；entryCount 仍为 11；连续两次 `release:build -- --version 0.2.0` 摘要一致，`verify:dist` 通过。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-008 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本在 2026-09-02 同步的是重切前的 977115 字节候选（SHA-256 `33c1afc2557b89bcae638a17aac7198d3bc868d74d043eb1b333e1df3a44518d`）；2026-09-03 因 SKILL.md 阈值措辞订正再次重切后，安装副本尚未同步为本候选（需用户授权后执行）。
+- **Blocker / unblock**：本机安装副本尚未同步为本候选（需用户授权后执行）。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1491,3 +1543,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-08-23 的 W20 记录（仓库卫生与本地验证环境，无产品字节变更）：用户明确授权本轮修改 `.gitignore`——该文件按本文 §1.3 与 §7 归用户所有、实施任务一律禁改，此处依 [README.md](README.md) §2 的权威顺序（用户当前明确指令优先于规划文档）执行，规则本身不放宽。(1) `.gitignore` 此前只有 6 条，工具链产出的 `node_modules/`、`build/`、`coverage/`、`test-results/` 四个目录既未跟踪也未忽略，导致任何一次 `npm ci`、`npm run build`、`npm run test:coverage` 或 `npm run test:browser` 之后 [claude-code-handoff.md](claude-code-handoff.md) §6.2 的预检 `test -z "$(git status --porcelain)"` 必然失败。四者的产出点分别是 `npm ci`、`tools/build.mjs:28`、Vitest 覆盖率默认目录与 `playwright.config.ts` 的 `outputDir`，已逐条溯源而非猜测；`.tsbuildinfo`、`playwright-report/`、`blob-report/` 在本仓库配置下不会产生，故不加投机条目。(2) 顺带修正 `dist/` 的一条遗留规则：裸 `dist/` 来自初始提交 `03fc118`（v0.1 时期，彼时 dist 下没有任何跟踪文件），而 v0.2 的 ZIP 与 manifest 是 force-add 进来的跟踪交付物，于是「新构建出来的发布产物对 `git status` 不可见」。改为 `dist/*` 加 `!dist/*.zip`、`!dist/*.manifest.json`，已实测：三个既有跟踪文件不受影响，新出现的 `dist/*.zip` 可见，`dist/.release-txn` 等中间产物仍被忽略；忽略规则从不作用于已跟踪路径，`.github/workflows/validate.yml` 的 `git ls-files --error-unmatch` 与 `git diff --exit-code` 两道发布门行为不变。(3) 新增 [local-development.md](local-development.md) 记录本地工具链版本、一次性准备命令、门禁跑法，以及两条已实测的执行事实：Node 解析（版本管理器默认版本落在合同区间之外时，仓库外目录会拿到低版本，而 design §16 已把该控制手段定为安装文档与 preflight、CLI 不做运行时硬拦截，故只在环境侧收口）与 §5.1 的浏览器竞态。(4) §5.1 是一条**记录未修复**项：三引擎合并跑且宿主 CPU 饱和时 `@A19` 的 termRef 跳转断言失败；实测排除了「断言超时太短」（提到 15s 仍轮询 34 次不落点）与「focus/keypress 拆分投错元素」（改 `locator.press` 仍复现）两种解释，失败点直读 DOM 显示 `location.hash` 已正确、目标可见未隐藏，但页面停在 `scrollY=581`（应约 2050）且焦点被重置到 `BODY`，指向审批台焦点/重绘逻辑与浏览器锚点平滑滚动相互竞争。修复要动 `src/workbench/`，属产品变更须另立波次并重切候选，本轮不改测试、不改 `playwright.config.ts`，以免用超时或 retry 掩盖产品侧竞态。CI 不受影响（三引擎本就分 job 分容器）。本轮改动集合为 `.gitignore`、`docs/README.md`、`docs/task.md`（本记录）、`docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）与新增的 `docs/local-development.md`；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。本分支在 W19/PR #79 合入后重基到其之上，冲突只出现在三处「双方各自追加」的文档位置（索引表行、波次记录、task.md 摘要行），已按保留双方并重算摘要的方式收敛；同时补上 W19 在 [README.md](README.md) §3 缺失的波次条目，使三份文档回到 §6.3 要求的一致状态。
 
 2026-08-29 的 W22 记录（文档订正，无产品字节变更）：[platform-usage.md](platform-usage.md) §5 关于 Codex 安装路径的表述与 Codex 现状相反，按用户 2026-08-24 在 CLI 0.150.1（指南原文写于 0.148）上采集的证据订正。原文把 `~/.agents/skills/` 定为推荐目录、把 `~/.codex/skills/` 写成“仍被兼容读取，但属遗留路径”。证据反驳该定性：(1) Codex 自带的 skill-installer 系统技能位于 `~/.codex/skills/.system/skill-installer/SKILL.md`，其「Behavior and Options」逐字声明 “Installs into `$CODEX_HOME/skills/<skill-name>` (defaults to `~/.codex/skills`).”，即该目录正是 Codex 第一方安装器今天的落点，不是遗留面；(2) 两个目录都被真实扫描——装在 `~/.codex/skills/deliver-dual-audience-report` 的技能与临时放在 `~/.agents/skills/zz-interop-probe/SKILL.md` 的探针技能出现在同一次 `codex exec` 的技能清单里，两个探针随后清理；(3) `codex features list` 显示 `skill_search` 与 `skill_mcp_dependency_install` 均为 `stable`/`true`；(4) 新装技能未重启任何进程即被列出，所以原文的“改后需重启”只对 `~/.codex/config.toml` 的 `[[skills.config]]` 开关成立，不适用于新增技能目录。本轮据此把 §5 的安装段改为并列呈现两条现行受支持路径并给出各自的选择条件（只用 Codex 或与其安装器保持一致选前者；要让一份安装同时服务 Codex 与 Kimi 选后者），保留「不要在两个目录里同时放同名技能」的原有警告，把重启说明收窄到配置开关，并把 §5 的实测记录改为 2026-08-20/0.148 与 2026-08-24/0.150.1 两条并存。证据 (1) 与 (3) 已在本轮由协调者在本机复核（`codex --version` 为 0.150.1，installer 文本与 features 输出逐字一致）；(2) 与 (4) 的探针已清理，按用户采集记录采信。本轮改动集合为 `docs/platform-usage.md`（仅 §5）、`docs/README.md`（§1 最后更新与 §3 波次条目）、`docs/task.md`（本记录）与 `docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。指南 §8 故障排查表里仍写着“遗留 `~/.codex/skills/`”，因用户本轮明确限定只改 §5 而未一并订正，作为已知遗留待用户裁决。
+
+2026-09-02 的 W23 记录：用户在真实试点中报告一个拆分组里规范 JSON 49,994 字节（Base64 66,660 字符）的合同，其审批 HTML 在评审浏览器中以 `DOCUMENT_ENCODING_INVALID /review-document-data` 拒载，而同组 49,148 字节（65,532 字符）的合同正常打开；用户最初判断为 Chromium 把长文本切成两个节点。本机三引擎探针（Playwright chromium/webkit/firefox 各自加载 65,535–131,073 字符的 template 文本）证明拆分发生在 WebKit：其 HTML 解析器把单个解析期文本节点限制在 65,536 code unit，超出部分续入相邻文本节点；Chromium 与 Firefox 保持单节点。工作台 `readLandmarks` 断言 `template.content` 恰好一个文本节点，于是 Safari 与全部 iOS 浏览器拒载超过 65,536 Base64 字符（49,152 规范字节）的载荷。UI-008 把断言改为“任意非空的纯文本节点序列”，解码继续用 `textContent` 拼接，元素、注释或空内容仍拒载；render browser spec 新增超限载荷页（WebKit 断言拆成多节点、其余引擎单节点，均渲染全部块）与两条 `DOCUMENT_ENCODING_INVALID` 篡改页。VAL-004 新增 `src/cli/validate/payload.ts`：render 与 validate delivery/batch 成功结果在规范 JSON 达到 47,616 字节（49,152 减 1,536 预留，覆盖约两轮各 700–800 字节的定稿记账）时携带 `warnings`（`APPROVAL_PAYLOAD_NEAR_LIMIT`；超过 49,152 为 `APPROVAL_PAYLOAD_OVER_LIMIT`），单文档 `/document`、拆分组按 part 升序 `/batch/parts/N`，不改变退出码、handoff 与字节；design §validate 记录 `DeliveryWarning`，DES-020 记录决定，SKILL 与 review-protocols 补处置指引；单元用例钉住 65,536/65,540 Base64 字符边界，e2e 用例覆盖 render/validate 的单文档与拆分组。用同尺寸合成合同（5 块、49,994 字节）核对：旧模板在 WebKit 拒载、Chromium/Firefox 正常；新模板三引擎均渲染 5 块，WebKit 载荷为 2 个文本节点。迁移事实：旧模板生成的既有视图对新 CLI 的 validate 与 `--replace-generated` 均报 `CSP_INVALID`（内联脚本哈希随模板变化），须删除旧视图后整组重新 render；生成器版本保持 0.2.0。本轮门：build、check:generated、typecheck、lint、unit、e2e、acceptance coverage 与三浏览器全套通过；分发面变化由 REL-009 重切候选（连续两次 `release:build -- --version 0.2.0` 摘要一致，`verify:dist` 通过）；官方 Skill 验证器本机未安装，留待 CI。

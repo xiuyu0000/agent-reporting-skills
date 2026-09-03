@@ -3,7 +3,7 @@
 > - 文档状态：已确认，实施基线
 > - 设计版本：0.2-implementation-baseline
 > - 目标发布：v0.2.0
-> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）；2026-08-19（补录 DES-019 审批台视觉契约并新增 §11.8，同步 spec 2026-08-19 修订；不改变运行行为）；2026-08-19 晚间（W15 按用户使用反馈补充 §11.3 随手记目标与术语悬停预览、§11.4 同动作开关语义；实现同日落地）；2026-08-20（W17 按用户反馈把 termRef 简化为“悬停预览 + 点击跳附录”单一锚点，§11.3 同步）
+> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）；2026-08-19（补录 DES-019 审批台视觉契约并新增 §11.8，同步 spec 2026-08-19 修订；不改变运行行为）；2026-08-19 晚间（W15 按用户使用反馈补充 §11.3 随手记目标与术语悬停预览、§11.4 同动作开关语义；实现同日落地）；2026-08-20（W17 按用户反馈把 termRef 简化为“悬停预览 + 点击跳附录”单一锚点，§11.3 同步）；2026-09-02（W23 补录 DES-020 审批载荷解析边界：§11.1 载荷读取接受 WebKit 拆分出的多个文本节点，validate 一节新增 `DeliveryWarning`；不改变视觉契约）
 > - 需求基线：[spec.md](spec.md)
 > - 需求基线 SHA-256：`2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 视觉契约修订后重算；2026-08-17 整合值为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
 > - 基线解释：需求文件已于 2026-08-17 的文档整合中正式标记为“已确认，需求基线”，与本设计自 2026-08-12 起采用的口径一致；此前记录的摘要 `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` 对应仅有状态元数据差异的同一份需求条款。
@@ -135,6 +135,7 @@
 | DES-017 | 文档治理 | spec/design/task 随仓库跟踪，以 SHA-256 绑定（2026-08-17 修订，原为“保持本地忽略”） | 只由用户维护 `.gitignore`；实施任务不得修改 | 摘要仍须人工回填；跟踪状态由 CI 的 `scan:legacy-surface` 断言 |
 | DES-018 | 语义写作边界 | Agent 编写候选文档；CLI 只生成、验证和提交 | 不让 CLI 猜测 EDIT/HOLD 的内容 | 防止自动修改扩大授权 |
 | DES-019 | 审批台视觉契约 | 审批 HTML 采用用户 2026-08-18 批准的审批工作台原型视觉系统与方案 A 阅读顺序；规范性 token 清单与布局常量固定在 §11.8 | 不把视觉留作实现自由裁量，也不把 `docs/调研/` 的业务正文复制进跟踪文件 | 防止审批面再次漂移；由 spec §7.2 条款与三浏览器断言双重守护 |
+| DES-020 | 审批载荷解析边界（2026-09-02） | 工作台接受 `template#review-document-data` 内任意非空的纯文本节点序列并用 `textContent` 拼接（§11.1）；render 与 validate delivery/batch 在规范 JSON 达到 47,616 字节时以成功结果的可选 `warnings` 提示 49,152 字节的单文本节点预算（§validate `DeliveryWarning`） | 不再以 `childNodes.length === 1` 断言载荷完整性——WebKit 解析器把超过 65,536 code unit 的文本续入相邻节点，Chromium/Firefox 不拆；也不把预算做成阻断错误，因为新读取端已能加载被拆分的载荷 | 旧模板生成的工作台在 WebKit 中仍拒载超限载荷，需重新 render；告警只增加成功 stdout 的可选字段，退出码与字节不变 |
 
 上述决策均已由已接受计划或计划阶段用户选择锁定；本文没有需要实施者再选择的架构分支。
 
@@ -707,7 +708,8 @@ render --document <review-document.json> [--document <part.review-document.json>
 - 两者都验证后提交；合同输入保持只读，不写验证快照，也不复制出第二份规范权威；
 - 传入 splitGroup 时必须一次提交该组全部 part；缺 part、重复 part、total 不一致或任一 part 无效时整组不提交；
 - 默认拒绝覆盖；`--replace-generated` 只接受具有同 delivery/document 身份和生成器标记的既有产物；
-- 任一合同声明 tracked/public 时，必须在当次命令传入与最高公开级别匹配的 confirm-output-scope，不能沿用 init 或合同内旧授权。
+- 任一合同声明 tracked/public 时，必须在当次命令传入与最高公开级别匹配的 confirm-output-scope，不能沿用 init 或合同内旧授权；
+- 成功结果可携带 `warnings`（形状与路径空间见 validate 一节的 `DeliveryWarning`）；告警不改变退出码、handoff 或提交字节，且只在至少一条告警存在时出现。
 
 #### `validate`
 
@@ -756,14 +758,26 @@ interface DeliveryHandoff {
 }
 
 type ValidateSuccess =
-  | { status:"ok"; phase:"validate"; mode:"delivery"; mutated:false; handoff:DeliveryHandoff }
-  | { status:"ok"; phase:"validate"; mode:"batch"; mutated:false; handoff:BatchHandoff }
+  | { status:"ok"; phase:"validate"; mode:"delivery"; mutated:false; handoff:DeliveryHandoff; warnings?:DeliveryWarning[] }
+  | { status:"ok"; phase:"validate"; mode:"batch"; mutated:false; handoff:BatchHandoff; warnings?:DeliveryWarning[] }
   | { status:"ok"; phase:"validate"; mode:"packet"; mutated:false; summary:{ format:"review-packet/1"; documentId:string; contentVersion:number; round:number; reviewDigest:Sha256Digest; packetId:string; semanticDigest:Sha256Digest }; normalized?:ReviewPacketV1 }
   | { status:"ok"; phase:"validate"; mode:"state"; mutated:false; summary:{ format:"review-state/1"; documentId:string; contentVersion:number; round:number; reviewDigest:Sha256Digest; stateDigest:Sha256Digest }; normalized?:ReviewStateV1 }
   | { status:"ok"; phase:"validate"; mode:"transition"; mutated:false; summary:{ status:"apply"|"noop"; packetId:string; semanticDigest:Sha256Digest; derivedTopicIds:string[] } }
+
+interface DeliveryWarning {
+  code: "APPROVAL_PAYLOAD_NEAR_LIMIT" | "APPROVAL_PAYLOAD_OVER_LIMIT"
+  path: string            // 单文档固定 "/document"；拆分组按 part 升序为 "/batch/parts/N"（与 batch 错误同一索引空间）
+  blockId: null
+  message: string
+  hint: string
+  payloadBytes: number    // 规范 JSON 的 UTF-8 字节数，即 Approval HTML 内 Base64 载荷的解码长度
+  limitBytes: number    // 恒为 49152，即 APPROVAL_PAYLOAD_LIMIT_BYTES
+}
 ```
 
 `normalized` 只允许出现在调用方显式传入 `--legacy-profile prototype-v1` 且迁移成功的 packet/state 分支；普通 `/1` 验证不得回显完整输入。transition 的 `derivedTopicIds` 按 Unicode code point 排序，noop 时为空；stdout 不回显 candidate 或 derived 正文。
+
+`warnings` 只出现在 delivery/batch 成功分支，且只在至少一条告警存在时出现；它不改变退出码、handoff 或任何生成字节，render 的成功结果携带同一字段与同一路径空间。当前唯一来源是审批载荷预算：WebKit（Safari 与全部 iOS 浏览器）的 HTML 解析器把单个解析期文本节点限制在 65,536 个 code unit，超出部分续入相邻文本节点，而 Chromium 与 Firefox 保持单节点；65,536 个 Base64 字符对应 49,152 字节规范 JSON。多文本节点读取器（§11.1）落地前生成的工作台以 `DOCUMENT_ENCODING_INVALID` 拒载被拆分的载荷，因此规范 JSON 达到 47,616 字节（上限减 1,536 字节预留，覆盖约两轮各 700–800 字节的定稿记账增量）时给出 `APPROVAL_PAYLOAD_NEAR_LIMIT`，超过 49,152 字节时给出 `APPROVAL_PAYLOAD_OVER_LIMIT`。告警文案固定且不回显正文；数值字段只有字节计数。
 
 `BatchHandoff` 不是省略字段的开放对象，精确形状固定为：
 
@@ -1296,6 +1310,7 @@ CLI 不能证明自然语言“没有语义影响”，因此理由仍需人工�
 Approval HTML 由固定 shell、内联 CSS、内联浏览器 bundle 和 Base64 文档载荷组成。
 
 - 文档数据放入 `<template id="review-document-data" data-encoding="base64">` 的纯 Base64 文本中；template 本身惰性且 Base64 不含标签结束字符，避免 `</script>` 注入并不受 script CSP 执行规则影响。
+- runtime 读取 `template.content` 时接受任意非空的纯文本节点序列并用 `textContent` 拼接：WebKit 解析器把超过 65,536 code unit 的文本续入相邻文本节点，Chromium 与 Firefox 保持单节点；出现元素、注释或空内容仍以 `DOCUMENT_ENCODING_INVALID` 拒载。生成端对应的 49,152 字节预算告警见 §validate 的 `DeliveryWarning`。
 - runtime 解码后先做 Schema 和摘要校验，再渲染。
 - shell 包含 generatorVersion、document ID、contentVersion、round 和 reviewDigest meta。
 - 同一输入、同一生成器版本输出字节稳定；不嵌入构建时间或随机值。
@@ -1311,7 +1326,7 @@ UI→GEN 模板交接是封闭接口：每个 token 必须在模板中恰好出�
 | `@@DAR_CONTENT_VERSION@@` | 十进制正整数 ASCII | `meta[name="dar-content-version"]` 的 `content` | GEN 填值 |
 | `@@DAR_ROUND@@` | 十进制正整数 ASCII | `meta[name="dar-round"]` 的 `content` | GEN 填值 |
 | `@@DAR_REVIEW_DIGEST@@` | HTML attribute 转义后的完整 SHA-256 | `meta[name="dar-review-digest"]` 的 `content` | GEN 填值 |
-| `@@DAR_DOCUMENT_BASE64@@` | 规范 UTF-8 JSON 的标准 Base64，无换行 | `template#review-document-data` 的唯一文本 | GEN 填值 |
+| `@@DAR_DOCUMENT_BASE64@@` | 规范 UTF-8 JSON 的标准 Base64，无换行 | `template#review-document-data` 的唯一文本（解析后可被 WebKit 拆为多个相邻文本节点） | GEN 填值 |
 | `@@DAR_SCRIPT_SHA256@@` | 浏览器 IIFE 精确内联字节的 CSP Base64 SHA-256 | CSP `script-src` | UI build 固化 |
 | `@@DAR_STYLE_SHA256@@` | 精确内联 CSS 字节的 CSP Base64 SHA-256 | CSP `style-src` | UI build 固化 |
 | `@@DAR_WORKBENCH_SCRIPT@@` | minified IIFE 原样字节，不作数据插值 | 唯一内联 script body | UI build 固化 |
