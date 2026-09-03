@@ -15,6 +15,14 @@ function termAnchor(target: unknown): HTMLElement | null {
   return found === null ? null : (found as HTMLElement);
 }
 
+/** True when a mouseout means the pointer left the term rather than moving between its own nodes. */
+function leftAnchor(anchor: HTMLElement, event: Event): boolean {
+  const next = (event as { relatedTarget?: unknown }).relatedTarget;
+  if (next === null || next === undefined || typeof next !== "object") return true;
+  const contains = (anchor as { contains?: (node: Node) => boolean }).contains;
+  return typeof contains !== "function" || !contains.call(anchor, next as Node);
+}
+
 /**
  * A single body-level definition preview shared by every glossary term.
  *
@@ -48,6 +56,14 @@ export function mountTermTip(document: Document): void {
   body.append(tip);
 
   let active: HTMLElement | null = null;
+  // The term whose preview the reader dismissed with Escape while the pointer
+  // still rests on it. Browsers synthesize mouseover/mouseout without any
+  // pointer motion whenever the node under a resting pointer changes — a
+  // scroll or reflow shifting the hit target from the term to its own label
+  // span is enough — and every such mouseover used to reopen the preview
+  // moments after Escape closed it (WCAG 2.1 SC 1.4.13 asks the dismissal to
+  // hold). It stays dismissed until the pointer genuinely leaves the term.
+  let dismissed: HTMLElement | null = null;
   let overTip = false;
   let leaveTimer: number | undefined;
 
@@ -94,6 +110,8 @@ export function mountTermTip(document: Document): void {
   }
 
   function show(anchor: HTMLElement): void {
+    if (anchor === dismissed) return;
+    dismissed = null;
     const text = anchor.getAttribute("data-tip");
     if (text === null || text === "") return;
     if (leaveTimer !== undefined) {
@@ -133,12 +151,19 @@ export function mountTermTip(document: Document): void {
     if (anchor !== null) show(anchor);
   });
   body.addEventListener("mouseout", (event: Event) => {
-    if (termAnchor(event.target) !== null) scheduleHide();
+    const anchor = termAnchor(event.target);
+    if (anchor === null) return;
+    if (anchor === dismissed && leftAnchor(anchor, event)) dismissed = null;
+    scheduleHide();
   });
   body.addEventListener("focusin", (event: Event) => {
     const anchor = termAnchor(event.target);
-    if (anchor !== null) show(anchor);
-    else if (active !== null) hide();
+    if (anchor !== null) {
+      dismissed = null;
+      show(anchor);
+    } else if (active !== null) {
+      hide();
+    }
   });
   body.addEventListener("focusout", (event: Event) => {
     if (termAnchor(event.target) !== null) scheduleHide();
@@ -146,7 +171,9 @@ export function mountTermTip(document: Document): void {
   // Keeping the preview hoverable and Escape-dismissible is what WCAG 2.1
   // SC 1.4.13 asks for; the old pointer-events:none pseudo-element met neither.
   body.addEventListener("keydown", (event: Event) => {
-    if ((event as KeyboardEvent).key === "Escape" && active !== null) hide();
+    if ((event as KeyboardEvent).key !== "Escape" || active === null) return;
+    dismissed = active;
+    hide();
   });
 
   if (typeof (tip as { addEventListener?: unknown }).addEventListener === "function") {

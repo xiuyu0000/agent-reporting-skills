@@ -91,6 +91,10 @@ class StubElement {
   closest(selector: string): StubElement | null {
     return selector === "a.term-ref[data-tip]" ? this.self : null;
   }
+
+  contains(node: unknown): boolean {
+    return node === this || this.children.some((child) => child.contains(node));
+  }
 }
 
 interface Harness {
@@ -173,6 +177,15 @@ function anchor(definition: string, box: Box): StubElement {
   element.setAttribute("data-tip", definition);
   element.box = box;
   return element;
+}
+
+/** A term plus its label span: the two nodes a resting pointer flips between. */
+function anchorWithLabel(definition: string, box: Box): { term: StubElement; label: StubElement } {
+  const term = anchor(definition, box);
+  const label = new StubElement();
+  label.self = term;
+  term.append(label);
+  return { term, label };
 }
 
 let active: Harness | undefined;
@@ -422,6 +435,74 @@ describe("term definition preview", () => {
     runTimers();
     expect(tip.popoverOpen).toBe(false);
     expect(term.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("keeps an Escape-dismissed preview closed while the pointer only shifts between the term's own nodes", () => {
+    const { tip, body, runTimers } = mount();
+    const { term, label } = anchorWithLabel("Definition.", { x: 10, y: 10, width: 40, height: 20 });
+    body.emit("mouseover", { target: term });
+    body.emit("keydown", { key: "Escape" });
+    expect(tip.popoverOpen).toBe(false);
+
+    // A scroll or reflow under the resting pointer: the browser synthesizes a
+    // mouseout to the label span and a mouseover on it, with no pointer motion.
+    body.emit("mouseout", { target: term, relatedTarget: label });
+    body.emit("mouseover", { target: label });
+    runTimers();
+    expect(tip.popoverOpen).toBe(false);
+    expect(term.getAttribute("aria-describedby")).toBeNull();
+
+    // And back again onto the anchor's own box.
+    body.emit("mouseout", { target: label, relatedTarget: term });
+    body.emit("mouseover", { target: term });
+    runTimers();
+    expect(tip.popoverOpen).toBe(false);
+
+    // Leaving the term ends the dismissal; re-entering previews it again.
+    body.emit("mouseout", { target: term, relatedTarget: new StubElement() });
+    runTimers();
+    body.emit("mouseover", { target: term });
+    expect(tip.popoverOpen).toBe(true);
+    expect(term.getAttribute("aria-describedby")).toBe("term-tip");
+  });
+
+  it("treats a pointer leaving the window as leaving the dismissed term", () => {
+    const { tip, body, runTimers } = mount();
+    const term = anchor("Definition.", { x: 10, y: 10, width: 40, height: 20 });
+    body.emit("mouseover", { target: term });
+    body.emit("keydown", { key: "Escape" });
+    body.emit("mouseout", { target: term, relatedTarget: null });
+    runTimers();
+    body.emit("mouseover", { target: term });
+    expect(tip.popoverOpen).toBe(true);
+  });
+
+  it("lets another term preview while the first stays dismissed", () => {
+    const { tip, body } = mount();
+    const first = anchor("First.", { x: 10, y: 10, width: 40, height: 20 });
+    const second = anchor("Second.", { x: 10, y: 60, width: 40, height: 20 });
+    body.emit("mouseover", { target: first });
+    body.emit("keydown", { key: "Escape" });
+
+    body.emit("mouseover", { target: second });
+    expect(tip.popoverOpen).toBe(true);
+    expect(tip.textContent).toBe("Second.");
+    expect(second.getAttribute("aria-describedby")).toBe("term-tip");
+    // Previewing the second term also ends the first term's dismissal.
+    body.emit("mouseover", { target: first });
+    expect(tip.textContent).toBe("First.");
+  });
+
+  it("reopens a dismissed term for keyboard focus, which is explicit intent", () => {
+    const { tip, body } = mount();
+    const term = anchor("Definition.", { x: 10, y: 10, width: 40, height: 20 });
+    body.emit("mouseover", { target: term });
+    body.emit("keydown", { key: "Escape" });
+    expect(tip.popoverOpen).toBe(false);
+
+    body.emit("focusin", { target: term });
+    expect(tip.popoverOpen).toBe(true);
+    expect(term.getAttribute("aria-describedby")).toBe("term-tip");
   });
 
   it("does nothing at all when the host provides no body or no element factory", () => {

@@ -16,8 +16,8 @@ const usagePath = resolve(ROOT, "src/cli/record-usage.ts");
 const zipPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.1.zip");
 const manifestPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.1.manifest.json");
 
-const EXPECTED_ZIP_SHA256 = "3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f";
-const EXPECTED_MANIFEST_SHA256 = "9da67c25e4f901db4754032f2cf82bbd0c3980232c5e46bd59f92dac0169023b";
+const EXPECTED_ZIP_SHA256 = "38a1e4585a5378f62c5c57f27bdb171e4e45d7c367616ae010c83bdf5d97f203";
+const EXPECTED_MANIFEST_SHA256 = "5cc4f04e1a6b4753d8d1fa3ff2d949732d1fa8634dcdddbfd65225ebe8802aa1";
 const execFileAsync = promisify(execFile);
 const PILOT_INPUT_KEYS = [
   "eligible",
@@ -134,8 +134,8 @@ describe("Claude Code handoff documentation", () => {
     const { handoff, zip, manifest, packageJson } = await readHandoffFiles();
 
     expect(handoff).toContain("dae53e5b76e6507592b37c1a241e7ad6c6e22905");
-    expect(handoff).toContain("3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f");
-    expect(handoff).toContain("9da67c25e4f901db4754032f2cf82bbd0c3980232c5e46bd59f92dac0169023b");
+    expect(handoff).toContain("38a1e4585a5378f62c5c57f27bdb171e4e45d7c367616ae010c83bdf5d97f203");
+    expect(handoff).toContain("5cc4f04e1a6b4753d8d1fa3ff2d949732d1fa8634dcdddbfd65225ebe8802aa1");
     expect(handoff).toContain("PIL-001");
     expect(handoff).toContain("MET-001");
     expect(handoff).toContain("#61");

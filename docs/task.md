@@ -5,9 +5,9 @@
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
 > - 当前波次：W7 · 真实试点与指标验证（PIL-001 于 2026-08-20 `done`：一个经用户确认真实且有用的案例完成完整闭环，validation=pass，内容保持私有；MET-001 `deferred` 等待 3–5 份合格样本）
 > - 协调者：主实施 Agent
-> - 最后更新：2026-09-03（新增 W23：UI-008 工作台接受 WebKit 解析器拆分出的多个载荷文本节点、VAL-004 render/validate 成功结果携带载荷预算 `warnings`，REL-009 重切候选；新增 W24：UI-009 流程图布局重写、UI-010 术语预览脱离裁剪容器、CTR-003 内容模型补 `scale` 与 flow `kind`、SKL-004 写作规范可执行化，REL-010 重切候选；新增 W25：REL-011 版本线切换到 v0.2.1 并重切候选、DOC-003 四平台更新指南与分支上下文对齐；需求条款未变更，spec 摘要不变）
+> - 最后更新：2026-09-03（新增 W23：UI-008 工作台接受 WebKit 解析器拆分出的多个载荷文本节点、VAL-004 render/validate 成功结果携带载荷预算 `warnings`，REL-009 重切候选；新增 W24：UI-009 流程图布局重写、UI-010 术语预览脱离裁剪容器、CTR-003 内容模型补 `scale` 与 flow `kind`、SKL-004 写作规范可执行化，REL-010 重切候选；新增 W25：REL-011 版本线切换到 v0.2.1 并重切候选、DOC-003 四平台更新指南与分支上下文对齐；新增 W26：UI-011 术语预览的 Escape 驳回守卫、QA-002 术语预览浏览器用例确定化、REL-012 重切候选；需求条款未变更，spec 摘要不变）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `57513f852261c058089936e83c99a1b6104537e0cf51d53b4cf4d89213817966`（2026-09-03 晚间 W25 补记 v0.2.0 tag 后重算；同日 W25 DES-022 值为 `9c88db0f53ccaafc827f821ba3c2cde357f7918f989bc9464ca9674bb4ad1a06`）
+> - Design 基线：`docs/design.md` · SHA-256 `d76645b23fca5588e853e236ebff8ded1998d099185c7650ef5b65893fb4ff5b`（2026-09-03 W26 补充 §11.3 `Esc` 驳回语义后重算；同日此前 W25 补记 v0.2.0 tag 后为 `57513f852261c058089936e83c99a1b6104537e0cf51d53b4cf4d89213817966`，W25 DES-022 值为 `9c88db0f53ccaafc827f821ba3c2cde357f7918f989bc9464ca9674bb4ad1a06`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
@@ -227,6 +227,7 @@ flowchart TD
 | W23 | UI-008 审批载荷多文本节点读取；VAL-004 载荷预算告警；REL-009 收口重切 | 单线程；写 workbench bootstrap、validate/render 成功结果、Skill 说明与测试 | 三浏览器全绿（含 WebKit 拆分载荷用例）；告警单元/e2e 用例；候选重建（tag/Release 仍需单独授权） |
 | W24 | UI-009、UI-010 先行并实测字节余量；CTR-003 按余量决定范围；SKL-004 并行；REL-010 收口重切 | 单线程；写 `src/workbench/**`、`src/protocol/**`、公共 Schema、Skill 写作规范与测试 | 三张用户截图场景逐一消除且有变异验证；三浏览器全绿；字节门未放宽；候选重建 |
 | W25 | REL-011 v0.2.1 候选线切换与重切；DOC-003 四平台更新指南与分支上下文 | 单线程；写版本常量、CI、dist、测试字面量与文档 | 候选 v0.2.1 可复现且 verify:dist 通过；全套门禁与 CI 全绿；tag/Release 仍需单独授权 |
+| W26 | UI-011 术语预览的 Escape 驳回守卫；QA-002 术语预览浏览器用例确定化；REL-012 收口重切 | 单线程；写 `src/workbench/term-tip.ts`、term-tip 单元用例、workbench-render 浏览器用例、`dist/**` 与文档台账 | firefox-smoke 竞态在负载下可复现、修复后同负载全绿；三引擎全绿；单元与浏览器断言经变异验证；候选重建（tag/Release 仍需单独授权） |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -297,6 +298,9 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | REL-010 | 按 W24 重切候选并重新绑定摘要 | UI-009、UI-010、CTR-003、SKL-004 | release | `done` | w24 Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 与 installed-skill 测试 | Release gate |
 | REL-011 | 版本线切换到 v0.2.1 并按同一源码重切候选 | REL-010 | release | `done` | w25_release Agent | `package.json`/`package-lock.json`、`tools/release-build.mjs`、`tools/build-workbench.mjs`、src 版本常量、`.github/workflows/validate.yml`、`dist/**`、测试字面量与 claude-handoff 钉点 | Release gate |
 | DOC-003 | 四平台更新指南与分支上下文对齐 | REL-011 | surface | `done` | w25_docs Agent | `docs/platform-usage.md`、`README.md`、`CLAUDE.md`、`AGENTS.md`、`docs/README.md`、`docs/local-development.md`、handoff §1/§6.2、design DES-022 | 文档一致性核验 + claude-handoff 测试 |
+| UI-011 | 被 Escape 驳回的术语预览在指针离开术语前不再被合成 mouseover 重开 | REL-011 | ui | `done` | w26 Agent | `src/workbench/term-tip.ts`、`tests/unit/term-tip.test.ts` | A19/A20；SC 1.4.13 可驳回 |
+| QA-002 | 术语预览浏览器用例不再依赖 Playwright 的重试滚动 | UI-011 | qa | `done` | w26 Agent | `tests/browser/workbench-render.spec.ts`（仅该用例） | firefox 负载复现由 1/30 变为 0/40 |
+| REL-012 | 按 W26 重切候选并重新绑定摘要 | UI-011、QA-002 | release | `done` | w26 Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 测试 | Release gate |
 
 ## 5. 详细任务卡
 
@@ -1536,6 +1540,57 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Completion evidence**：[platform-usage.md](platform-usage.md) 新增四平台更新节（SHA 核对、旧目录移除或移开、解压、单副本确认、版本确认；推断步骤逐条标注「按平台机制推断，未在本轮实测」）；README 平台矩阵新增更新列；CLAUDE.md、AGENTS.md、docs/README.md、docs/local-development.md 与 handoff §1/§6.2 的分支上下文改写为 `codex/v0.2.1` 集成线、`main` 树一致、`codex/v0.2.0` 冻结于 `3ff6509`；design 新增 DES-022 记录版本线切换与 generatorVersion 单轨（不设双轨、旧视图留档后在新的空目录重渲染）决定；handoff 钉点字面量全部保留，`tests/unit/claude-handoff.test.ts` 结果以协调者的门禁运行为准。摘要重新绑定由协调者收口。
 - **Blocker / unblock**：无。安装副本同步与 tag/Release 授权见 REL-011。
 
+### UI-011 · 术语预览的 Escape 驳回守卫
+
+- **状态 / owner_role / owner / last_updated**：`done` / UI engineer / w26 Agent / 2026-09-03
+- **Outcome**：被 Escape 关闭的术语预览在指针离开该术语之前不再自行回来；离开再进入、聚焦该术语或悬停其他术语照常预览。
+- **Depends on / unlocks**：REL-011 / QA-002、REL-012。
+- **Parallel / conflicts**：只写 `term-tip.ts` 与其单元测试；不动 `shell.ts`、`interactions.ts`、协议面与 Schema。
+- **Write scope**：`src/workbench/term-tip.ts`、`tests/unit/term-tip.test.ts`。
+- **Refs**：Design DES-021、§11.3（本轮补充 Escape 驳回语义）；WCAG 2.1 SC 1.4.13（可驳回）；[local-development.md](local-development.md) §5.2；触发现场为 PR #86 firefox-smoke lane（CI run 33731572904）。
+- **Implementation contract**：Escape 记住被驳回的锚点；同一锚点的 `mouseover` 一律忽略；`mouseout` 的 `relatedTarget` 不在锚点之内（或为 `null`）时视为指针真正离开并清除驳回；`focusin` 到术语或 `show()` 到别的锚点同样清除驳回。不引入 `mousemove` 监听，不改 `follow()`/`place()`/`scheduleHide()`，不改 CSS，不新增 DOM。字节门由 391339 到 391557/393216（余 1659），未放宽。
+- **Failure rules**：驳回后指针未离开就重开、离开再进入不重开、聚焦不重开、另一术语被牵连不显示，任一即失败。
+- **Validation**：
+
+  ```bash
+  npm run test:unit
+  npm run test:browser -- --project=chromium
+  npm run test:browser -- --project=webkit
+  npm run test:browser -- --project=firefox
+  ```
+
+- **Completion evidence**：三引擎确定性复现（悬停术语 → `window.scrollBy({top:-40,behavior:"smooth"})` → 立即 Escape → 800 ms 后读状态）修复前 chromium/webkit/firefox 三处预览均重新打开，修复后三处均保持关闭；事件日志显示 Escape 之后仍出现同锚点的 `mouseout(a.term-ref)`/`mouseover(span)` 合成对、指针坐标不变，但不再触发显示。单元新增 4 例（同锚点节点间切换不重开、离窗视为离开、其他术语照常、焦点重开），去掉守卫后该单元用例与 QA-002 的浏览器断言都失败（变异验证）。
+- **Blocker / unblock**：无。
+
+### QA-002 · 术语预览浏览器用例确定化
+
+- **状态 / owner_role / owner / last_updated**：`done` / QA/tooling engineer / w26 Agent / 2026-09-03
+- **Outcome**：`@A19 the glossary preview escapes every scroll container that used to clip it` 不再依赖 Playwright 的悬停重试滚动，宿主饱和时同样稳定。
+- **Depends on / unlocks**：UI-011 / REL-012。
+- **Parallel / conflicts**：只写该用例；不改 `playwright.config.ts`，不加超时或 retry。
+- **Write scope**：`tests/browser/workbench-render.spec.ts`（仅该用例）。
+- **Refs**：[local-development.md](local-development.md) §5.1 的立场（不用超时或 retry 掩盖竞态）与 §5.2 的时间线；PR #72 的 `openWorkbench` 模式。
+- **Implementation contract**：用与 `workbench-actions.spec.ts` 同款 `addInitScript` 通过 CSSOM 把 `scroll-behavior` 置为 `auto`（CSP 的 style hash 拒绝注入 `<style>`）；每个术语的探针之后先 Escape 并断言关闭，再悬停下一个术语，使每次 `hover()` 只需一次尝试；新增断言：Escape 后对同一术语的 label span `dispatchEvent("mouseover")` 不得重开预览、锚点不再带 `aria-describedby`，`page.mouse.move` 离开后再悬停必须重开。九点命中探针、视口内、完整定义文字与 `tabindex=0` 等原断言全部保留。
+- **Failure rules**：引入 `timeout`、`retries`、`waitForTimeout` 或修改 `playwright.config.ts` 即失败。
+- **Validation**：
+
+  ```bash
+  npx playwright test tests/browser/workbench-render.spec.ts --project=firefox --grep "glossary preview" --repeat-each=40
+  ```
+
+  宿主同时跑 8–16 个忙循环。
+- **Completion evidence**：修复前同命令在负载均值 15–22 下 30 次失败 1 次、40 次失败 1 次（失败 trace 的时间线见 §5.2；空闲 60 次全绿）；修复后负载均值 52–73 下 40/40 全绿；三引擎单跑全绿；去掉 UI-011 守卫后该用例在 chromium 于新增的 `toBeHidden` 断言处失败（变异验证）。
+- **Blocker / unblock**：无。§5.1 的 termRef 跳转竞态仍未修复，不在本卡范围。
+
+### REL-012 · W26 后的候选重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w26 Agent / 2026-09-03
+- **Outcome**：候选按 W26 的 workbench 变更重建，源码、生成分发面与 ZIP/manifest 再次一致。
+- **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
+- **Implementation contract**：与 REL-003..REL-011 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
+- **Completion evidence**：新候选 ZIP 为 1024557 bytes、SHA-256 `38a1e4585a5378f62c5c57f27bdb171e4e45d7c367616ae010c83bdf5d97f203`；manifest SHA-256 `5cc4f04e1a6b4753d8d1fa3ff2d949732d1fa8634dcdddbfd65225ebe8802aa1`；entryCount 仍为 12；工作台 shell 391557/393216 字节。连续两次 `release:build -- --version 0.2.1` 摘要一致，`verify:dist` 通过。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；REL-011 的候选摘要保留在 W25 记录中作为历史证据。
+- **Blocker / unblock**：v0.2.1 tag 与 GitHub Release 未创建，需用户单独授权。本机安装副本仍是 2026-09-03 晚间同步的 REL-011 候选，未同步为本候选，需用户按指南 §7 另行授权。
+
 ## 6. A01–A22 覆盖矩阵
 
 每个 ID 恰有一个 primary proof owner。INT-001 统一复跑，但不抢占主责。测试名称必须包含 Axx；coverage 命令必须验证 22 个 ID 均出现且 primary 无重复。
@@ -1707,3 +1762,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 2026-09-03 的仓库整理记录（分支与标识收口，无产品字节变更以外的改动）：用户指令整理本地 worktree 与远端分支。现状为两条 2026-09-02 的并行工作互不知情地占用了同一组标识——`claude/w23-payload-text-nodes` worktree 里未提交的 WebKit 载荷修复与 PR #82 的审批面表达清晰度改动都自称 W23 / UI-008 / REL-009 / DES-020，且 PR #82 以 `main` 为 base、本地 `main` 已被提前快进到该未合入提交。处置：(1) 载荷修复按 bug 修复优先，先提交并重排到 `codex/v0.2.0`（PR #83），保留其 W23 / UI-008 / VAL-004 / REL-009 / DES-020；(2) 审批面改动在其上重排并改号为 W24 / UI-009 / UI-010 / REL-010 / DES-021（CTR-003、SKL-004 不变），生成物与候选按合并后源码重建，以 PR #84 取代 PR #82，base 改回 `codex/v0.2.0`；(3) 两个 PR 合入后 `main` 仍按 2026-08-20 规则以 `-s ours` 同步合并保持树一致——用户提出的「特性只进 main、bug 修复进所有分支」在本仓库不成立，因为 `main` 与 `codex/v0.2.0` 依 AGENTS/CLAUDE/handoff 约定树完全一致、v0.2 尚未打 tag，不存在需要单独回港的维护分支；(4) 删除已合并的远程分支 `claude/w22-codex-install-path`，PR #82 的分支与两个临时 worktree 在其内容合入后删除；(5) 两条 2026-08 的 `codex/w4-ui-recovery` stash 内容已在树中，只报告不处理。CI 侧另记录一次 `codex/v0.2.0` 2a99c75 的 `record-usage` 并发追加用例偶发失败（同树在 `main` 通过），属既有偶发，未在本轮处理。
 
 2026-09-03 的 W25 记录（v0.2.1 候选线切换；候选重切；四平台更新指南）：v0.2.0 候选自 REL-001 起以同一版本号被多次重切，当时从未打 tag 或发布（同日晚间补打注释 tag `v0.2.0`，见本记录末尾）；W23（PR #83）与 W24（PR #84）合入后，`codex/v0.2.0` 的尖端 `3ff6509` 已经远离最初冻结的那份 v0.2.0 候选。用户于同日决定：`codex/v0.2.0` 冻结在 `3ff6509`，作为 v0.2.0 候选谱系（当时未打 tag、未发布），不再合入任何提交；从 `main`（与 `3ff6509` 树一致）开出 `codex/v0.2.1`，它从此是集成分支与全部 PR 的 base；`main` 继续按 2026-08-20 规则以 `-s ours` 同步合并保持树一致。本条取代同日早些时候仓库整理记录中「`codex/v0.2.0` 仍是集成分支与 PR base」的口径，那条记录保持原文作为当时事实。是否在 `3ff6509` 为 v0.2.0 补 tag 是用户的单独决定，本波次不打任何 tag。**generatorVersion 决定（DES-022）**：按 DES-014 的无双轨规则，唯一受支持的 generatorVersion 随版本常量整体移到 0.2.1，不为 0.2.0 保留兼容轨。旧视图行为的口径于同日订正：本记录最初写「任何 0.2.0 构建生成的视图在新运行时下被拒绝，审批工作台以 `META_IDENTITY_MISMATCH` 拒载、CLI 以 `ARTIFACT_FORMAT_INVALID` `/generated/generatorVersion` 报错」，经用已安装的 0.2.0 运行时渲染 W23 时期 fixture 并以 0.2.1 CLI 实测后证实不成立，改为：0.2.0 运行时生成的视图仍是自含的离线工作台（内嵌其自身的 0.2.0 shell），能在浏览器打开并完成该轮审阅，不触发 `META_IDENTITY_MISMATCH`（该码只在把另一生成器版本的载荷/meta 装入不同版本的 shell 时触发，CLI 从不产出这种组合）；0.2.1 CLI 拒绝对 0.2.0 生成的视图操作——`validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 报 `CSP_INVALID`（`/approval`、`/approval/csp`）加 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`），原因是旧 shell 的内联脚本/CSP 哈希与生成器 meta 不同于当前运行时会生成的值；用 0.2.1 重渲染未改动的 review-document.json 得到相同的 dar-review-digest、contentVersion 与 round（只有 dar-generator-version 由 0.2.0 变为 0.2.1），`review-packet/1` 回执绑定文档身份（id、title、contentVersion、round、reviewDigest）而非审批 HTML，旧视图导出的回执对未改动文档仍可通过 `validate packet` / `consume`。处置口径：旧视图留档，不删除私有输出根下任何内容（render 只创建：`TARGET_EXISTS`）；需要用新运行时校验或替换时，从未改动的 review-document.json 在新的空目录重新 render（或先把旧视图移开）。协议面 `review-document/1` 本轮未变更。**本轮改动**：REL-011 把 `package.json`/`package-lock.json`、`tools/release-build.mjs` 的 `RELEASE_VERSION`、`GENERATOR_VERSION`、两处 `SUPPORTED_GENERATOR_VERSION` 与构建 token 移到 0.2.1；候选在 Node 24.19.0 上以 `release:build -- --version 0.2.1` 重建为 `dist/deliver-dual-audience-report-v0.2.1.{zip,manifest.json}`（ZIP 1024339 bytes、SHA-256 `3c766e13…6545f`；manifest `9da67c25…023b`；entryCount 12；shell 391339/393216），v0.2.0 候选文件从树中移除（最后存在于 `3ff6509`），v0.1.1 ZIP 保留；`.github/workflows/validate.yml` 的 push 触发面改为 `[main, codex/v0.2.1, codex/v0.2.0]` 且发布步骤改为 v0.2.1 ZIP/manifest 的构建-差异校验；126 处测试字面量移到 0.2.1，`release-candidate` 漂移用例改为 0.2.1→0.2.2，`claude-handoff` 测试钉住新路径与摘要。DOC-003 在 [platform-usage.md](platform-usage.md) 新增四平台更新节（核对 SHA → 移除旧目录 → 解压 → 单副本确认 → 版本确认；替换机制本轮未实测，推断步骤逐条标注），README 平台矩阵补更新列，CLAUDE/AGENTS/README/docs README/local-development/handoff 的分支上下文对齐为新口径，design 新增 DES-022。**门禁**：候选重建后 `verify:dist` 通过；两次构建的可复现性、全套门禁与 CI 结果以协调者的门禁运行为准，并在其重新绑定本文、handoff 与 design 摘要时收口。**未完成与待授权**：v0.2.1 tag 与 GitHub Release 未创建，需用户单独授权；MET-001 保持 `deferred`，样本与授权状态未变。**同日晚间补记**：PR #85 合入 `codex/v0.2.1`（合并提交 `1364e6e`）后，用户授权两件事并已执行——(1) 在 `3ff6509` 补打注释 tag `v0.2.0` 标记冻结的 v0.2.0 候选线（无 GitHub Release，不是回滚基线）；(2) 本机安装副本按指南 §7 同步为 v0.2.1 候选（`~/.claude/skills/` 与 `~/.agents/skills/` 各一份，12 文件摘要与 manifest 一致；0.2.0 旧副本与 `~/.codex/skills/` 下残留的 v0.1 副本均移出扫描目录留档）。目录替换与逐文件核对由此得到一次实测，会话内可见性仍未验证，指南中的推断标注保留。
+
+2026-09-03 的 W26 记录（术语预览 Escape 驳回守卫；用例确定化；候选重切）：同日 PR #86（纯文档改动）的 firefox-smoke lane（CI run 33731572904）里，`workbench-render.spec.ts` 的 `@A19 the glossary preview escapes every scroll container that used to clip it` 在 `Escape` 之后的 `toBeHidden` 整整 5 s 内一直看到可见的 `#term-tip`，重跑通过。本机 10 核加 8–16 个忙循环（负载均值 15–22）用 `--project=firefox --grep "glossary preview" --repeat-each=30/40` 各复现 1 次并留下 trace，空闲 60 次全绿。trace 的 action log 与 DOM 快照给出时间线（详见 [local-development.md](local-development.md) §5.2）：表头术语的预览按设计放在锚点下方 6 px，正好盖住表体首行的同名术语，于是第二次 `hover()` 被 `intercepts pointer events` 拦下进入重试，Playwright 每次重试用 `block: end/center/start` 轮换再调 `scrollIntoView()`，而其 Firefox/WebKit 滚动路径尊重模板的 `html{scroll-behavior:smooth}`——页面平滑滚动、指针静止；第 5 次尝试在滚动尚未停稳时成功（Firefox 的稳定判定只取 1 个 rAF），探针全过，`Escape` 落在滚动尾部（快照里预览 `top` 在按键前后仍 521→523 px 逐帧变化）；内容继续从静止指针下滑过，指针命中的节点从 `a.term-ref` 切到它自己的 label `<span>`，浏览器为此合成一对 `mouseout`/`mouseover`（无任何指针移动），term-tip 把每个落在术语上的 `mouseover` 都当作显示意图，刚关闭的预览随即重开且因指针不再移动永不关闭。用户提出的三个候选原因均排除：Escape 处理器与悬停/焦点逻辑没有竞争（`hide()` 确实执行，快照中 `aria-describedby` 已移除），Firefox 的 `hidePopover()` 同步生效（`toggle` 事件 `closed` 紧随 `keydown`），焦点位置无关（Escape 落在 body，监听在 body）。**判定为产品侧竞态而非用例写法**：Escape 应是 SC 1.4.13 意义上的驳回，被驳回的内容在指针未离开时自行回来等于驳回未生效。用临时用例在三引擎做确定性复现（悬停术语 → `scrollBy({top:-40,behavior:"smooth"})` → 立即 Escape → 800 ms）：修复前 chromium/webkit/firefox 三处预览均重开。**UI-011** 在 `term-tip.ts` 记住被 Escape 驳回的锚点，同一锚点的 `mouseover` 在指针真正离开（`mouseout` 的 `relatedTarget` 不在锚点内或为 `null`）、聚焦该术语或悬停别的术语之前一律忽略；修复后同一复现三引擎均保持关闭，单元新增 4 例，去掉守卫后单元与浏览器断言均失败（变异验证）；字节门 391339 → 391557/393216。**QA-002** 让该用例以 CSSOM 关掉平滑滚动（与 PR #72 的 `openWorkbench` 同款，CSP style hash 使注入 `<style>` 不可行）、在悬停下一术语前先 Escape 并断言关闭，使每次 `hover()` 只需一次尝试；并新增“Escape 后同术语 label span `dispatchEvent("mouseover")` 不得重开、离开再进入必须重开”两条断言；没有加超时、没有加 retry、未改 `playwright.config.ts`。修复后负载均值 52–73 下 firefox 40/40 全绿，三引擎全绿，单元 677 例全绿。**REL-012** 重切候选：ZIP 1024557 bytes、SHA-256 `38a1e4585a5378f62c5c57f27bdb171e4e45d7c367616ae010c83bdf5d97f203`，manifest SHA-256 `5cc4f04e1a6b4753d8d1fa3ff2d949732d1fa8634dcdddbfd65225ebe8802aa1`，entryCount 12，连续两次构建摘要一致，`verify:dist` 通过，摘要同步到 handoff §1/§6.2 与 `claude-handoff` 测试；design §11.3 补记 Escape 驳回语义并重新绑定摘要。**未做与待授权**：`html{scroll-behavior:smooth}` 收进 `@media (prefers-reduced-motion: no-preference)` 属 DES-019/§11.8 视觉契约变更，仍待用户批准；§5.1 的 termRef 跳转竞态仍未修复；本机 `validate:skill` 因缺 `skills-ref` 未跑，由 CI 覆盖；v0.2.1 tag/Release 与本机安装副本同步仍需用户单独授权；MET-001 保持 `deferred`。
