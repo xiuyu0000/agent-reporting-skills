@@ -5,8 +5,8 @@
   "node": ">=24 <25",
   "archive": {
     "path": "dist/deliver-dual-audience-report-v0.2.1.zip",
-    "byteLength": 1024339,
-    "digest": "sha256:3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f",
+    "byteLength": 1024557,
+    "digest": "sha256:38a1e4585a5378f62c5c57f27bdb171e4e45d7c367616ae010c83bdf5d97f203",
     "entryCount": 12,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
@@ -31,8 +31,8 @@
     },
     {
       "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
-      "byteLength": 391332,
-      "digest": "sha256:36ebe74654113d33280c0ac5816198cdcdd72e2d8fa4f803356f7394982a0207"
+      "byteLength": 391550,
+      "digest": "sha256:affdae010841f22a3f93ac3ff19aa58bdec895c7a4c4e443e791f776eb9c639d"
     },
     {
       "path": "deliver-dual-audience-report/references/approval-writing-examples.md",
