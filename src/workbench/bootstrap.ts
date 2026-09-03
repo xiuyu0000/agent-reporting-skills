@@ -73,11 +73,14 @@ function readLandmarks(): WorkbenchLandmarks {
     throw new WorkbenchLoadError("SHELL_HEADING_INVALID", "/h1");
   }
   const data = uniqueElement<HTMLTemplateElement>("template#review-document-data", "template");
+  // WebKit's parser stores at most 65,536 code units per text node and continues
+  // a longer payload in sibling text nodes (Chromium and Firefox keep one), so
+  // the payload is any non-empty run of text nodes; `textContent` joins them.
+  const payloadNodes = [...data.content.childNodes];
   if (
     data.dataset.encoding !== "base64"
-    || data.content.querySelector("*") !== null
-    || data.content.childNodes.length !== 1
-    || data.content.firstChild?.nodeType !== Node.TEXT_NODE
+    || payloadNodes.length === 0
+    || payloadNodes.some((node) => node.nodeType !== Node.TEXT_NODE)
   ) {
     throw new WorkbenchLoadError("DOCUMENT_ENCODING_INVALID", "/review-document-data");
   }

@@ -23,6 +23,7 @@ import {
 } from "../io/index.js";
 import { CLI_EXIT_CODES, exitCodeForCliIoResult } from "../exit-codes.js";
 import {
+  approvalPayloadWarnings,
   buildBatchHandoff,
   createAgentArtifactByteVerifier,
   createApprovalArtifactByteVerifier,
@@ -473,12 +474,14 @@ export async function runRenderCommand(
         committed.recoveryRequired,
       );
     }
+    const warnings = approvalPayloadWarnings(prepared.map((item) => item.document));
     const result: RenderSuccess = {
       status: "ok",
       phase: "render",
       mode: prepared.length === 1 ? "delivery" : "batch",
       mutated: true,
       handoff,
+      ...(warnings.length === 0 ? {} : { warnings }),
     };
     return { exitCode: 0, result };
   } catch {

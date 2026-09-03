@@ -99,6 +99,14 @@ contract and generator version. Never hand-edit either generated view. Treat a
 missing success result as incomplete. Use `--replace-generated` only for
 identity-matching generated files and only when replacement is intended.
 
+A successful `render` or `validate delivery`/`batch` result may carry a
+`warnings` array beside `handoff`. `APPROVAL_PAYLOAD_NEAR_LIMIT` means the
+embedded contract is within 1,536 bytes of, and `APPROVAL_PAYLOAD_OVER_LIMIT`
+that it is past, the 49,152-byte payload that workbenches generated before
+the multi-text-node reader could load in WebKit browsers. Warnings never
+change the exit code; trim non-semantic fields or split the delivery in
+round 1, because each later round adds approval bookkeeping.
+
 ### 5. Validate meaning and real-browser behavior
 
 Run the applicable read-only validation:
