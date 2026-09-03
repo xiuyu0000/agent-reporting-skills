@@ -146,7 +146,7 @@ describe("frozen Agent Markdown parser", () => {
     const withNestedHeading = encoder.encode(validAgentText(document)
       .replace("Review every active decision block.", "#### B001 review\n\n[Open block](#b001-review)"));
     expect(parseAgentArtifact(withNestedHeading, document, GENERATOR_VERSION).ok).toBe(true);
-    expect(codes(parseAgentArtifact(bytes, undefined, "0.2.1")))
+    expect(codes(parseAgentArtifact(bytes, undefined, "0.2.2")))
       .toContain("ARTIFACT_IDENTITY_MISMATCH");
     const verify = createAgentArtifactByteVerifier({ document, generatorVersion: GENERATOR_VERSION });
     expect(verify(bytes)).toEqual({ ok: true });
@@ -161,7 +161,7 @@ describe("frozen Agent Markdown parser", () => {
       ["duplicate marker", encoder.encode(`${source}<!-- dar-round: 1 -->\n`), "ARTIFACT_FORMAT_INVALID"],
       ["unknown marker", encoder.encode(`${source}<!-- dar-extra1: value -->\n`), "ARTIFACT_FORMAT_INVALID"],
       ["bad marker value", encoder.encode(source.replace("dar-round: 1", "dar-round: 01")), "ARTIFACT_FORMAT_INVALID"],
-      ["bad semver", encoder.encode(source.replace("dar-generator-version: 0.2.0", "dar-generator-version: 1.0.0-01")), "ARTIFACT_FORMAT_INVALID"],
+      ["bad semver", encoder.encode(source.replace("dar-generator-version: 0.2.1", "dar-generator-version: 1.0.0-01")), "ARTIFACT_FORMAT_INVALID"],
       ["wrong heading placement", encoder.encode(source
         .replace("### Objective\n\nContinue from the reviewed objective.\n\n### In scope", "### In scope\n\nContinue from the reviewed objective.\n\n### Objective")), "ARTIFACT_FORMAT_INVALID"],
       ["content before h1", encoder.encode(source.replace(`# ${document.document.title}`, `preamble\n# ${document.document.title}`)), "ARTIFACT_FORMAT_INVALID"],
@@ -540,13 +540,13 @@ describe("paired generated-artifact replacement verifier", () => {
     const cases: Array<[string, ReturnType<typeof preflight>]> = [
       ["current delivery ID", preflight({ oldDocument, currentDocument: otherDelivery })],
       ["current document ID", preflight({ oldDocument, currentDocument: otherDocument })],
-      ["supported generator", preflight({ oldDocument, currentDocument, generatorVersion: "0.2.1" })],
+      ["supported generator", preflight({ oldDocument, currentDocument, generatorVersion: "0.2.2" })],
       ["self-consistent unsupported generator pair", preflight({
         oldDocument,
         currentDocument,
-        generatorVersion: "0.2.1",
-        agentBytes: validAgentBytes(oldDocument, "0.2.1"),
-        approvalBytes: validApprovalBytes(oldDocument, "0.2.1"),
+        generatorVersion: "0.2.2",
+        agentBytes: validAgentBytes(oldDocument, "0.2.2"),
+        approvalBytes: validApprovalBytes(oldDocument, "0.2.2"),
       })],
       ["invalid generator", preflight({ oldDocument, currentDocument, generatorVersion: "1.0.0-01" })],
       ["old pair snapshot", preflight({
@@ -557,7 +557,7 @@ describe("paired generated-artifact replacement verifier", () => {
       ["Approval generator", preflight({
         oldDocument,
         currentDocument,
-        approvalBytes: validApprovalBytes(oldDocument, "0.2.1"),
+        approvalBytes: validApprovalBytes(oldDocument, "0.2.2"),
       })],
       ["template CSP", preflight({ oldDocument, currentDocument, templateBytes: damagedTemplate })],
       ["Agent delivery ID", preflight({

@@ -313,7 +313,7 @@ describe("closed consume validation facade", () => {
       new TextDecoder().decode(templateBytes).replace("default-src 'none'", "default-src 'self'"),
     );
     const cases = [
-      { ...base, generatorVersion: "0.2.1" },
+      { ...base, generatorVersion: "0.2.2" },
       { ...base, templateBytes: damagedTemplate },
       { ...base, agentBytes: otherGenerated.value.agent },
       { ...base, approvalBytes: otherGenerated.value.approval },

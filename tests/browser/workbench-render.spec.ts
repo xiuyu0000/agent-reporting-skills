@@ -174,7 +174,7 @@ function fillTemplate(
   const digest = computeReviewDigest(documentValue);
   if (!digest.ok) throw new Error("review digest failed");
   const replacements: Record<string, string> = {
-    "@@DAR_GENERATOR_VERSION@@": "0.2.0",
+    "@@DAR_GENERATOR_VERSION@@": "0.2.1",
     "@@DAR_DOCUMENT_ID@@": documentValue.document.id,
     "@@DAR_CONTENT_VERSION@@": String(documentValue.document.contentVersion),
     "@@DAR_ROUND@@": String(documentValue.document.round),

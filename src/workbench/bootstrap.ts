@@ -15,7 +15,7 @@ import {
 } from "./persistence/index.js";
 import { mountPersistenceControls, safeWindowLocalStorage } from "./persistence/ui.js";
 
-export const SUPPORTED_GENERATOR_VERSION = "0.2.0" as const;
+export const SUPPORTED_GENERATOR_VERSION = "0.2.1" as const;
 export const WORKBENCH_ARTIFACT_META = {
   name: "dar-artifact",
   content: "review-approval-html/1",

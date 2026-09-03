@@ -3,16 +3,17 @@ name: validate
 on:
   pull_request:
   push:
-    # `codex/v0.2.0` is the release-candidate integration branch. Without it, a
+    # `codex/v0.2.1` is the release-candidate integration branch (`codex/v0.2.0` is
+    # the frozen v0.2.0 line). Without them, a
     # direct push there lands unvalidated, which is how a tracked-documentation
     # commit silently broke `scan:legacy-surface` after the v0.2 candidate froze.
-    branches: [main, codex/v0.2.0]
+    branches: [main, codex/v0.2.1, codex/v0.2.0]
 
 # Cancel superseded runs on PR branches only; pushes to the integration
 # branches always validate to completion.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/codex/v0.2.0' && github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/codex/v0.2.1' && github.ref != 'refs/heads/codex/v0.2.0' && github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -63,19 +64,19 @@ jobs:
           python -m pip install "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref"
           npm run validate:skill
           npm run test:e2e -- installed-skill legacy-interface
-      - name: Build and verify deterministic v0.2 release candidate
+      - name: Build and verify deterministic v0.2.1 release candidate
         run: |
           git ls-files --error-unmatch \
-            dist/deliver-dual-audience-report-v0.2.0.zip \
-            dist/deliver-dual-audience-report-v0.2.0.manifest.json >/dev/null
-          npm run release:build -- --version 0.2.0
+            dist/deliver-dual-audience-report-v0.2.1.zip \
+            dist/deliver-dual-audience-report-v0.2.1.manifest.json >/dev/null
+          npm run release:build -- --version 0.2.1
           npm run verify:dist
           npm run scan:legacy-surface
           npm run test:e2e -- release-candidate
-          unzip -l dist/deliver-dual-audience-report-v0.2.0.zip
+          unzip -l dist/deliver-dual-audience-report-v0.2.1.zip
           git diff --exit-code -- \
-            dist/deliver-dual-audience-report-v0.2.0.zip \
-            dist/deliver-dual-audience-report-v0.2.0.manifest.json
+            dist/deliver-dual-audience-report-v0.2.1.zip \
+            dist/deliver-dual-audience-report-v0.2.1.manifest.json
           git diff --check
       - name: Verify exact v0.1.0 rollback tag and release asset
         env:

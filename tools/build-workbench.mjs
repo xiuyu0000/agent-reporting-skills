@@ -227,7 +227,7 @@ export function assertWorkbenchTemplate(template, expectedScript, expectedStyle)
 
 export function workbenchShellSize(template) {
   const replacements = new Map([
-    ["@@DAR_GENERATOR_VERSION@@", "0.2.0"],
+    ["@@DAR_GENERATOR_VERSION@@", "0.2.1"],
     ["@@DAR_DOCUMENT_ID@@", "RD-00000000000000000000"],
     ["@@DAR_CONTENT_VERSION@@", "9007199254740991"],
     ["@@DAR_ROUND@@", "9007199254740991"],

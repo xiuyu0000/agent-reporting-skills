@@ -59,7 +59,7 @@ beforeAll(async () => {
         import { commitFileTransactionWithAdapter, commitFreshFileTransactionWithAdapter } from ${transactionImport};
         import { resolveOutputRootWithAdapter, validateRelativeTarget } from ${pathsImport};
         import { nativeFileSystemAdapter } from ${fsyncImport};
-        const [output, controlPoint, version = "0.2.0", content = "crashed"] = process.argv.slice(2);
+        const [output, controlPoint, version = "0.2.1", content = "crashed"] = process.argv.slice(2);
         const target = validateRelativeTarget("artifact.txt");
         if (!target.ok) process.exit(81);
         const adapter = {
@@ -141,7 +141,7 @@ afterAll(async () => {
   if (harnessDirectory !== "") await rm(harnessDirectory, { recursive: true, force: true });
 });
 
-function transactionTarget(content: string, generatorVersion = "0.2.0") {
+function transactionTarget(content: string, generatorVersion = "0.2.1") {
   const target = validateRelativeTarget("artifact.txt");
   if (!target.ok) throw new Error("target setup failed");
   const file: FileTransactionTarget = {
@@ -180,7 +180,7 @@ async function transactionDirectory(output: string): Promise<string> {
 }
 
 function startPausedCommit(output: string) {
-  const child = spawn(process.execPath, [harnessPath, output, "pause-stage", "0.2.0", "first"], {
+  const child = spawn(process.execPath, [harnessPath, output, "pause-stage", "0.2.1", "first"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   let stdout = "";
@@ -332,7 +332,7 @@ describe("fresh transaction crash recovery", () => {
     crash(output, "manifest-published:staged");
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      ...transactionTarget("retry", "0.2.1"),
+      ...transactionTarget("retry", "0.2.2"),
     });
     expect(result).toMatchObject({
       ok: false,

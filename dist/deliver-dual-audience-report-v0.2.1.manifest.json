@@ -1,12 +1,12 @@
 {
   "format": "deliver-dual-audience-report-release/1",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "skill": "deliver-dual-audience-report",
   "node": ">=24 <25",
   "archive": {
-    "path": "dist/deliver-dual-audience-report-v0.2.0.zip",
+    "path": "dist/deliver-dual-audience-report-v0.2.1.zip",
     "byteLength": 1024339,
-    "digest": "sha256:cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4",
+    "digest": "sha256:3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f",
     "entryCount": 12,
     "compression": "store",
     "timestamp": "1980-01-01T00:00:00Z",
@@ -32,7 +32,7 @@
     {
       "path": "deliver-dual-audience-report/assets/review-workbench.template.html",
       "byteLength": 391332,
-      "digest": "sha256:ead517def51ddc63f681dca76f56e48db38a63e34283567df9797d4a58b298bc"
+      "digest": "sha256:36ebe74654113d33280c0ac5816198cdcdd72e2d8fa4f803356f7394982a0207"
     },
     {
       "path": "deliver-dual-audience-report/references/approval-writing-examples.md",
@@ -72,7 +72,7 @@
     {
       "path": "deliver-dual-audience-report/scripts/review-delivery.mjs",
       "byteLength": 531628,
-      "digest": "sha256:960f18e0ed1db15b43cb13de69a8bc9c9edfb8a6e93e46802fcb4bc74cd628ba"
+      "digest": "sha256:07084f6fa8b7d493cb5c401d1cf0b0770a1f90842c76bd28e0bb8fd010d9b3bf"
     }
   ],
   "reproducibility": {

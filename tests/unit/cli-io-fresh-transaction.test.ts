@@ -107,7 +107,7 @@ type FreshInput = Parameters<typeof commitFreshFileTransaction>[0];
 function validFreshInput(outputDir: string): FreshInput {
   return {
     outputDir,
-    generatorVersion: "0.2.0",
+    generatorVersion: "0.2.1",
     targets: [createTarget()],
   };
 }
@@ -249,7 +249,7 @@ describe("fresh file transaction preflight", () => {
     let getterCalls = 0;
     const getterInput = Object.defineProperties({}, {
       outputDir: { enumerable: true, get: () => { getterCalls += 1; return output; } },
-      generatorVersion: { enumerable: true, value: "0.2.0" },
+      generatorVersion: { enumerable: true, value: "0.2.1" },
       targets: { enumerable: true, value: [createTarget()] },
     }) as FreshInput;
     let adapterReads = 0;
@@ -281,7 +281,7 @@ describe("fresh file transaction preflight", () => {
     const output = join(parent, "output");
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         ...createTarget(),
         verifyStaged: () => ({ ok: false }),
@@ -307,7 +307,7 @@ describe("fresh file transaction preflight", () => {
       process.chdir(first);
       const result = await commitFreshFileTransaction({
         outputDir: "output",
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [{
           ...createTarget(),
           verifyStaged: () => {
@@ -341,7 +341,7 @@ describe("fresh file transaction preflight", () => {
       process.chdir(first);
       const result = await commitFreshFileTransactionWithAdapter({
         outputDir: "output",
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [createTarget()],
       }, adapter);
       expect(result).toMatchObject({ ok: true });
@@ -357,7 +357,7 @@ describe("fresh file transaction preflight", () => {
     const output = join(parent, "output");
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget("Straße.txt"), createTarget("STRASSE.txt")],
     });
     expect(result).toMatchObject({
@@ -379,7 +379,7 @@ describe("fresh file transaction preflight", () => {
 
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget()],
     });
 
@@ -505,7 +505,7 @@ describe("fresh file transaction preflight", () => {
     const output = join(parent, "output");
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget()],
     });
     expect(result).toMatchObject({
@@ -523,7 +523,7 @@ describe("fresh file transaction preflight", () => {
     const output = join(parent, "output");
     const result = await commitFreshFileTransaction({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget("missing-parent/artifact.txt")],
     });
     expect(result).toMatchObject({ ok: false, mutated: false, recoveryRequired: false });
@@ -542,7 +542,7 @@ describe("fresh file transaction preflight", () => {
     };
     const result = await commitFreshFileTransactionWithAdapter({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget("missing-parent/artifact.txt")],
     }, adapter);
     expect(result).toMatchObject({
@@ -574,7 +574,7 @@ describe("fresh file transaction preflight", () => {
     };
     const result = await commitFreshFileTransactionWithAdapter({
       outputDir: output,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [createTarget()],
     }, adapter);
     expect(result).toMatchObject({
@@ -602,7 +602,7 @@ describe("ordinary transaction compatibility", () => {
     const targets = new Proxy([record], {});
     const input = new Proxy({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets,
     }, {});
 
@@ -629,7 +629,7 @@ describe("ordinary transaction compatibility", () => {
     const targets = new CompatibleTargets();
     targets.length = 1;
 
-    const result = await commitFileTransaction({ root, generatorVersion: "0.2.0", targets });
+    const result = await commitFileTransaction({ root, generatorVersion: "0.2.1", targets });
 
     expect(result).toMatchObject({ ok: true });
     expect(indexReads).toBe(1);
@@ -647,7 +647,7 @@ describe("ordinary transaction compatibility", () => {
     const targets = Object.freeze([file]);
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets,
       compatibilityExtra: true,
     } as unknown as Parameters<typeof commitFileTransaction>[0]);
@@ -659,7 +659,7 @@ describe("ordinary transaction compatibility", () => {
     let verifierCalls = 0;
     const result = await commitFileTransactionWithAdapter({
       root: Object.freeze({}) as ResolvedOutputRoot,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         ...createTarget(),
         verifyStaged: () => {
@@ -699,7 +699,7 @@ describe("ordinary transaction compatibility", () => {
     let targetsGetterCalls = 0;
     const input = Object.defineProperties({}, {
       root: { enumerable: true, value: root },
-      generatorVersion: { enumerable: true, value: "0.2.0" },
+      generatorVersion: { enumerable: true, value: "0.2.1" },
       targets: {
         enumerable: true,
         get: () => {
@@ -732,7 +732,7 @@ describe("ordinary transaction compatibility", () => {
     const claimObservations: boolean[] = [];
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         ...createTarget(),
         verifyStaged: async () => {
@@ -760,10 +760,10 @@ describe("ordinary transaction compatibility", () => {
       const input = boundary === "targets"
         ? Object.defineProperties({}, {
             root: { enumerable: true, value: root },
-            generatorVersion: { enumerable: true, value: "0.2.0" },
+            generatorVersion: { enumerable: true, value: "0.2.1" },
             targets: { enumerable: true, get: () => { throw new Error("hostile targets getter"); } },
           })
-        : { root, generatorVersion: "0.2.0", targets };
+        : { root, generatorVersion: "0.2.1", targets };
       const result = await commitFileTransactionWithAdapter(
         input as Parameters<typeof commitFileTransactionWithAdapter>[0],
         nativeFileSystemAdapter,
@@ -801,7 +801,7 @@ describe("ordinary transaction compatibility", () => {
     });
     const input = new Proxy({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets,
     }, {});
 

@@ -14,7 +14,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { TextDecoder } from "node:util";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_VERSION = "0.2.0";
+export const RELEASE_VERSION = "0.2.1";
 export const SKILL_NAME = "deliver-dual-audience-report";
 export const SKILL_PREFIX = `${SKILL_NAME}/`;
 export const RELEASE_ZIP_NAME = `${SKILL_NAME}-v${RELEASE_VERSION}.zip`;

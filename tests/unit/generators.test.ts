@@ -308,10 +308,10 @@ describe("deterministic review artifact generators", () => {
     const document = await fixture();
     const template = await templateBytes();
     for (const result of [
-      generateAgentMarkdown(document, "0.2.1"),
-      generateAgentMarkdownBytes(document, "0.2.1"),
-      generateApprovalHtml(document, "0.2.1", template),
-      generateApprovalHtmlBytes(document, "0.2.1", template),
+      generateAgentMarkdown(document, "0.2.2"),
+      generateAgentMarkdownBytes(document, "0.2.2"),
+      generateApprovalHtml(document, "0.2.2", template),
+      generateApprovalHtmlBytes(document, "0.2.2", template),
       generateAgentMarkdown(document, new String(GENERATOR_VERSION) as unknown as string),
       generateAgentMarkdownBytes(document, new String(GENERATOR_VERSION) as unknown as string),
       generateApprovalHtml(document, new String(GENERATOR_VERSION) as unknown as string, template),
