@@ -62,7 +62,7 @@ uv tool install --python 3.11 "git+https://github.com/agentskills/agentskills@69
 [AGENTS.md](../AGENTS.md)「Verification and handoff」列出的代码门禁清单在本机逐条可跑。
 其中 `npm run test:browser` 的跑法见 §5。
 
-## 5. 浏览器 lane：跑法与一个已修复的用例竞态
+## 5. 浏览器 lane：跑法与两条已记录的竞态
 
 CI **从不**同时跑三个引擎：`.github/workflows/validate.yml` 把 chromium 与 webkit 放在
 matrix 的两个独立 job，firefox 走独立的 smoke job。本地建议用同样的形态，它最接近 CI 结论：
@@ -127,6 +127,55 @@ Received: viewport ratio 0
 **同类写法备查**：仓库另有 4 处 `focus()` + `page.keyboard.press()` 拆分写法，均未观测到失败，
 本波次未改动：`workbench-render.spec.ts:307`、`workbench-recovery.spec.ts:501`、
 `workbench-actions.spec.ts:278`、`workbench-actions.spec.ts:297`。
+
+### 5.2 已修复：Escape 之后术语预览被“静止指针下的合成 mouseover”重新打开（W26）
+
+**现象**：2026-09-03 PR #86（纯文档改动）的 firefox-smoke lane（run 33731572904）里，
+`workbench-render.spec.ts` 的 `@A19 the glossary preview escapes every scroll container that used to clip it`
+在 `page.keyboard.press("Escape")` 之后的 `expect(page.locator("#term-tip")).toBeHidden()` 失败：
+预览在整整 5 s 内一直可见。重跑通过，同日其他 run 全部通过。
+
+**复现**：本机 10 核，8–16 个忙循环把负载平均值压到 15–22，
+`npx playwright test tests/browser/workbench-render.spec.ts --project=firefox --grep "glossary preview" --repeat-each=30`
+30 次里 1 次、40 次里 1 次复现同一断言失败并留下 trace；机器空闲时 60 次全绿。
+
+**trace 里读到的时间线**（`retain-on-failure` 的 action log 与 DOM 快照，不是推测）：
+
+1. 表头行术语被悬停后，其预览按设计放在锚点下方 6 px，正好盖住表体首行的同名术语。
+2. 于是第二次 `hover()` 的命中检查报 `<div id="term-tip"> intercepts pointer events`，Playwright 进入重试；
+   每次重试都会用 `block: "end" | "center" | "start"` 轮换着再调一次 `element.scrollIntoView()`，
+   而 Playwright 的 Firefox/WebKit 滚动路径**尊重**模板的 `html{scroll-behavior:smooth}`——
+   页面开始平滑滚动，指针却停在原地。第 1、2 次重试仍被预览拦截，第 3、4 次报 `element is not stable`，
+   第 5 次才成功（`--project=firefox` 空闲机器上同样是 5 次；用例平时能过全靠这串重试）。
+3. 最后一次成功的悬停发生在滚动尚未停稳时（Firefox 的稳定判定只取 1 个 rAF）：预览已显示，
+   探针九点命中全部通过，随后 `Escape` 关闭了预览——DOM 快照显示预览的 `top` 在按键前后仍以
+   521→522→523 px 逐帧变化，即按键落在滚动动画尾部。
+4. 滚动继续把内容从静止的指针下面挪过去，指针命中的节点从 `a.term-ref` 变成它自己的 label `<span>`。
+   浏览器对此合成一对 `mouseout`/`mouseover`（没有任何指针移动），term-tip 把每个落在术语上的
+   `mouseover` 都当作显示意图，于是刚被 Escape 关掉的预览又打开了，并且因为指针不再移动而永远不关。
+
+**判定**：这是产品侧竞态，不是用例写法问题。Escape 应当是一次“驳回”而不是“关一下”：
+WCAG 2.1 SC 1.4.13 要求附加内容可在不移动指针的前提下被驳回，而被驳回的内容在指针未离开时自行回来，
+等于驳回没有生效。用 `tests/browser/zz-mechanism`（临时用例，未提交）在三引擎上做了确定性复现：
+悬停术语 → `window.scrollBy({top:-40, behavior:"smooth"})` → 立即 `Escape` → 800 ms 后预览在 chromium、webkit、firefox
+三处都重新打开；事件日志里 Escape 之后只有 `mouseout(a.term-ref)` + `mouseover(span)`，指针坐标不变。
+
+**处置**（W26，UI-011 + QA-002 + REL-012）：
+
+- 产品侧：`src/workbench/term-tip.ts` 记住被 Escape 驳回的锚点；同一锚点的 `mouseover` 一律忽略，直到指针
+  真正离开该术语（`mouseout` 的 `relatedTarget` 不在锚点之内，或为 `null`）、聚焦到该术语、或悬停到别的术语。
+  同一个确定性复现在修复后三引擎都保持关闭；单元测试覆盖“同锚点节点间切换不重开 / 离开再进入重开 /
+  焦点重开 / 其他术语照常”四条，去掉守卫后单元与浏览器断言都会失败（变异验证）。
+- 用例侧：该用例改为与 `workbench-actions.spec.ts` 的 `openWorkbench` 同款 `addInitScript`，用 CSSOM 把
+  `scroll-behavior` 置为 `auto`（CSP 的 style hash 拒绝注入 `<style>`，行内属性是唯一途径），并在悬停下一个术语前
+  先用 Escape 关掉当前预览——每次 `hover()` 从此只需一次尝试，不再依赖 Playwright 的重试滚动；
+  同时新增断言：Escape 之后对同一术语的 label span `dispatchEvent("mouseover")` 不得重开预览，离开再进入必须重开。
+  没有加长超时，没有加 retry。
+- 修复后：宿主负载平均值 15–22 下 `--project=firefox --repeat-each=40` 全绿；三引擎 lane 与单元门全绿。
+
+**与 §5.1 的关系**：两条竞态的共同根源都是模板无条件的 `html{scroll-behavior:smooth}` 与自动化滚动叠加。
+§5.1 的 termRef 跳转不落点仍**未修复**（它发生在锚点导航与焦点逻辑之间，本波次不动）；把平滑滚动收进
+`@media (prefers-reduced-motion: no-preference)` 属视觉契约变更（DES-019/§11.8），需用户另行批准，本波次未做。
 
 ## 6. 工作树与忽略规则
 

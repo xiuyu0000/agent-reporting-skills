@@ -556,6 +556,25 @@ test("@A19 the approved workbench visual system drives tier, decision, and progr
 });
 
 test("@A19 the glossary preview escapes every scroll container that used to clip it", async ({ page }) => {
+  // The template scrolls smoothly and Playwright's Firefox/WebKit scroll-into-
+  // view honours it, as do the extra scrollIntoView calls its hover retries
+  // issue. With the previous term's preview still covering the next term, the
+  // second hover only got through after several such retries, each starting a
+  // fresh smooth scroll under a pointer that never moved; Escape then landed
+  // while the page was still gliding (local-development.md §5.2). Instant
+  // scrolling (CSSOM, which the CSP style hash cannot reject) keeps every
+  // measured position at rest, and dismissing each preview before the next
+  // hover keeps every hover a single attempt.
+  await page.addInitScript(() => {
+    const neutralizeSmoothScroll = (): void => {
+      document.documentElement.style.scrollBehavior = "auto";
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", neutralizeSmoothScroll);
+    } else {
+      neutralizeSmoothScroll();
+    }
+  });
   await page.goto(pages.get("valid") ?? "");
   await page.locator("details.b-body").first().evaluate((element: HTMLDetailsElement) => {
     element.open = true;
@@ -564,26 +583,22 @@ test("@A19 the glossary preview escapes every scroll container that used to clip
   // The reported failure position: a term inside a table, whose wrapper carries
   // overflow-x:auto and therefore also clips the block axis.
   const terms = page.locator('.table-region a.term-ref[href="#glossary-G-002"]');
+  const tip = page.locator("#term-tip");
   const count = await terms.count();
   expect(count).toBeGreaterThan(0);
 
   for (let index = 0; index < count; index += 1) {
     const term = terms.nth(index);
     await term.scrollIntoViewIfNeeded();
-    // The page scrolls smoothly; hover only once it has settled, so the probe
-    // measures a resting position rather than an animating one.
-    await page.evaluate(() => new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    }));
     await term.hover();
-    await expect(page.locator("#term-tip")).toBeVisible();
+    await expect(tip).toBeVisible();
     const report = await page.evaluate((position) => {
-      const tip = document.getElementById("term-tip");
+      const preview = document.getElementById("term-tip");
       const anchor = document.querySelectorAll(
         '.table-region a.term-ref[href="#glossary-G-002"]',
       )[position];
-      if (tip === null || anchor === undefined) return null;
-      const rect = tip.getBoundingClientRect();
+      if (preview === null || anchor === undefined) return null;
+      const rect = preview.getBoundingClientRect();
       const root = document.documentElement;
       // Sample well inside the rounded corners: every probe must land on the
       // preview itself, which is only possible if nothing clipped or covered it.
@@ -595,14 +610,14 @@ test("@A19 the glossary preview escapes every scroll container that used to clip
       }
       const hits = probes.filter(([x, y]) => {
         const found = document.elementFromPoint(x, y);
-        return found === tip || tip.contains(found);
+        return found === preview || preview.contains(found);
       }).length;
       return {
         hits,
         probes: probes.length,
         withinViewport: rect.x >= 0 && rect.y >= 0
           && rect.right <= root.clientWidth && rect.bottom <= root.clientHeight,
-        text: tip.textContent ?? "",
+        text: preview.textContent ?? "",
         describedBy: anchor.getAttribute("aria-describedby"),
       };
     }, index);
@@ -612,11 +627,24 @@ test("@A19 the glossary preview escapes every scroll container that used to clip
     expect(report?.describedBy).toBe("term-tip");
     // The whole definition, not a clipped fragment.
     expect(report?.text).toContain("cannot be waived by the author.");
+
+    // Escape dismisses the preview without disturbing the block keyboard contract.
+    await page.keyboard.press("Escape");
+    await expect(tip).toBeHidden();
+    // The pointer still rests on the term. A browser-synthesized re-entry of the
+    // same term — what a scroll or reflow under a resting pointer produces —
+    // must not bring the dismissed preview back (SC 1.4.13: dismissible).
+    await term.locator("span").first().dispatchEvent("mouseover");
+    await expect(tip).toBeHidden();
+    await expect(term).not.toHaveAttribute("aria-describedby", "term-tip");
   }
 
-  // Escape dismisses the preview without disturbing the block keyboard contract.
+  // Leaving the term and coming back previews it again.
+  await page.mouse.move(1, 1);
+  await terms.last().hover();
+  await expect(tip).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator("#term-tip")).toBeHidden();
+  await expect(tip).toBeHidden();
 
   // The wide table still scrolls inside its own focusable container.
   await expect(page.locator("div.table-region").first()).toHaveAttribute("tabindex", "0");
