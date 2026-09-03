@@ -79,7 +79,7 @@ describe("path-boundary E2E", () => {
     const { output, root } = await rootSetup();
     const missing = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: validated("missing/child/report.txt"),
         bytes: encoder.encode("safe"),
@@ -93,7 +93,7 @@ describe("path-boundary E2E", () => {
     await writeFile(join(output, "not-a-directory"), "file");
     const wrongType = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: validated("not-a-directory/report.txt"),
         bytes: encoder.encode("safe"),
@@ -117,7 +117,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: validated("nested/report.txt"),
         bytes: encoder.encode("safe"),
@@ -148,7 +148,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: validated("nested/report.txt"),
         bytes: encoder.encode("safe"),
@@ -178,7 +178,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("report.txt"), bytes: encoder.encode("ours"), disposition: "create", verifyStaged: verifier }],
     }, adapter);
     expect(result).toMatchObject({ ok: false, mutated: false, errors: [{ code: "TARGET_EXISTS" }] });
@@ -202,7 +202,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("nested/report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
     }, adapter);
     expect(result).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
@@ -225,7 +225,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
     }, adapter);
     expect(result).toMatchObject({ ok: false, mutated: true, recoveryRequired: true });
@@ -253,7 +253,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
     }, adapter);
     expect(result).toMatchObject({
@@ -282,7 +282,7 @@ describe("path-boundary E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
     }, adapter);
     expect(result).toMatchObject({ ok: false, mutated: true, recoveryRequired: true });
@@ -315,7 +315,7 @@ describe("path-boundary E2E", () => {
       };
       const result = await commitFileTransactionWithAdapter({
         root,
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [{ target: validated("report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
       }, adapter);
       expect(result.ok).toBe(false);
@@ -335,7 +335,7 @@ describe("path-boundary E2E", () => {
     await mkdir(output, { mode: 0o700 });
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: validated("report.txt"), bytes: encoder.encode("safe"), disposition: "create", verifyStaged: verifier }],
     });
     expect(result).toMatchObject({
@@ -359,7 +359,7 @@ describe("path-boundary E2E", () => {
     if (!rootResult.ok) throw new Error("root creation failed");
     const result = await commitFileTransaction({
       root: rootResult.value,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: validated("report.txt"),
         bytes: encoder.encode("safe"),
@@ -377,7 +377,7 @@ describe("path-boundary E2E", () => {
       ok: false,
       errors: [{ code: "PATH_INVALID", path: "/generatorVersion" }],
     });
-    expect(await commitFileTransaction({ root, generatorVersion: "0.2.0", targets: [] })).toMatchObject({
+    expect(await commitFileTransaction({ root, generatorVersion: "0.2.1", targets: [] })).toMatchObject({
       ok: false,
       errors: [{ code: "PATH_INVALID", path: "/targets" }],
     });

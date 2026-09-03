@@ -1,7 +1,7 @@
 # 本地开发与验证环境
 
 > - 文档状态：现行
-> - 最后更新：2026-08-23
+> - 最后更新：2026-09-03
 > - 作用：记录在本机准备开发/验证环境的最小步骤、门禁的正确跑法，以及已复现的执行注意事项。本文只记录可复现的操作事实，不定义需求（见 [spec.md](spec.md)）也不定义工程决定（见 [design.md](design.md)）。
 
 ## 1. 适用范围
@@ -130,10 +130,10 @@ Received: viewport ratio 0
 
 ## 6. 工作树与忽略规则
 
-仓库变更一律在独立工作树 + 独立分支上进行，PR 以 `codex/v0.2.0` 为 base：
+仓库变更一律在独立工作树 + 独立分支上进行，PR 以 `codex/v0.2.1` 为 base（自 2026-09-03 起；`codex/v0.2.0` 已冻结在 `3ff6509`，不再作 base）：
 
 ```bash
-git worktree add -b <branch> ../<dir> origin/codex/v0.2.0
+git worktree add -b <branch> ../<dir> origin/codex/v0.2.1
 ```
 
 `.gitignore` 覆盖四类工具链产物——`node_modules/`、`build/`、`coverage/`、`test-results/`——

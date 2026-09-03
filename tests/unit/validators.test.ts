@@ -251,7 +251,7 @@ describe("delivery artifact set and handoff", () => {
     if (!missing.ok) expect(exitCodeForValidationErrors(missing.errors)).toBe(5);
     const mismatched = validateDeliveryArtifactSet({
       document,
-      agentBytes: validAgentBytes(document, "0.2.1"),
+      agentBytes: validAgentBytes(document, "0.2.2"),
       approvalBytes: validApprovalBytes(document, GENERATOR_VERSION),
       approvalTemplateBytes: approvalTemplateBytes(),
     });
@@ -395,7 +395,7 @@ describe("closed split batch handoff", () => {
     const second = splitPart(2);
     const valid = [
       { document: first, contractRelativePath: "Foo.review-document.json", handoff: handoffFor(first) },
-      { document: second, contractRelativePath: "foo.review-document.json", handoff: handoffFor(second, "0.2.1") },
+      { document: second, contractRelativePath: "foo.review-document.json", handoff: handoffFor(second, "0.2.2") },
     ];
     expect(errorCodes(buildBatchHandoff({ deliveries: valid }))).toContain("SPLIT_GROUP_INVALID");
 

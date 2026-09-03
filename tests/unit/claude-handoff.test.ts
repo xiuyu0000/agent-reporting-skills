@@ -13,11 +13,11 @@ const agentsPath = resolve(ROOT, "AGENTS.md");
 const handoffPath = resolve(ROOT, "docs/claude-code-handoff.md");
 const packagePath = resolve(ROOT, "package.json");
 const usagePath = resolve(ROOT, "src/cli/record-usage.ts");
-const zipPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.0.zip");
-const manifestPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.0.manifest.json");
+const zipPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.1.zip");
+const manifestPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.1.manifest.json");
 
-const EXPECTED_ZIP_SHA256 = "cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4";
-const EXPECTED_MANIFEST_SHA256 = "189c763874b47f198381702a7d786cce9557cecf84a7a575147ca9fc60a44c5b";
+const EXPECTED_ZIP_SHA256 = "3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f";
+const EXPECTED_MANIFEST_SHA256 = "9da67c25e4f901db4754032f2cf82bbd0c3980232c5e46bd59f92dac0169023b";
 const execFileAsync = promisify(execFile);
 const PILOT_INPUT_KEYS = [
   "eligible",
@@ -134,8 +134,8 @@ describe("Claude Code handoff documentation", () => {
     const { handoff, zip, manifest, packageJson } = await readHandoffFiles();
 
     expect(handoff).toContain("dae53e5b76e6507592b37c1a241e7ad6c6e22905");
-    expect(handoff).toContain("cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4");
-    expect(handoff).toContain("189c763874b47f198381702a7d786cce9557cecf84a7a575147ca9fc60a44c5b");
+    expect(handoff).toContain("3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f");
+    expect(handoff).toContain("9da67c25e4f901db4754032f2cf82bbd0c3980232c5e46bd59f92dac0169023b");
     expect(handoff).toContain("PIL-001");
     expect(handoff).toContain("MET-001");
     expect(handoff).toContain("#61");
@@ -193,7 +193,7 @@ describe("Claude Code handoff documentation", () => {
       expect(handoff).toContain("npm run " + script);
     }
 
-    expect(handoff).toContain("unzip -q dist/deliver-dual-audience-report-v0.2.0.zip");
+    expect(handoff).toContain("unzip -q dist/deliver-dual-audience-report-v0.2.1.zip");
     expect(handoff).toContain("extracted release ZIP is the only pilot runtime");
     expect(handoff).toContain("no shell variable persists between steps");
     expect(handoff).not.toContain('node "$CLI"');

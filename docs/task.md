@@ -5,13 +5,13 @@
 > - 总体状态：`in_progress` · W0–W6 全部 `done`，代码与发布候选已完成；W8 发布门回归修复 `done`；仅 W7 真实使用门未完成
 > - 当前波次：W7 · 真实试点与指标验证（PIL-001 于 2026-08-20 `done`：一个经用户确认真实且有用的案例完成完整闭环，validation=pass，内容保持私有；MET-001 `deferred` 等待 3–5 份合格样本）
 > - 协调者：主实施 Agent
-> - 最后更新：2026-09-03（新增 W23：UI-008 工作台接受 WebKit 解析器拆分出的多个载荷文本节点、VAL-004 render/validate 成功结果携带载荷预算 `warnings`，REL-009 重切候选；新增 W24：UI-009 流程图布局重写、UI-010 术语预览脱离裁剪容器、CTR-003 内容模型补 `scale` 与 flow `kind`、SKL-004 写作规范可执行化，REL-010 重切候选；需求条款未变更，spec 摘要不变）
+> - 最后更新：2026-09-03（新增 W23：UI-008 工作台接受 WebKit 解析器拆分出的多个载荷文本节点、VAL-004 render/validate 成功结果携带载荷预算 `warnings`，REL-009 重切候选；新增 W24：UI-009 流程图布局重写、UI-010 术语预览脱离裁剪容器、CTR-003 内容模型补 `scale` 与 flow `kind`、SKL-004 写作规范可执行化，REL-010 重切候选；新增 W25：REL-011 版本线切换到 v0.2.1 并重切候选、DOC-003 四平台更新指南与分支上下文对齐；需求条款未变更，spec 摘要不变）
 > - Spec 基线：`docs/spec.md` · SHA-256 `2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 DOC-002 视觉契约修订后重算；此前为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
-> - Design 基线：`docs/design.md` · SHA-256 `13da1a4fd36d54bf64e77532970b4db15c06f4e15c67b3b6e089f6651303ba9f`（2026-09-02 W24 补录 DES-021 并修订 §7.3/§11.3，2026-09-03 重排到 W23 之上后重算；2026-09-02 W23 值为 `25952e6eb7c885ccb1c22955d53514d648613f95b647c4cc7be188501763789d`；2026-08-20 W17 值为 `1d1cdb83318596657e6240b70e4c78186309522c6843cf5b2f4e394e4a54b75f`）
+> - Design 基线：`docs/design.md` · SHA-256 `57513f852261c058089936e83c99a1b6104537e0cf51d53b4cf4d89213817966`（2026-09-03 晚间 W25 补记 v0.2.0 tag 后重算；同日 W25 DES-022 值为 `9c88db0f53ccaafc827f821ba3c2cde357f7918f989bc9464ca9674bb4ad1a06`）
 > - 运行事实源：[claude-code-handoff.md](claude-code-handoff.md)（候选 SHA、ZIP 摘要、PIL-001/MET-001 runbook 与剩余授权门）
 > - 追踪状态：本文自 2026-08-17 起随仓库跟踪；`docs/调研/` 保持本地忽略，不进入仓库
 > - 目录索引：[README.md](README.md)
-> - 目标发布：v0.2.0
+> - 目标发布：v0.2.1（候选线于 2026-09-03 由 v0.2.0 切换；`codex/v0.2.0` 冻结在 `3ff6509`，2026-09-03 补打 tag `v0.2.0`，无 GitHub Release）
 
 ## 目录
 
@@ -226,6 +226,7 @@ flowchart TD
 | W19 | SKL-003 跨平台可用性与使用指南；REL-008 收口重切 | 单线程；写 SKILL frontmatter、README、docs 指南与测试钉点 | 四平台机制经文档+本机实测核对；官方验证器通过；候选重建 |
 | W23 | UI-008 审批载荷多文本节点读取；VAL-004 载荷预算告警；REL-009 收口重切 | 单线程；写 workbench bootstrap、validate/render 成功结果、Skill 说明与测试 | 三浏览器全绿（含 WebKit 拆分载荷用例）；告警单元/e2e 用例；候选重建（tag/Release 仍需单独授权） |
 | W24 | UI-009、UI-010 先行并实测字节余量；CTR-003 按余量决定范围；SKL-004 并行；REL-010 收口重切 | 单线程；写 `src/workbench/**`、`src/protocol/**`、公共 Schema、Skill 写作规范与测试 | 三张用户截图场景逐一消除且有变异验证；三浏览器全绿；字节门未放宽；候选重建 |
+| W25 | REL-011 v0.2.1 候选线切换与重切；DOC-003 四平台更新指南与分支上下文 | 单线程；写版本常量、CI、dist、测试字面量与文档 | 候选 v0.2.1 可复现且 verify:dist 通过；全套门禁与 CI 全绿；tag/Release 仍需单独授权 |
 
 W0–W6 的 milestone 均已关闭。W7 的 PIL-001 已于 2026-08-20 完成：一次用户授权的真实业务闭环（生成→审批→回执→消费→定稿）经全套验证通过并获用户确认真实且有用，Issue #61 以内容无关模板关闭；内容保持私有，公开面只记录本句去标识状态。W7 剩余 MET-001：等待累计 3–5 份合格真实案例，绿色 CI、fixture 与 replay no-op 仍不能替代。执行细节与授权门见 [claude-code-handoff.md](claude-code-handoff.md) §6–§7。
 
@@ -294,6 +295,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | CTR-003 | 内容模型补 `scale` 节点与 flow `kind`，扩表达力 | UI-009 | protocol | `done` | w24 Agent | 公共 Schema、生成物、`invariants.ts`、`document-content.ts`、renderer/generator/i18n、schema 与 renderer 测试 | Design §7.3/§13.2；用户 2026-09-02 反馈 2 |
 | SKL-004 | 写作规范以载体选择作强制触发，并配工作示例 | REL-009 | surface | `done` | w24 Agent | `SKILL.md`、`references/{audience-contracts,approval-writing-examples}.md`、release SKILL_FILES、skill-workflow 测试 | Spec §7.2；用户 2026-09-02 反馈 1 |
 | REL-010 | 按 W24 重切候选并重新绑定摘要 | UI-009、UI-010、CTR-003、SKL-004 | release | `done` | w24 Agent | `dist/**`、生成分发面、handoff §1/§6.2、claude-handoff 与 installed-skill 测试 | Release gate |
+| REL-011 | 版本线切换到 v0.2.1 并按同一源码重切候选 | REL-010 | release | `done` | w25_release Agent | `package.json`/`package-lock.json`、`tools/release-build.mjs`、`tools/build-workbench.mjs`、src 版本常量、`.github/workflows/validate.yml`、`dist/**`、测试字面量与 claude-handoff 钉点 | Release gate |
+| DOC-003 | 四平台更新指南与分支上下文对齐 | REL-011 | surface | `done` | w25_docs Agent | `docs/platform-usage.md`、`README.md`、`CLAUDE.md`、`AGENTS.md`、`docs/README.md`、`docs/local-development.md`、handoff §1/§6.2、design DES-022 | 文档一致性核验 + claude-handoff 测试 |
 
 ## 5. 详细任务卡
 
@@ -1397,8 +1400,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Outcome**：候选按 W23 的多文本节点载荷读取器与载荷预算告警重建，源码、生成分发面与 ZIP/manifest 再次一致。
 - **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
 - **Implementation contract**：与 REL-003..REL-008 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
-- **Completion evidence**：新候选 ZIP 为 977145 bytes、SHA-256 `4ffa311cf4bfe2c09ca758f2d4f81487b87b7c2e2698fe709a7f4c63eeef8a9e`；manifest SHA-256 `65749c26fa7b4c4230310f2cbda9cc4a19bfcf3dfce41353b1f0d082f336cf5d`；entryCount 仍为 11；连续两次 `release:build -- --version 0.2.0` 摘要一致，`verify:dist` 通过。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-008 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本在 2026-09-02 同步的是重切前的 977115 字节候选（SHA-256 `33c1afc2557b89bcae638a17aac7198d3bc868d74d043eb1b333e1df3a44518d`）；2026-09-03 因 SKILL.md 阈值措辞订正再次重切后，安装副本尚未同步为本候选（需用户授权后执行）。
-- **Blocker / unblock**：本机安装副本尚未同步为本候选（需用户授权后执行）。
+- **Completion evidence**：新候选 ZIP 为 977145 bytes、SHA-256 `4ffa311cf4bfe2c09ca758f2d4f81487b87b7c2e2698fe709a7f4c63eeef8a9e`；manifest SHA-256 `65749c26fa7b4c4230310f2cbda9cc4a19bfcf3dfce41353b1f0d082f336cf5d`；entryCount 仍为 11；连续两次 `release:build -- --version 0.2.0` 摘要一致，`verify:dist` 通过。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`；此前各次重切摘要保留在 REL-001..REL-008 历史证据中。本机 ~/.claude/skills 与 ~/.agents/skills 的安装副本在 2026-09-02 同步的是重切前的 977115 字节候选（SHA-256 `33c1afc2557b89bcae638a17aac7198d3bc868d74d043eb1b333e1df3a44518d`）；2026-09-03 因 SKILL.md 阈值措辞订正再次重切后，安装副本未再同步为本候选，而是于同日晚间经用户授权直接同步为 v0.2.1 候选（见 REL-011）。
+- **Blocker / unblock**：本机安装副本未曾同步为本候选；2026-09-03 经用户授权直接同步为 v0.2.1 候选（见 REL-011）。
 
 ### UI-009 · flow 布局与标签避让
 
@@ -1475,7 +1478,63 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 - **Write scope**：`dist/**`、生成的 Skill 分发面、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`tests/unit/claude-handoff.test.ts`、本文摘要与证据。
 - **Implementation contract**：与 REL-003..REL-009 相同——只重建、可复现、不手改字节、不创建 tag 或 Release。
 - **Completion evidence**：新候选 ZIP 为 1024339 bytes、SHA-256 `cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4`；manifest SHA-256 `189c763874b47f198381702a7d786cce9557cecf84a7a575147ca9fc60a44c5b`；entryCount 由 11 增至 12（新增 `references/approval-writing-examples.md`）。工作台 shell 391339/393216 字节，字节门未放宽。摘要已同步 handoff §1、§6.2 与 `tests/unit/claude-handoff.test.ts`。
-- **Blocker / unblock**：本机安装副本尚未同步为本候选（需用户授权后执行）。
+- **Blocker / unblock**：本机安装副本未曾同步为本候选；2026-09-03 经用户授权直接同步为 v0.2.1 候选（见 REL-011）。
+
+### REL-011 · v0.2.1 候选线切换与重切
+
+- **状态 / owner_role / owner / last_updated**：`done` / release engineer / w25_release Agent / 2026-09-03
+- **Outcome**：候选线由 v0.2.0 切换到 v0.2.1。`codex/v0.2.0` 冻结在 `3ff6509`（含 W23 PR #83 与 W24 PR #84）作为 v0.2.0 候选谱系，不再合入任何提交（2026-09-03 经用户授权补打注释 tag `v0.2.0` 标记冻结点，无 GitHub Release）；用户于 2026-09-03 从 `main` 开出 `codex/v0.2.1` 作为新的集成分支与全部 PR 的 base，`main` 继续以 `-s ours` 同步合并与之保持树一致。版本常量、CI、候选产物与测试字面量整体移到 0.2.1，候选按同一源码重建。
+- **Depends on / unlocks**：REL-010 / DOC-003。
+- **Parallel / conflicts**：单线程；先于 DOC-003 完成版本常量与候选重建，DOC-003 只写文档面。本任务不写 `docs/platform-usage.md`、README、CLAUDE/AGENTS 与 handoff 正文。
+- **Write scope**：`package.json`、`package-lock.json`、`tools/release-build.mjs`（`RELEASE_VERSION` 0.2.1，候选文件改为 `dist/deliver-dual-audience-report-v0.2.1.{zip,manifest.json}`）、`tools/build-workbench.mjs`（构建 token）、src 版本常量（`src/generators/types.ts` 的 `GENERATOR_VERSION`、`src/workbench/bootstrap.ts` 与 `src/cli/validate/parsers.ts` 的 `SUPPORTED_GENERATOR_VERSION`）、`.github/workflows/validate.yml`、`dist/**`、生成分发面、测试字面量与 `tests/unit/claude-handoff.test.ts` 钉点；另含 `tools/verify-dist.mjs` 的一处断言消息订正（2026-09-03）：`release ZIP is not the exact 11-file Skill inventory` 改为按 `SKILL_FILES.length` 取实际数量的模板串，只改消息文本，不改断言逻辑。
+- **Refs**：Spec §15.1；Design DES-014（generatorVersion 单轨、不设双轨）、DES-022（本轮版本线切换决定）、§15；本文 §8.4 Release gate；REL-010 完成证据；用户 2026-09-03 开出 `codex/v0.2.1` 的指令。
+- **Implementation contract**：只重建，不手改 ZIP 字节；重建必须可复现（连续两次 `release:build -- --version 0.2.1` 摘要相同）。唯一受支持的 generatorVersion 为 0.2.1，按 DES-014 不设双轨。旧视图的实际行为（2026-09-03 用已安装的 0.2.0 运行时渲染 W23 时期 fixture、再以 0.2.1 CLI 实测）：0.2.0 运行时生成的视图仍是自含的离线工作台（内嵌其自身的 0.2.0 shell），能在浏览器打开并完成该轮审阅，不会触发 `META_IDENTITY_MISMATCH`——该码只在把另一生成器版本的载荷/meta 装入不同版本的 shell 时触发，CLI 从不产出这种组合；但 0.2.1 CLI 拒绝对 0.2.0 生成的视图操作：`validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 报 `CSP_INVALID`（`/approval`、`/approval/csp`）加 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`），原因是旧 shell 的内联脚本/CSP 哈希与生成器 meta 不同于当前运行时会生成的值。`review-document/1` 文档 JSON 不变：用 0.2.1 重渲染未改动的 review-document.json 得到相同的 dar-review-digest、contentVersion 与 round（只有 dar-generator-version 由 0.2.0 变为 0.2.1）；`review-packet/1` 回执绑定文档身份（id、title、contentVersion、round、reviewDigest）而非审批 HTML，因此从旧视图导出的回执对未改动的文档仍可通过 `validate packet` / `consume`。旧视图留档，不删除私有输出根下任何内容（render 只创建：`TARGET_EXISTS`）；需要用新运行时校验或替换视图时，从未改动的 review-document.json 在新的空目录重新 render（或先把旧视图移开）。协议面 `review-document/1` 本轮未变更。v0.2.0 候选文件（`cd103f2f…` / `189c7638…`）从树中移除，最后存在于 `codex/v0.2.0` `3ff6509`；`dist/deliver-dual-audience-report-v0.1.1.zip` 作为历史证据保留；`dae53e5b76e6507592b37c1a241e7ad6c6e22905` 仍是 §6.2 预检的祖先基线，本任务不改它；不创建 v0.2.1 tag 或 GitHub Release；是否在 `3ff6509` 为 v0.2.0 补 tag 是用户的单独决定，本波次不打任何 tag。
+- **Failure rules**：不得同时保留 0.2.0 与 0.2.1 两个受支持的 generatorVersion；不得只改版本常量而不重建产物，或只重建产物而漏掉任一处测试字面量或 CI 触发面；不得把 0.2.0 候选文件留在树中造成双候选；不得向 `codex/v0.2.0` 再合入任何提交。
+- **Validation**：
+
+  ```bash
+  npm run build
+  npm run check:generated
+  npm run release:build -- --version 0.2.1
+  npm run verify:dist
+  npm run scan:legacy-surface
+  npm run typecheck
+  npm run lint
+  npm run test:unit
+  npm run test:e2e
+  npm run test:browser
+  npm run test:coverage
+  npm run validate:skill
+  npm run check:acceptance-coverage
+  npm run check:bundle-size
+  git diff --check
+  ```
+
+  预期：全部退出 0；`verify:dist` 与 `tests/unit/claude-handoff.test.ts` 报告同一个 v0.2.1 摘要；连续两次 `release:build` 得到相同 ZIP 摘要；CI 在 `main`、`codex/v0.2.1`、`codex/v0.2.0` 的 push 上触发，发布步骤对 v0.2.1 ZIP/manifest 做构建与差异校验。
+- **Completion evidence**：候选在 Node 24.19.0 上以 `npm run release:build -- --version 0.2.1` 重建，`npm run verify:dist` 通过。新候选 ZIP 为 1024339 bytes、SHA-256 `3c766e13bad7eccafa8426825c7ed9c590be3ac74e28281440e289e2aec6545f`；manifest SHA-256 `9da67c25e4f901db4754032f2cf82bbd0c3980232c5e46bd59f92dac0169023b`；entryCount 12（SKILL.md、agents/openai.yaml、assets 2 项、references 7 项、scripts/review-delivery.mjs，与 REL-010 相同）；工作台 shell 391339/393216 字节，字节门未放宽。版本常量：`package.json`/`package-lock.json` 0.2.1；`RELEASE_VERSION`、`GENERATOR_VERSION`、`SUPPORTED_GENERATOR_VERSION` 与构建 token 均为 0.2.1。测试对齐：126 处 generator-version 字面量移到 0.2.1；`tests/e2e/release-candidate.test.ts` 漂移用例改为 0.2.1→0.2.2；`tests/unit/claude-handoff.test.ts` 钉住新 ZIP 路径与两个摘要。CI：`.github/workflows/validate.yml` 的 push 触发分支为 `[main, codex/v0.2.1, codex/v0.2.0]`，发布步骤构建并 diff 校验 v0.2.1 ZIP/manifest。v0.2.0 候选文件（`cd103f2f…` / `189c7638…`）已从树中移除，最后存在于 `codex/v0.2.0` `3ff6509`；`dist/deliver-dual-audience-report-v0.1.1.zip` 保留。`tools/verify-dist.mjs` 的 ZIP 清单断言消息由硬编码的「11-file」改为 `${SKILL_FILES.length}-file`（与 entryCount 12 一致，仅消息文本变更）。两次构建的可复现性与全套门禁/CI 结果以协调者的门禁运行为准，并在其重新绑定本文与 handoff 摘要时收口。未创建 v0.2.1 tag 或 GitHub Release。
+- **Blocker / unblock**：v0.2.1 tag 与 GitHub Release 未创建，需用户单独授权。本机安装副本已于 2026-09-03 经用户授权按 DOC-003 指南 §7 同步为本候选：`~/.claude/skills/` 与 `~/.agents/skills/` 各一份，ZIP 摘要核对通过，12 个文件逐一与 manifest 的 `digest` 一致，`review-delivery.mjs --help` 在 Node 24 可运行；两份 0.2.0 旧副本移至 `~/.claude/skills-retired/`、`~/.agents/skills-retired/` 留档，`~/.codex/skills/` 下残留的一份退役 v0.1 副本一并移至 `~/.codex/skills-retired/`，Codex 扫描目录只剩 `~/.agents/skills/` 一份。
+
+### DOC-003 · 四平台更新指南与分支上下文对齐
+
+- **状态 / owner_role / owner / last_updated**：`done` / docs & Skill surface engineer / w25_docs Agent / 2026-09-03
+- **Outcome**：四平台（Claude Code、Claude Cowork/claude.ai、OpenAI Codex、Kimi Code CLI）从已安装的旧候选更新到 v0.2.1 候选的可核验流程写入 [platform-usage.md](platform-usage.md) 新增更新节，README 平台矩阵补更新列；CLAUDE.md、AGENTS.md、README、docs/README.md、local-development.md 与 handoff 中的分支上下文统一为「`codex/v0.2.1` 是集成分支与 PR base，`main` 与之树一致，`codex/v0.2.0` 冻结在 `3ff6509`」；版本线切换的设计决定以 DES-022 记入 design。
+- **Depends on / unlocks**：REL-011 / 无。
+- **Parallel / conflicts**：与 REL-011 串行（需先取得 v0.2.1 摘要与版本事实）；文档-only，不写代码、测试或 `dist/**`；handoff 的 SHA-256 摘要表与本文「Design 基线」行由协调者在全部编辑后重新绑定，本任务不改摘要值。
+- **Write scope**：`docs/platform-usage.md`、`README.md`、`CLAUDE.md`、`AGENTS.md`、`docs/README.md`、`docs/local-development.md`、[claude-code-handoff.md](claude-code-handoff.md) §1 与 §6.2、`docs/design.md` DES-022。
+- **Refs**：SKL-003 与 W22 记录的四平台机制（2026-08-20/24 核对）；Design DES-014、DES-022；`tests/unit/claude-handoff.test.ts` 钉点字符串；本文 §9 第 8 条（handoff/README/task 三者不得互相矛盾）。
+- **Implementation contract**：更新流程按「核对 ZIP SHA-256 → 移除或移开旧技能目录 → 解压新候选 → 确认只剩一份副本 → 确认平台列出的即新版本 / `scripts/review-delivery.mjs --help` 可运行」的可核验顺序描述；替换已安装版本的平台机制本轮未实测，凡按机制推断的步骤必须标注「按平台机制推断，未在本轮实测」；不得声称 Cowork 自动替换同名技能，只写「若 Skills 面板仍显示旧技能先移除，上传后核对显示的描述/版本」；旧视图在 0.2.1 运行时下的行为按 REL-011 口径如实写明：0.2.0 生成的视图仍可在浏览器打开并完成该轮审阅（不触发 `META_IDENTITY_MISMATCH`）；0.2.1 CLI 的 `validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`--replace-generated` 另加 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`），拒绝操作旧视图；旧视图留档，不指示删除私有输出根下任何内容，需要时从未改动的 review-document.json 在新的空目录重新 render，重渲染保持同一 reviewDigest/contentVersion/round，旧回执对未改动文档仍有效。分支上下文改写不重写历史：2026-08-20 与 2026-09-03 仓库整理的既有记录保持原文，切换由本文 §9 W25 记录陈述。handoff 必须保留 `tests/unit/claude-handoff.test.ts` 钉住的全部字面量（`unzip -q dist/deliver-dual-audience-report-v0.2.1.zip`、「not part of the v0.2 ZIP」、`not created; requires separate user authorization`、`git merge-base --is-ancestor dae53e5b76e6507592b37c1a241e7ad6c6e22905 HEAD`、`major !== 24`、`set -euo pipefail`、`shasum -a 256 -c -` 与 build/check:generated/typecheck/lint/test:unit/test:browser/test:e2e/validate:skill/verify:dist 九个 `npm run <script>`）。中文文档保持中文、英文文档保持英文，只做手术式修改。
+- **Failure rules**：不得把未实测的平台替换行为写成已验证事实；不得让任一入口文档仍称 `codex/v0.2.0` 为集成分支或 PR base；不得改动 handoff 摘要表或本文「Design 基线」行的摘要值；不得在任何文档中写 tag/Release 已创建或安装副本已同步。
+- **Validation**：
+
+  ```bash
+  npm run test:unit -- claude-handoff
+  git grep -n "codex/v0.2.0" -- CLAUDE.md AGENTS.md README.md docs/README.md docs/local-development.md docs/claude-code-handoff.md
+  git diff --check
+  ```
+
+  预期：claude-handoff 测试通过；`codex/v0.2.0` 在入口文档中只以「冻结在 `3ff6509` 的 v0.2.0 候选谱系」身份出现；无空白错误。
+- **Completion evidence**：[platform-usage.md](platform-usage.md) 新增四平台更新节（SHA 核对、旧目录移除或移开、解压、单副本确认、版本确认；推断步骤逐条标注「按平台机制推断，未在本轮实测」）；README 平台矩阵新增更新列；CLAUDE.md、AGENTS.md、docs/README.md、docs/local-development.md 与 handoff §1/§6.2 的分支上下文改写为 `codex/v0.2.1` 集成线、`main` 树一致、`codex/v0.2.0` 冻结于 `3ff6509`；design 新增 DES-022 记录版本线切换与 generatorVersion 单轨（不设双轨、旧视图留档后在新的空目录重渲染）决定；handoff 钉点字面量全部保留，`tests/unit/claude-handoff.test.ts` 结果以协调者的门禁运行为准。摘要重新绑定由协调者收口。
+- **Blocker / unblock**：无。安装副本同步与 tag/Release 授权见 REL-011。
 
 ## 6. A01–A22 覆盖矩阵
 
@@ -1513,7 +1572,7 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | `docs/task.md` | 协调者 | worker 只回传证据 |
 | `docs/design.md` | 协调者；只在设计变更时 | 改后触发全局影响审计 |
 | `.gitignore` | 用户 | 全部任务禁止修改 |
-| package/config/common test helper | QA-000 | 预注册全部施工 scripts 后冻结；后续任务只实现被调用模块，不改 package/config |
+| package/config/common test helper | QA-000 | 预注册全部施工 scripts 后冻结；后续任务只实现被调用模块，不改 package/config（W25 REL-011 例外：版本常量、CI 触发面与 dist 文件名） |
 | public schemas + schema fixtures | CTR-001 | CTR-002 及其他任务只读 |
 | protocol core（固定 core facade、standalone validator 生成物/工具、唯一 packet serializer/parser） | CTR-002 → PRQ-PRO-001 安全/体积勘误 → PRQ-PKT-001 unbound Markdown → PRQ-CON-PRO-001 unbound legacy packet | 后续 PRQ 只窄扩公开 parser/migration facade，不改公共 Schema/wire/transition；UI/VAL/GEN/RND/CON 只调用 core facade，不复制 |
 | transition/eligibility（独立 transition facade） | RND-001 | 只调用 core facade；CON-001 只调用 transition facade |
@@ -1527,8 +1586,8 @@ W8 是候选冻结后的维护波次，不推进 W7，也不改变任何产品�
 | Agent template/references | SKL-002 | schemas 仍归 CTR-001 |
 | usage module | TEL-001 | 其他任务只调用 |
 | acceptance tests/evidence | INT-001 | 不修产品缺陷；退回责任任务 |
-| CI workflow | QA-000 bootstrap → QA-001 按组件存在性接通渐进门 → REL-001 final → REL-002 只扩 push 触发分支 | 中间波次只运行已实现且可证明的门；REL 收敛完整发布矩阵；REL-002 不改任何 job、矩阵或固定版本 |
-| README/release manifest/dist | REL-001 | 其他任务禁止提前写；package version 保持 QA-000 的 0.2.0 |
+| CI workflow | QA-000 bootstrap → QA-001 按组件存在性接通渐进门 → REL-001 final → REL-002 只扩 push 触发分支 → REL-011 切换触发分支与发布步骤到 v0.2.1 | 中间波次只运行已实现且可证明的门；REL 收敛完整发布矩阵；REL-002 不改任何 job、矩阵或固定版本；REL-011（2026-09-03）只改 push 触发分支、cancel-in-progress ref 与发布步骤的候选文件名/版本，不改 job 与矩阵 |
+| README/release manifest/dist | REL-001 | 其他任务禁止提前写；package version 保持 QA-000 的 0.2.0（2026-09-03 起由 REL-011 切换为 0.2.1） |
 | legacy-surface scanner + 其专属回归测试 | REL-001 → REL-002 | REL-002 只加显式规划记录边界与回归测试，不删既有断言；其他任务只读 |
 
 ## 8. 集成、发布与试点门
@@ -1625,7 +1684,7 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 
 2026-08-23 的 W20 记录（仓库卫生与本地验证环境，无产品字节变更）：用户明确授权本轮修改 `.gitignore`——该文件按本文 §1.3 与 §7 归用户所有、实施任务一律禁改，此处依 [README.md](README.md) §2 的权威顺序（用户当前明确指令优先于规划文档）执行，规则本身不放宽。(1) `.gitignore` 此前只有 6 条，工具链产出的 `node_modules/`、`build/`、`coverage/`、`test-results/` 四个目录既未跟踪也未忽略，导致任何一次 `npm ci`、`npm run build`、`npm run test:coverage` 或 `npm run test:browser` 之后 [claude-code-handoff.md](claude-code-handoff.md) §6.2 的预检 `test -z "$(git status --porcelain)"` 必然失败。四者的产出点分别是 `npm ci`、`tools/build.mjs:28`、Vitest 覆盖率默认目录与 `playwright.config.ts` 的 `outputDir`，已逐条溯源而非猜测；`.tsbuildinfo`、`playwright-report/`、`blob-report/` 在本仓库配置下不会产生，故不加投机条目。(2) 顺带修正 `dist/` 的一条遗留规则：裸 `dist/` 来自初始提交 `03fc118`（v0.1 时期，彼时 dist 下没有任何跟踪文件），而 v0.2 的 ZIP 与 manifest 是 force-add 进来的跟踪交付物，于是「新构建出来的发布产物对 `git status` 不可见」。改为 `dist/*` 加 `!dist/*.zip`、`!dist/*.manifest.json`，已实测：三个既有跟踪文件不受影响，新出现的 `dist/*.zip` 可见，`dist/.release-txn` 等中间产物仍被忽略；忽略规则从不作用于已跟踪路径，`.github/workflows/validate.yml` 的 `git ls-files --error-unmatch` 与 `git diff --exit-code` 两道发布门行为不变。(3) 新增 [local-development.md](local-development.md) 记录本地工具链版本、一次性准备命令、门禁跑法，以及两条已实测的执行事实：Node 解析（版本管理器默认版本落在合同区间之外时，仓库外目录会拿到低版本，而 design §16 已把该控制手段定为安装文档与 preflight、CLI 不做运行时硬拦截，故只在环境侧收口）与 §5.1 的浏览器竞态。(4) §5.1 是一条**记录未修复**项：三引擎合并跑且宿主 CPU 饱和时 `@A19` 的 termRef 跳转断言失败；实测排除了「断言超时太短」（提到 15s 仍轮询 34 次不落点）与「focus/keypress 拆分投错元素」（改 `locator.press` 仍复现）两种解释，失败点直读 DOM 显示 `location.hash` 已正确、目标可见未隐藏，但页面停在 `scrollY=581`（应约 2050）且焦点被重置到 `BODY`，指向审批台焦点/重绘逻辑与浏览器锚点平滑滚动相互竞争。修复要动 `src/workbench/`，属产品变更须另立波次并重切候选，本轮不改测试、不改 `playwright.config.ts`，以免用超时或 retry 掩盖产品侧竞态。CI 不受影响（三引擎本就分 job 分容器）。本轮改动集合为 `.gitignore`、`docs/README.md`、`docs/task.md`（本记录）、`docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）与新增的 `docs/local-development.md`；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。本分支在 W19/PR #79 合入后重基到其之上，冲突只出现在三处「双方各自追加」的文档位置（索引表行、波次记录、task.md 摘要行），已按保留双方并重算摘要的方式收敛；同时补上 W19 在 [README.md](README.md) §3 缺失的波次条目，使三份文档回到 §6.3 要求的一致状态。
 
-2026-08-29 的 W22 记录（文档订正，无产品字节变更）：[platform-usage.md](platform-usage.md) §5 关于 Codex 安装路径的表述与 Codex 现状相反，按用户 2026-08-24 在 CLI 0.150.1（指南原文写于 0.148）上采集的证据订正。原文把 `~/.agents/skills/` 定为推荐目录、把 `~/.codex/skills/` 写成“仍被兼容读取，但属遗留路径”。证据反驳该定性：(1) Codex 自带的 skill-installer 系统技能位于 `~/.codex/skills/.system/skill-installer/SKILL.md`，其「Behavior and Options」逐字声明 “Installs into `$CODEX_HOME/skills/<skill-name>` (defaults to `~/.codex/skills`).”，即该目录正是 Codex 第一方安装器今天的落点，不是遗留面；(2) 两个目录都被真实扫描——装在 `~/.codex/skills/deliver-dual-audience-report` 的技能与临时放在 `~/.agents/skills/zz-interop-probe/SKILL.md` 的探针技能出现在同一次 `codex exec` 的技能清单里，两个探针随后清理；(3) `codex features list` 显示 `skill_search` 与 `skill_mcp_dependency_install` 均为 `stable`/`true`；(4) 新装技能未重启任何进程即被列出，所以原文的“改后需重启”只对 `~/.codex/config.toml` 的 `[[skills.config]]` 开关成立，不适用于新增技能目录。本轮据此把 §5 的安装段改为并列呈现两条现行受支持路径并给出各自的选择条件（只用 Codex 或与其安装器保持一致选前者；要让一份安装同时服务 Codex 与 Kimi 选后者），保留「不要在两个目录里同时放同名技能」的原有警告，把重启说明收窄到配置开关，并把 §5 的实测记录改为 2026-08-20/0.148 与 2026-08-24/0.150.1 两条并存。证据 (1) 与 (3) 已在本轮由协调者在本机复核（`codex --version` 为 0.150.1，installer 文本与 features 输出逐字一致）；(2) 与 (4) 的探针已清理，按用户采集记录采信。本轮改动集合为 `docs/platform-usage.md`（仅 §5）、`docs/README.md`（§1 最后更新与 §3 波次条目）、`docs/task.md`（本记录）与 `docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。指南 §8 故障排查表里仍写着“遗留 `~/.codex/skills/`”，因用户本轮明确限定只改 §5 而未一并订正，作为已知遗留待用户裁决。
+2026-08-29 的 W22 记录（文档订正，无产品字节变更）：[platform-usage.md](platform-usage.md) §5 关于 Codex 安装路径的表述与 Codex 现状相反，按用户 2026-08-24 在 CLI 0.150.1（指南原文写于 0.148）上采集的证据订正。原文把 `~/.agents/skills/` 定为推荐目录、把 `~/.codex/skills/` 写成“仍被兼容读取，但属遗留路径”。证据反驳该定性：(1) Codex 自带的 skill-installer 系统技能位于 `~/.codex/skills/.system/skill-installer/SKILL.md`，其「Behavior and Options」逐字声明 “Installs into `$CODEX_HOME/skills/<skill-name>` (defaults to `~/.codex/skills`).”，即该目录正是 Codex 第一方安装器今天的落点，不是遗留面；(2) 两个目录都被真实扫描——装在 `~/.codex/skills/deliver-dual-audience-report` 的技能与临时放在 `~/.agents/skills/zz-interop-probe/SKILL.md` 的探针技能出现在同一次 `codex exec` 的技能清单里，两个探针随后清理；(3) `codex features list` 显示 `skill_search` 与 `skill_mcp_dependency_install` 均为 `stable`/`true`；(4) 新装技能未重启任何进程即被列出，所以原文的“改后需重启”只对 `~/.codex/config.toml` 的 `[[skills.config]]` 开关成立，不适用于新增技能目录。本轮据此把 §5 的安装段改为并列呈现两条现行受支持路径并给出各自的选择条件（只用 Codex 或与其安装器保持一致选前者；要让一份安装同时服务 Codex 与 Kimi 选后者），保留「不要在两个目录里同时放同名技能」的原有警告，把重启说明收窄到配置开关，并把 §5 的实测记录改为 2026-08-20/0.148 与 2026-08-24/0.150.1 两条并存。证据 (1) 与 (3) 已在本轮由协调者在本机复核（`codex --version` 为 0.150.1，installer 文本与 features 输出逐字一致）；(2) 与 (4) 的探针已清理，按用户采集记录采信。本轮改动集合为 `docs/platform-usage.md`（仅 §5）、`docs/README.md`（§1 最后更新与 §3 波次条目）、`docs/task.md`（本记录）与 `docs/claude-code-handoff.md`（仅重新绑定 task.md 摘要）；`src/`、`tests/`、`skills/`、`dist/` 零改动，候选 ZIP/manifest 摘要不变。指南故障排查表（当时 §8，2026-09-03 DOC-003 插入 §7 更新节后为 §9）里“遗留 `~/.codex/skills/`”的表述当时未一并订正，作为已知遗留；已于 2026-09-03 W25/DOC-003 随 §9 改写订正为两条现行受支持路径。
 
 2026-09-02 的 W23 记录：用户在真实试点中报告一个拆分组里规范 JSON 49,994 字节（Base64 66,660 字符）的合同，其审批 HTML 在评审浏览器中以 `DOCUMENT_ENCODING_INVALID /review-document-data` 拒载，而同组 49,148 字节（65,532 字符）的合同正常打开；用户最初判断为 Chromium 把长文本切成两个节点。本机三引擎探针（Playwright chromium/webkit/firefox 各自加载 65,535–131,073 字符的 template 文本）证明拆分发生在 WebKit：其 HTML 解析器把单个解析期文本节点限制在 65,536 code unit，超出部分续入相邻文本节点；Chromium 与 Firefox 保持单节点。工作台 `readLandmarks` 断言 `template.content` 恰好一个文本节点，于是 Safari 与全部 iOS 浏览器拒载超过 65,536 Base64 字符（49,152 规范字节）的载荷。UI-008 把断言改为“任意非空的纯文本节点序列”，解码继续用 `textContent` 拼接，元素、注释或空内容仍拒载；render browser spec 新增超限载荷页（WebKit 断言拆成多节点、其余引擎单节点，均渲染全部块）与两条 `DOCUMENT_ENCODING_INVALID` 篡改页。VAL-004 新增 `src/cli/validate/payload.ts`：render 与 validate delivery/batch 成功结果在规范 JSON 达到 47,616 字节（49,152 减 1,536 预留，覆盖约两轮各 700–800 字节的定稿记账）时携带 `warnings`（`APPROVAL_PAYLOAD_NEAR_LIMIT`；超过 49,152 为 `APPROVAL_PAYLOAD_OVER_LIMIT`），单文档 `/document`、拆分组按 part 升序 `/batch/parts/N`，不改变退出码、handoff 与字节；design §validate 记录 `DeliveryWarning`，DES-020 记录决定，SKILL 与 review-protocols 补处置指引；单元用例钉住 65,536/65,540 Base64 字符边界，e2e 用例覆盖 render/validate 的单文档与拆分组。用同尺寸合成合同（5 块、49,994 字节）核对：旧模板在 WebKit 拒载、Chromium/Firefox 正常；新模板三引擎均渲染 5 块，WebKit 载荷为 2 个文本节点。迁移事实：旧模板生成的既有视图对新 CLI 的 validate 与 `--replace-generated` 均报 `CSP_INVALID`（内联脚本哈希随模板变化），须删除旧视图后整组重新 render；生成器版本保持 0.2.0。本轮门：build、check:generated、typecheck、lint、unit、e2e、acceptance coverage 与三浏览器全套通过；分发面变化由 REL-009 重切候选（连续两次 `release:build -- --version 0.2.0` 摘要一致，`verify:dist` 通过）；官方 Skill 验证器本机未安装，留待 CI。
 
@@ -1646,3 +1705,5 @@ PIL-001 真实闭环通过后，才可声明“至少一个真实业务场景有
 **本轮改动集合**：`src/workbench/**`（新增 `flow-layout.ts`、`term-tip.ts`）、`src/protocol/{invariants,*.generated}.ts`、`src/cli/validate/document-content.ts`、`src/generators/markdown.ts`、公共 `review-document.schema.json`、`skills/**`（新增 `references/approval-writing-examples.md`）、`tools/release-build.mjs`、`tests/**`、`dist/**`，以及 spec 以外的四份规划文档。spec 零改动。
 
 2026-09-03 的仓库整理记录（分支与标识收口，无产品字节变更以外的改动）：用户指令整理本地 worktree 与远端分支。现状为两条 2026-09-02 的并行工作互不知情地占用了同一组标识——`claude/w23-payload-text-nodes` worktree 里未提交的 WebKit 载荷修复与 PR #82 的审批面表达清晰度改动都自称 W23 / UI-008 / REL-009 / DES-020，且 PR #82 以 `main` 为 base、本地 `main` 已被提前快进到该未合入提交。处置：(1) 载荷修复按 bug 修复优先，先提交并重排到 `codex/v0.2.0`（PR #83），保留其 W23 / UI-008 / VAL-004 / REL-009 / DES-020；(2) 审批面改动在其上重排并改号为 W24 / UI-009 / UI-010 / REL-010 / DES-021（CTR-003、SKL-004 不变），生成物与候选按合并后源码重建，以 PR #84 取代 PR #82，base 改回 `codex/v0.2.0`；(3) 两个 PR 合入后 `main` 仍按 2026-08-20 规则以 `-s ours` 同步合并保持树一致——用户提出的「特性只进 main、bug 修复进所有分支」在本仓库不成立，因为 `main` 与 `codex/v0.2.0` 依 AGENTS/CLAUDE/handoff 约定树完全一致、v0.2 尚未打 tag，不存在需要单独回港的维护分支；(4) 删除已合并的远程分支 `claude/w22-codex-install-path`，PR #82 的分支与两个临时 worktree 在其内容合入后删除；(5) 两条 2026-08 的 `codex/w4-ui-recovery` stash 内容已在树中，只报告不处理。CI 侧另记录一次 `codex/v0.2.0` 2a99c75 的 `record-usage` 并发追加用例偶发失败（同树在 `main` 通过），属既有偶发，未在本轮处理。
+
+2026-09-03 的 W25 记录（v0.2.1 候选线切换；候选重切；四平台更新指南）：v0.2.0 候选自 REL-001 起以同一版本号被多次重切，当时从未打 tag 或发布（同日晚间补打注释 tag `v0.2.0`，见本记录末尾）；W23（PR #83）与 W24（PR #84）合入后，`codex/v0.2.0` 的尖端 `3ff6509` 已经远离最初冻结的那份 v0.2.0 候选。用户于同日决定：`codex/v0.2.0` 冻结在 `3ff6509`，作为 v0.2.0 候选谱系（当时未打 tag、未发布），不再合入任何提交；从 `main`（与 `3ff6509` 树一致）开出 `codex/v0.2.1`，它从此是集成分支与全部 PR 的 base；`main` 继续按 2026-08-20 规则以 `-s ours` 同步合并保持树一致。本条取代同日早些时候仓库整理记录中「`codex/v0.2.0` 仍是集成分支与 PR base」的口径，那条记录保持原文作为当时事实。是否在 `3ff6509` 为 v0.2.0 补 tag 是用户的单独决定，本波次不打任何 tag。**generatorVersion 决定（DES-022）**：按 DES-014 的无双轨规则，唯一受支持的 generatorVersion 随版本常量整体移到 0.2.1，不为 0.2.0 保留兼容轨。旧视图行为的口径于同日订正：本记录最初写「任何 0.2.0 构建生成的视图在新运行时下被拒绝，审批工作台以 `META_IDENTITY_MISMATCH` 拒载、CLI 以 `ARTIFACT_FORMAT_INVALID` `/generated/generatorVersion` 报错」，经用已安装的 0.2.0 运行时渲染 W23 时期 fixture 并以 0.2.1 CLI 实测后证实不成立，改为：0.2.0 运行时生成的视图仍是自含的离线工作台（内嵌其自身的 0.2.0 shell），能在浏览器打开并完成该轮审阅，不触发 `META_IDENTITY_MISMATCH`（该码只在把另一生成器版本的载荷/meta 装入不同版本的 shell 时触发，CLI 从不产出这种组合）；0.2.1 CLI 拒绝对 0.2.0 生成的视图操作——`validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 报 `CSP_INVALID`（`/approval`、`/approval/csp`）加 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`），原因是旧 shell 的内联脚本/CSP 哈希与生成器 meta 不同于当前运行时会生成的值；用 0.2.1 重渲染未改动的 review-document.json 得到相同的 dar-review-digest、contentVersion 与 round（只有 dar-generator-version 由 0.2.0 变为 0.2.1），`review-packet/1` 回执绑定文档身份（id、title、contentVersion、round、reviewDigest）而非审批 HTML，旧视图导出的回执对未改动文档仍可通过 `validate packet` / `consume`。处置口径：旧视图留档，不删除私有输出根下任何内容（render 只创建：`TARGET_EXISTS`）；需要用新运行时校验或替换时，从未改动的 review-document.json 在新的空目录重新 render（或先把旧视图移开）。协议面 `review-document/1` 本轮未变更。**本轮改动**：REL-011 把 `package.json`/`package-lock.json`、`tools/release-build.mjs` 的 `RELEASE_VERSION`、`GENERATOR_VERSION`、两处 `SUPPORTED_GENERATOR_VERSION` 与构建 token 移到 0.2.1；候选在 Node 24.19.0 上以 `release:build -- --version 0.2.1` 重建为 `dist/deliver-dual-audience-report-v0.2.1.{zip,manifest.json}`（ZIP 1024339 bytes、SHA-256 `3c766e13…6545f`；manifest `9da67c25…023b`；entryCount 12；shell 391339/393216），v0.2.0 候选文件从树中移除（最后存在于 `3ff6509`），v0.1.1 ZIP 保留；`.github/workflows/validate.yml` 的 push 触发面改为 `[main, codex/v0.2.1, codex/v0.2.0]` 且发布步骤改为 v0.2.1 ZIP/manifest 的构建-差异校验；126 处测试字面量移到 0.2.1，`release-candidate` 漂移用例改为 0.2.1→0.2.2，`claude-handoff` 测试钉住新路径与摘要。DOC-003 在 [platform-usage.md](platform-usage.md) 新增四平台更新节（核对 SHA → 移除旧目录 → 解压 → 单副本确认 → 版本确认；替换机制本轮未实测，推断步骤逐条标注），README 平台矩阵补更新列，CLAUDE/AGENTS/README/docs README/local-development/handoff 的分支上下文对齐为新口径，design 新增 DES-022。**门禁**：候选重建后 `verify:dist` 通过；两次构建的可复现性、全套门禁与 CI 结果以协调者的门禁运行为准，并在其重新绑定本文、handoff 与 design 摘要时收口。**未完成与待授权**：v0.2.1 tag 与 GitHub Release 未创建，需用户单独授权；MET-001 保持 `deferred`，样本与授权状态未变。**同日晚间补记**：PR #85 合入 `codex/v0.2.1`（合并提交 `1364e6e`）后，用户授权两件事并已执行——(1) 在 `3ff6509` 补打注释 tag `v0.2.0` 标记冻结的 v0.2.0 候选线（无 GitHub Release，不是回滚基线）；(2) 本机安装副本按指南 §7 同步为 v0.2.1 候选（`~/.claude/skills/` 与 `~/.agents/skills/` 各一份，12 文件摘要与 manifest 一致；0.2.0 旧副本与 `~/.codex/skills/` 下残留的 v0.1 副本均移出扫描目录留档）。目录替换与逐文件核对由此得到一次实测，会话内可见性仍未验证，指南中的推断标注保留。

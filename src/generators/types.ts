@@ -1,6 +1,6 @@
 import type { ValidationError } from "../cli/validate.js";
 
-export const GENERATOR_VERSION = "0.2.0" as const;
+export const GENERATOR_VERSION = "0.2.1" as const;
 
 export type GeneratorResult<T> =
   | { ok: true; value: T }

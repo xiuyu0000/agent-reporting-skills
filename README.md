@@ -26,29 +26,46 @@ or a code-only task without a separate approval deliverable.
 - The validated contract runtime is Node.js 24 LTS (`>=24 <25`); the CLI has no
   runtime version gate and its full init/render/validate cycle is smoke-tested
   on Node 22 and 26, but byte-reproducibility is asserted only on Node 24.
-- The v0.2 ZIP contains the complete 11-file Skill and needs no `npm install`,
+- The v0.2.1 ZIP contains the complete 12-file Skill and needs no `npm install`,
   `node_modules`, or network access at runtime.
 - Development from this repository uses the committed npm lockfile and
   `npm ci`.
 
 The Skill follows the open Agent Skills format (agentskills.io) with
-spec-only frontmatter, so any adopting client can load it. Verified platforms:
+spec-only frontmatter, so any adopting client can load it. Verified platforms
+(install and invoke verified 2026-08-20/24; the Update column summarizes
+[docs/platform-usage.md](docs/platform-usage.md) §7, and its replace steps are
+inferred from the install mechanics, not re-tested):
 
-| Platform | Install | Invoke |
-|---|---|---|
-| Claude Code | `unzip … -d ~/.claude/skills/` (or project `.claude/skills/`) | `/deliver-dual-audience-report` or model-triggered |
-| Claude Cowork / claude.ai | Customize → Skills → Upload the ZIP as-is (root is the skill folder) | model-triggered; needs code execution enabled |
-| OpenAI Codex | `unzip … -d ~/.agents/skills/` (legacy `~/.codex/skills` also read) | `$deliver-dual-audience-report`, `/skills`, or implicit via `agents/openai.yaml` |
-| Kimi Code CLI / Kimi Work | same `~/.agents/skills/`, or `~/.kimi-code/skills/`; Kimi Work uploads via its Skills panel | `/skill:deliver-dual-audience-report` or model-triggered |
+| Platform | Install | Invoke | Update |
+|---|---|---|---|
+| Claude Code | `unzip … -d ~/.claude/skills/` (or project `.claude/skills/`) | `/deliver-dual-audience-report` or model-triggered | replace the installed skill directory with the new ZIP's contents |
+| Claude Cowork / claude.ai | Customize → Skills → Upload the ZIP as-is (root is the skill folder) | model-triggered; needs code execution enabled | remove the old skill in the Skills panel if it still shows, then re-upload the new ZIP |
+| OpenAI Codex | `unzip … -d ~/.codex/skills/` (Codex default) or `-d ~/.agents/skills/` (shared with Kimi); both are current, install to only one | `$deliver-dual-audience-report`, `/skills`, or implicit via `agents/openai.yaml` | replace the installed skill directory in whichever of the two you used |
+| Kimi Code CLI / Kimi Work | same `~/.agents/skills/`, or `~/.kimi-code/skills/`; Kimi Work uploads via its Skills panel | `/skill:deliver-dual-audience-report` or model-triggered | replace the installed skill directory, or re-upload the ZIP in Kimi Work |
 
 The detailed per-platform guide — runtime caveats (Cowork VM and Codex cloud
-Node versions), configuration flags, troubleshooting, and the full review
-workflow — is [docs/platform-usage.md](docs/platform-usage.md).
+Node versions), configuration flags, troubleshooting, the full review
+workflow, and the step-by-step update procedure for an already-installed
+version (verify the ZIP digest, remove or move aside the old directory, unzip
+the new one, confirm exactly one copy) — is
+[docs/platform-usage.md](docs/platform-usage.md); see its update section.
+Views rendered by the 0.2.0 runtime remain self-contained offline workbenches:
+they still open and their review round can be finished. The 0.2.1 CLI refuses
+to validate or `--replace-generated` them (`CSP_INVALID` at `/approval` and
+`/approval/csp`, plus `ARTIFACT_IDENTITY_MISMATCH` at `/approval/meta` on
+replace), so keep the old views as an archive — never delete anything under the
+private output root — and re-render the unchanged `review-document.json` into a
+fresh empty directory when the new runtime must operate on that set. The
+re-render reproduces the same `dar-review-digest`, `contentVersion` and round;
+`review-packet/1` receipts bind to that document identity, not to the Approval
+HTML, so a receipt exported from an old view stays valid for `validate packet`
+and `consume` against the unchanged document.
 
 Install the release candidate ZIP:
 
 ```bash
-unzip dist/deliver-dual-audience-report-v0.2.0.zip -d /path/to/skills
+unzip dist/deliver-dual-audience-report-v0.2.1.zip -d /path/to/skills
 node /path/to/skills/deliver-dual-audience-report/scripts/review-delivery.mjs --help
 ```
 
@@ -105,14 +122,16 @@ Protocol details and exact options live in
 
 ## Release candidate verification
 
-The checked-in v0.2 candidate is accompanied by an external manifest containing
+The checked-in candidate is v0.2.1 (`dist/deliver-dual-audience-report-v0.2.1.zip`
+plus `dist/deliver-dual-audience-report-v0.2.1.manifest.json`). It is
+accompanied by an external manifest containing
 the archive digest, byte length, Node range, exact sorted inventory, and each
 file digest. Rebuild and verify it with Node 24:
 
 ```bash
 npm ci
 npm run build
-npm run release:build -- --version 0.2.0
+npm run release:build -- --version 0.2.1
 npm run verify:dist
 npm run scan:legacy-surface
 ```

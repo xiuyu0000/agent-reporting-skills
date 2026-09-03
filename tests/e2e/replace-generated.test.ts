@@ -46,10 +46,10 @@ async function setup() {
   if (!rootResult.ok || !targetResult.ok) throw new Error("setup failed");
   const created = await commitFileTransaction({
     root: rootResult.value,
-    generatorVersion: "0.2.0",
+    generatorVersion: "0.2.1",
     targets: [{
       target: targetResult.value,
-      bytes: encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.0"),
+      bytes: encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.1"),
       disposition: "create",
       verifyStaged: () => ({ ok: true }),
     }],
@@ -59,7 +59,7 @@ async function setup() {
 }
 
 const expectedExisting = (input: Uint8Array) => ({
-  ok: new TextDecoder().decode(input).includes("delivery=RDL-OLD document=RD-OLD generator=0.2.0"),
+  ok: new TextDecoder().decode(input).includes("delivery=RDL-OLD document=RD-OLD generator=0.2.1"),
 } as { ok: true } | { ok: false });
 
 describe("replace-generated E2E", () => {
@@ -67,10 +67,10 @@ describe("replace-generated E2E", () => {
     const { output, root, target } = await setup();
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
-        bytes: encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.0 revised"),
+        bytes: encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.1 revised"),
         disposition: "replace",
         verifyStaged: () => ({ ok: true }),
         verifyExisting: expectedExisting,
@@ -86,7 +86,7 @@ describe("replace-generated E2E", () => {
     const before = await readFile(join(output, "approval.html"));
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
         bytes: encoder.encode("replacement"),
@@ -115,7 +115,7 @@ describe("replace-generated E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
         bytes: encoder.encode("replacement"),
@@ -146,7 +146,7 @@ describe("replace-generated E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
         bytes: encoder.encode("replacement"),
@@ -180,7 +180,7 @@ describe("replace-generated E2E", () => {
     };
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
         bytes: encoder.encode("replacement"),
@@ -200,11 +200,11 @@ describe("replace-generated identical bytes", () => {
     // change generated output, produces exactly the installed bytes. Generation is
     // deterministic, so this is the ordinary repeat path rather than a corner case.
     const { output, root, target } = await setup();
-    const identical = encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.0");
+    const identical = encoder.encode("delivery=RDL-OLD document=RD-OLD generator=0.2.1");
 
     const first = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
         bytes: identical,
@@ -215,16 +215,16 @@ describe("replace-generated identical bytes", () => {
     });
     expect(first).toMatchObject({ ok: true });
     expect(await readFile(join(output, "approval.html"), "utf8"))
-      .toBe("delivery=RDL-OLD document=RD-OLD generator=0.2.0");
+      .toBe("delivery=RDL-OLD document=RD-OLD generator=0.2.1");
 
     // The decisive property: the root is not wedged. Before the fix this second
     // command failed with TRANSACTION_RECOVERY_BLOCKED and stayed blocked forever.
     const next = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target,
-        bytes: encoder.encode("delivery=RDL-NEW document=RD-NEW generator=0.2.0"),
+        bytes: encoder.encode("delivery=RDL-NEW document=RD-NEW generator=0.2.1"),
         disposition: "replace",
         verifyStaged: () => ({ ok: true }),
         verifyExisting: expectedExisting,
@@ -232,6 +232,6 @@ describe("replace-generated identical bytes", () => {
     });
     expect(next).toMatchObject({ ok: true });
     expect(await readFile(join(output, "approval.html"), "utf8"))
-      .toBe("delivery=RDL-NEW document=RD-NEW generator=0.2.0");
+      .toBe("delivery=RDL-NEW document=RD-NEW generator=0.2.1");
   });
 });

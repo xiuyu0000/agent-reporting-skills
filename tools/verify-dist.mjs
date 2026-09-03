@@ -395,7 +395,7 @@ export function validateReleaseManifest(value, zipBytes, parsedEntries) {
 function assertRuntimeInventory(entries) {
   const expected = SKILL_FILES.map((path) => `${SKILL_PREFIX}${path}`);
   assert(Array.isArray(entries) && entries.length === SKILL_FILES.length, "release entries are not the exact fixed inventory");
-  assert(JSON.stringify(entries.map((entry) => entry.path)) === JSON.stringify(expected), "release ZIP is not the exact 11-file Skill inventory");
+  assert(JSON.stringify(entries.map((entry) => entry.path)) === JSON.stringify(expected), `release ZIP is not the exact ${SKILL_FILES.length}-file Skill inventory`);
   let total = 0;
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];

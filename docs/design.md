@@ -2,8 +2,8 @@
 
 > - 文档状态：已确认，实施基线
 > - 设计版本：0.2-implementation-baseline
-> - 目标发布：v0.2.0
-> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）；2026-08-19（补录 DES-019 审批台视觉契约并新增 §11.8，同步 spec 2026-08-19 修订；不改变运行行为）；2026-08-19 晚间（W15 按用户使用反馈补充 §11.3 随手记目标与术语悬停预览、§11.4 同动作开关语义；实现同日落地）；2026-08-20（W17 按用户反馈把 termRef 简化为“悬停预览 + 点击跳附录”单一锚点，§11.3 同步）；2026-09-02（W23 补录 DES-020 审批载荷解析边界：§11.1 载荷读取接受 WebKit 拆分出的多个文本节点，validate 一节新增 `DeliveryWarning`；不改变视觉契约）；2026-09-02（W24 补录 DES-021 审批面表达清晰度，新增 §7.3 `scale` 节点与 flow `kind` 字段、§11.3 术语预览载体与 flow 布局约定；不改变 §11.8 视觉契约）
+> - 目标发布：v0.2.1（v0.2.0 候选线由 W25 切换到 v0.2.1 线，并于 2026-09-03 补打 tag `v0.2.0` 标记冻结点、无 GitHub Release；需求基线 spec 未变）
+> - 更新日期：2026-08-17（文档整合：需求基线摘要、跟踪状态与现状说明对齐）；2026-08-18（DES-017 订正为“随仓库跟踪”，与已跟踪现状及发布门断言一致；其余 §4–§15 工程决定未变更）；2026-08-19（补录 DES-019 审批台视觉契约并新增 §11.8，同步 spec 2026-08-19 修订；不改变运行行为）；2026-08-19 晚间（W15 按用户使用反馈补充 §11.3 随手记目标与术语悬停预览、§11.4 同动作开关语义；实现同日落地）；2026-08-20（W17 按用户反馈把 termRef 简化为“悬停预览 + 点击跳附录”单一锚点，§11.3 同步）；2026-09-02（W23 补录 DES-020 审批载荷解析边界：§11.1 载荷读取接受 WebKit 拆分出的多个文本节点，validate 一节新增 `DeliveryWarning`；不改变视觉契约）；2026-09-02（W24 补录 DES-021 审批面表达清晰度，新增 §7.3 `scale` 节点与 flow `kind` 字段、§11.3 术语预览载体与 flow 布局约定；不改变 §11.8 视觉契约）；2026-09-03（W25 补录 DES-022 版本线与 generatorVersion：package/RELEASE_VERSION/GENERATOR_VERSION 同步为 0.2.1，唯一受支持 generatorVersion 改为 0.2.1，集成分支切换到 codex/v0.2.1、codex/v0.2.0 冻结；§5、validate 一节与 §15.4 的版本字面同步；不改变 review-document/1 协议面与 §11.8 视觉契约；同日实测订正旧视图口径：0.2.0 运行时生成的视图仍自包含可打开、留档不删，0.2.1 CLI 以 `CSP_INVALID`（validate delivery）与 `ARTIFACT_IDENTITY_MISMATCH`（`--replace-generated`）拒收，从未变的 review-document.json 在新的空目录重新 render 即复现同一 reviewDigest/contentVersion/round，回执仍有效）
 > - 需求基线：[spec.md](spec.md)
 > - 需求基线 SHA-256：`2459bf72298f12dc6d5938b682737516ba87145de30568847ec286da8279124b`（2026-08-19 视觉契约修订后重算；2026-08-17 整合值为 `6f54504182d88388f6bfd71e487a2cdf741cac9c490a858f6591c3c7af9cdcc1`）
 > - 基线解释：需求文件已于 2026-08-17 的文档整合中正式标记为“已确认，需求基线”，与本设计自 2026-08-12 起采用的口径一致；此前记录的摘要 `677f56b36ff881058fa9054786a095a15780efe105f9fbbe992abc34a45cfbb5` 对应仅有状态元数据差异的同一份需求条款。
@@ -137,6 +137,7 @@
 | DES-019 | 审批台视觉契约 | 审批 HTML 采用用户 2026-08-18 批准的审批工作台原型视觉系统与方案 A 阅读顺序；规范性 token 清单与布局常量固定在 §11.8 | 不把视觉留作实现自由裁量，也不把 `docs/调研/` 的业务正文复制进跟踪文件 | 防止审批面再次漂移；由 spec §7.2 条款与三浏览器断言双重守护 |
 | DES-020 | 审批载荷解析边界（2026-09-02） | 工作台接受 `template#review-document-data` 内任意非空的纯文本节点序列并用 `textContent` 拼接（§11.1）；render 与 validate delivery/batch 在规范 JSON 达到 47,616 字节时以成功结果的可选 `warnings` 提示 49,152 字节的单文本节点预算（§validate `DeliveryWarning`） | 不再以 `childNodes.length === 1` 断言载荷完整性——WebKit 解析器把超过 65,536 code unit 的文本续入相邻节点，Chromium/Firefox 不拆；也不把预算做成阻断错误，因为新读取端已能加载被拆分的载荷 | 旧模板生成的工作台在 WebKit 中仍拒载超限载荷，需重新 render；告警只增加成功 stdout 的可选字段，退出码与字节不变 |
 | DES-021 | 审批面表达清晰度 | flow 采用按边集分层的确定性布局与带避让的标签放置；术语预览改为 body 级单例，脱离一切滚动容器；`ContentNode` 增加 `scale`，`FlowGraphNode`/`FlowGraphEdge` 增加可选 `kind`；Skill 写作规范以“载体选择”而非“是否配图”作强制触发 | 不提高工作台字节门，不新增 `:root` token，不改阅读顺序，不把「每个复杂块必须配图」写成规则 | 消除确定性的标签重叠与提示截断；把 spec §7.2 已授予但未被使用的可视化能力变成可执行的写作规范 |
+| DES-022 | 版本线与 generatorVersion（2026-09-03） | `package.json`/`package-lock.json`、`tools/release-build.mjs` 的 `RELEASE_VERSION`、`GENERATOR_VERSION`、`SUPPORTED_GENERATOR_VERSION` 与构建 token 同步为 `0.2.1`，唯一受支持 generatorVersion 改为 `0.2.1`（DES-014 不做双轨）；0.2.0 运行时生成的视图仍是内嵌 0.2.0 shell 的自包含离线工作台，能打开并完成本轮审阅、按留档保留，但 0.2.1 CLI 拒绝对其操作：validate delivery 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 另报 `ARTIFACT_IDENTITY_MISMATCH /approval/meta`（旧 shell 的内联脚本/CSP 哈希与 generator meta 与现运行时不同）；留档后在新的空目录用未变的 review-document.json 重新 render，reviewDigest/contentVersion/round 不变，仅 dar-generator-version 变为 0.2.1，旧视图导出的回执对未变文档仍有效；集成分支切换为 `codex/v0.2.1`，`codex/v0.2.0` 冻结于 `3ff6509` | 不保留 generator 在 `0.2.0` 而只把包版本推到 `0.2.1`（包身份与产物身份错位）；不同时接受 `0.2.0` 与 `0.2.1` 两个 generatorVersion（双轨） | `review-document/1` 文档不变，旧文档留档后在新的空目录用新运行时重新 render 即可（render 只创建不覆盖：`TARGET_EXISTS`），回执绑定文档身份而非 Approval HTML，故仍可 validate packet/consume；v0.2.0 候选线于 2026-09-03 补打注释 tag `v0.2.0`（无 GitHub Release），不构成回滚基线；v0.2.1 的 tag/GitHub Release 仍需用户另行授权 |
 
 上述决策均已由已接受计划或计划阶段用户选择锁定；本文没有需要实施者再选择的架构分支。
 
@@ -145,6 +146,8 @@ DES-017 于 2026-08-17 按用户决定修订：规划文档由“本地忽略”
 DES-019 于 2026-08-19 补录：W11 期间用户否决了首版审批 HTML 的视觉呈现，指令改用其已批准并实际使用的审批工作台原型视觉系统，并在两种阅读顺序中选定方案 A（UI-005 已按此实施并通过三浏览器断言）。补录把这次用户决定从任务卡备注升格为工程决定，同时把规范性 token 清单固定在 §11.8，与 spec §7.2 的新增条款（2026-08-19 修订）互为行为层/实现层对照。补录不改变任何运行行为——实现与断言在补录前已经落地，本条只消除“视觉契约无契约记录”的治理缺口。
 
 DES-021 于 2026-09-02 记录：用户在真实使用后报告三条问题——表达不够直白且可视化不足、流程图标签与箭头线确定性重叠、表格靠上位置的术语悬停定义被截断。影响审计（[viz-001-approval-visual-clarity-2026-09-02.md](viz-001-approval-visual-clarity-2026-09-02.md)）判定三者都不触及 spec 需求条款：spec §8.2/§8.3 从不枚举内容节点种类，节点分类学属本文 §7.3；§13.2 早已把 `ContentNode` 定为扩展点；边标签几何与提示定位都不在 §11.8 的规范清单内。四条红线在实施全程成立：未改任何 `:root` token 或 1280/340 布局常量、未改阅读顺序、未提高 `393216` 字节门、写作规范只强制结构不强制配图。字节预算是本轮的实际约束：起始余量 23583 字节，落地后为 1840 字节，因此原计划的第二个新节点（选项对比矩阵）未实施——单是加入 `ContentNode` 联合就要约 6.8 KB 的生成校验器代码，实测确认放不下。
+
+DES-022 于 2026-09-03 记录：v0.2.0 候选线（`codex/v0.2.0`，止于 `3ff6509`，含 W23/W24）当时从未打 tag 或发布（2026-09-03 晚间经用户授权补打注释 tag `v0.2.0` 标记冻结点，仍无 GitHub Release）；用户当日从 `main` 新建 `codex/v0.2.1` 作为集成分支与全部 PR 的 base，`main` 继续以 `-s ours` 同步合并保持与 `codex/v0.2.1` 树一致，`codex/v0.2.0` 冻结不再合并。W25 随之把 `package.json`/`package-lock.json`、`tools/release-build.mjs` 的 `RELEASE_VERSION`、`GENERATOR_VERSION` 与 `SUPPORTED_GENERATOR_VERSION` 全部同步为 `0.2.1`，候选文件改为 `dist/deliver-dual-audience-report-v0.2.1.zip` 及其 manifest，v0.2.0 的 ZIP/manifest 从树中移除（`v0.1.1` ZIP 保留为历史证据）。后果按 DES-014 的“不做双轨”落实——0.2.1 运行时唯一受支持的 generatorVersion 是 `0.2.1`，但拒绝发生在 CSP/身份门而非载入门（2026-09-03 用已安装 0.2.0 运行时渲染 W23 期 fixture 后再以 0.2.1 CLI 实测）：0.2.0 运行时生成的视图内嵌自己的 0.2.0 shell，仍是自包含离线工作台，能在浏览器打开并完成本轮审阅，不会出现 `META_IDENTITY_MISMATCH`（该码只在把另一 generator 版本的载荷/meta 装入不同版本 shell 时触发，CLI 从不产出这种组合）；而 0.2.1 CLI 对这类视图执行 `validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 在此之外另报 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`），原因是旧 shell 的内联脚本/CSP 哈希与 generator meta 与现运行时将生成的不同。处置口径是留档而非删除：私有输出根下的任何内容都不指示删除（render 只创建不覆盖：`TARGET_EXISTS`），需要用新运行时校验或替换视图时，把旧视图留档或移开，在新的空目录用未变的 review-document.json 重新 render；实测该重渲染复现相同的 dar-review-digest、contentVersion 与 round，只有 dar-generator-version 由 0.2.0 变为 0.2.1，而 `review-packet/1` 回执绑定的是文档身份（id、title、contentVersion、round、reviewDigest）而非 Approval HTML，故旧视图导出的回执对未变文档做 `validate packet`/`consume` 仍然有效。`review-document/1` 协议面与 §11.8 视觉契约在本轮均未变化，因此文档本身无需迁移。被拒绝的替代方案有两条：只推包版本而让 generator 留在 `0.2.0`，会让包身份与产物身份错位；同时接受两个 generatorVersion，则是 DES-014 明令不做的双轨。本条不打 tag、不创建 GitHub Release——外部发布动作依 §15.4 需用户另行授权。
 
 ## 5. 系统上下文与目标架构
 
@@ -221,7 +224,7 @@ Agent Markdown 与 Approval HTML 的一致性定义为“由同一份通过验�
 
 `--replace-generated` 的身份门由 VAL 公开 `createGeneratedReplacementByteVerifiers` 唯一实现。调用方一次传入 current document、唯一受支持 generatorVersion、冻结 Approval template 和同次只读取得的旧 Agent/Approval 字节。VAL 先无 current-snapshot 绑定地解析 Approval，验证嵌入 `/1` 文档、meta/template/CSP/offline/privacy 并以嵌入文档重建精确 HTML；再把旧 Agent 绑定到该嵌入文档。两份旧产物必须同一旧快照、同一受支持 generatorVersion，且其 `delivery.id`/`document.id` 分别等于 current；旧 contentVersion/round/reviewDigest 明确允许与 current 不同。成功结果返回 `agent`/`approval` 两个 CLI `ByteVerifier` 结构的 callback，分别只对预检时安全复制的精确旧字节返回 `{ok:true}`；换位、Proxy/异常、任何字节漂移都返回 `{ok:false}`。这使 paired preflight 证明旧产物身份，transaction-time callback 同时关闭 TOCTOU；GEN 不解析旧 HTML/Markdown，CLI I/O 不理解产物语义。
 
-本发布中上述“唯一受支持 generatorVersion”的精确值为 `0.2.0`；VAL 必须自身拒绝其他即使语法合法的 semver，不得只依赖 GEN 调用方传对值。
+本发布中上述“唯一受支持 generatorVersion”的精确值为 `0.2.1`（`0.2.0` 是 v0.2.0 候选线的取值，自 2026-09-03 W25 / DES-022 起不再受支持）；VAL 必须自身拒绝其他即使语法合法的 semver，不得只依赖 GEN 调用方传对值。
 
 ## 6. 模块划分与分发拓扑
 
@@ -862,7 +865,7 @@ function createExactGeneratedArtifactByteVerifiers(
 
 `rejectLegacyStaticContract` 对顶层 `schema_version` 或 `format` 精确等于 `dual-audience-report-contract-v1` 的输入返回固定 `LEGACY_CONTRACT_INCOMPATIBLE /format`，安全非旧输入返回 true；Proxy、revoked Proxy、getter、cycle 或异常原型必须失败关闭、零 getter 执行且不抛异常，不能把敌意输入当作“非旧”。`createValidationFailureResult` 的 `validation-code` 只从 VAL 固定表重建 message/hint；`protocol-errors` 忽略 caller message/hint，以 core 的 code/path/blockId 重新构造，并继续隐藏 `SCHEMA_ADDITIONAL_PROPERTIES` 的未知属性名；畸形或敌意 request 固定为安全的 `INTERNAL_ERROR` 空 path。`exitCodeForValidationResult` 对 success 返回 0，对失败按 §7.8 的最高严重度返回 2/3/4/5/70；空、畸形或敌意 errors 返回 70。CLI I/O 仍按完整 `CliIoResult` 调 `exitCodeForCliIoResult`，不得先降格为 VAL error 而丢失 recovery flags。
 
-`createExactGeneratedArtifactByteVerifiers` 在读取字段前一次安全复制完整 envelope、document、template 与双产物 bytes，只接受本发布 `generatorVersion:"0.2.0"`，并对同一快照成对复用既有 Agent/Approval 静态、身份、隐私、CSP 验证；成功 callback 只接受预检时复制的精确 bytes。原数组随后修改、单字节漂移、Agent/Approval 换位、另一份即使语义有效但不同的快照和 hostile bytes 都返回 `{ok:false}`，callback 永不抛异常。该接口不调用 GEN，也不复用跨轮 replacement 的 old/current 身份规则；现有 semantic staged verifier、replacement verifier 与 render 行为不变。
+`createExactGeneratedArtifactByteVerifiers` 在读取字段前一次安全复制完整 envelope、document、template 与双产物 bytes，只接受本发布 `generatorVersion:"0.2.1"`，并对同一快照成对复用既有 Agent/Approval 静态、身份、隐私、CSP 验证；成功 callback 只接受预检时复制的精确 bytes。原数组随后修改、单字节漂移、Agent/Approval 换位、另一份即使语义有效但不同的快照和 hostile bytes 都返回 `{ok:false}`，callback 永不抛异常。该接口不调用 GEN，也不复用跨轮 replacement 的 old/current 身份规则；现有 semantic staged verifier、replacement verifier 与 render 行为不变。
 
 Approval 原始 HTML 的正文锚点由浏览器 runtime 构建。VAL 静态门只证明内嵌规范合同引用完整、固定模板/runtime/style/CSP 未漂移以及原始 shell 中字面 fragment 可解析；运行后 DOM 的全部内部锚点由真实 browser gate 证明，不能由正则扫描原始 HTML 冒充。
 
@@ -1770,11 +1773,13 @@ CI 使用 Node 24 LTS。Chromium 和 WebKit 为阻断门；Firefox smoke 失败�
 
 ### 15.4 发布与回滚
 
-- 版本号：`v0.2.0`；
+- 版本号：`v0.2.1`（2026-09-03 W25 / DES-022 自 `v0.2.0` 候选线切换）；
 - ZIP 只包含 Skill 运行与按需参考资源；
 - ZIP 使用稳定文件顺序和时间戳生成，验证解压后直接调用 CLI；
 - README 必须明确 Node 24 LTS 和破坏性合同变化；
 - v0.1.0 tag 与 [GitHub Release v0.1.0](https://github.com/xiuyu0000/agent-reporting-skills/releases/tag/v0.1.0) 的 `deliver-dual-audience-report-v0.1.0.zip` 是同版本旧合同回滚基线；资产预期 SHA-256 为 `3f7f22465c26b8eb88776ce5dcd5c7863c0763cb855464a463b0b7f5fa4f855b`。发布门从 release 元数据验证名称/digest，受控下载后重算摘要；不依赖 ignored 本地副本。本地其他未对应同名 tag/release 的 ZIP 不作为承诺的回滚基线；
+- v0.2.0 候选（`codex/v0.2.0` 止于 `3ff6509`，ZIP SHA-256 `cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4`）于 2026-09-03 补打注释 tag `v0.2.0` 标记冻结点、从未发布 GitHub Release，其 ZIP/manifest 已从树中移除，不是回滚基线；同版本旧合同的回滚基线仅有上述 v0.1.0；
+- 0.2.0 运行时生成的 Agent/Approval 视图：仍是内嵌 0.2.0 shell 的自包含离线工作台，可打开并完成本轮审阅，一律留档、不指示删除私有输出根下任何内容；0.2.1 CLI 不对其操作——`validate delivery` 报 `CSP_INVALID`（`/approval`、`/approval/csp`），`render --replace-generated` 另报 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`）；需要新运行时的视图时，把旧视图留档或移开，在新的空目录用未变的 review-document.json 重新 render，reviewDigest/contentVersion/round 不变、仅 dar-generator-version 变为 0.2.1，旧视图导出的 `review-packet/1` 回执对未变文档仍可 `validate packet`/`consume`（2026-09-03 实测；平台侧的替换/升级机制本轮未重测）；
 - tag、push、GitHub Release 等外部发布动作需另行授权，不因完成本地候选而自动执行。
 
 回滚不将新版 review-document 猜测转换为旧报告合同；需要旧流程时安装对应历史包，并从原始事实重新生成旧产物。

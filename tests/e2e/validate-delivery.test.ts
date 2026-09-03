@@ -182,7 +182,7 @@ describe("validate delivery subprocess", () => {
     const contract = await writeDelivery(root, document);
     await writePrivateFile(
       join(root, document.delivery.outputs.agent),
-      validAgentBytes(document, "0.2.1"),
+      validAgentBytes(document, "0.2.2"),
     );
     const privateSentinel = "secret-sentinel-that-must-not-appear";
     document.evidence.risks.push(["Author", "ization: Bearer ", privateSentinel].join(""));

@@ -511,7 +511,7 @@ function makeShell(documentValue: ReviewDocumentV1): MiniDocument {
   if (!digest.ok) throw new Error("digest failed");
   const metadata: Record<string, string> = {
     [WORKBENCH_ARTIFACT_META.name]: WORKBENCH_ARTIFACT_META.content,
-    "dar-generator-version": "0.2.0",
+    "dar-generator-version": "0.2.1",
     "dar-document-id": documentValue.document.id,
     "dar-content-version": String(documentValue.document.contentVersion),
     "dar-round": String(documentValue.document.round),
