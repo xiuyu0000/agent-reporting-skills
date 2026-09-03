@@ -279,7 +279,7 @@ describe("REL-001 release candidate", () => {
     const originalPackage = await readFile(resolve("package.json"));
     const originalText = originalPackage.toString("utf8");
     const driftedText = originalText
-      .replace('"version": "0.2.0"', '"version": "0.2.1"')
+      .replace('"version": "0.2.1"', '"version": "0.2.2"')
       .replace('"node": ">=24 <25"', '"node": ">=23 <25"');
     const driftedPackage = Buffer.from(driftedText, "utf8");
     expect(driftedPackage.byteLength).toBe(originalPackage.byteLength);
@@ -377,7 +377,7 @@ describe("REL-001 release candidate", () => {
           if (mutation === "package") {
             drifted = Buffer.from(
               original.toString("utf8")
-                .replace('"version": "0.2.0"', '"version": "0.2.1"')
+                .replace('"version": "0.2.1"', '"version": "0.2.2"')
                 .replace('"node": ">=24 <25"', '"node": ">=23 <25"'),
               "utf8",
             );
@@ -504,7 +504,7 @@ describe("REL-001 release candidate", () => {
           const packageBytes = await readFile(writerPackagePath);
           const driftedBytes = Buffer.from(
             packageBytes.toString("utf8")
-              .replace('"version": "0.2.0"', '"version": "0.2.1"')
+              .replace('"version": "0.2.1"', '"version": "0.2.2"')
               .replace('"node": ">=24 <25"', '"node": ">=23 <25"'),
             "utf8",
           );

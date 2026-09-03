@@ -18,10 +18,12 @@ and the tracked planning sources it lists: [spec](docs/spec.md),
 2026-08-17, so the same version is available in every worktree and branch;
 `docs/调研/` remains local, private, and `.gitignore`-excluded.
 
-`codex/v0.2.0` is the integration branch for this workflow: base PRs on it and
-read candidate state from it. Since 2026-08-20, `main` is kept tree-identical
-to `codex/v0.2.0` by an `-s ours` sync merge after each integration change, so
-either checkout carries the same content; pilot flows still require the
+`codex/v0.2.1` is the integration branch for this workflow since 2026-09-03:
+base PRs on it and read candidate state from it. `main` is kept tree-identical
+to `codex/v0.2.1` by the established `-s ours` sync merge after each
+integration change, so either checkout carries the same content.
+`codex/v0.2.0` is frozen at `3ff6509` as the v0.2.0 candidate lineage: it is
+not a PR base and receives no further merges. Pilot flows still require the
 dedicated clean worktree and the extracted ZIP runtime the handoff prescribes.
 The handoff records the exact baseline, release evidence, remaining MET-001
 work, required user authorization, and the mandatory stop conditions.

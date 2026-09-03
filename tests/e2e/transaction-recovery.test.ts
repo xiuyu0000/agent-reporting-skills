@@ -56,7 +56,7 @@ beforeAll(async () => {
         if (disposition === "recover") {
           const result = await recoverTransactionsWithAdapter({
             root: rootResult.value,
-            generatorVersion: "0.2.0",
+            generatorVersion: "0.2.1",
           }, nativeFileSystemAdapter);
           process.stdout.write(JSON.stringify(result));
           process.exit(result.ok ? 0 : 82);
@@ -90,7 +90,7 @@ beforeAll(async () => {
             };
         const result = await commitFileTransactionWithAdapter({
           root: rootResult.value,
-          generatorVersion: "0.2.0",
+          generatorVersion: "0.2.1",
           targets: [target],
         }, adapter);
         process.stdout.write(JSON.stringify(result));
@@ -136,7 +136,7 @@ function target() {
 async function createOld(output: string, root: Awaited<ReturnType<typeof rootSetup>>["root"]): Promise<void> {
   const result = await commitFileTransaction({
     root,
-    generatorVersion: "0.2.0",
+    generatorVersion: "0.2.1",
     targets: [{
       target: target(),
       bytes: encoder.encode("old"),
@@ -230,11 +230,11 @@ describe("transaction crash recovery E2E", () => {
     await createOld(output, root);
     crash(output, point, "replace");
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toEqual({ ok: true, value: { rolledBack: 1, cleanedCommitted: 0 } });
     expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("old");
     expect(await readdir(join(output, ".review-txn"))).toEqual([]);
-    expect(await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" })).toEqual({
+    expect(await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" })).toEqual({
       ok: true,
       value: { rolledBack: 0, cleanedCommitted: 0 },
     });
@@ -245,7 +245,7 @@ describe("transaction crash recovery E2E", () => {
     crash(output, "manifest-published:committed", "create");
     expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("new");
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toEqual({ ok: true, value: { rolledBack: 0, cleanedCommitted: 1 } });
     expect(await readFile(join(output, "artifact.txt"), "utf8")).toBe("new");
     expect((await stat(join(output, "artifact.txt"))).mode & 0o777).toBe(0o600);
@@ -258,7 +258,7 @@ describe("transaction crash recovery E2E", () => {
       const { output } = await rootSetup();
       crash(output, point, "create");
       const reopened = await reopenRoot(output);
-      const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+      const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
       expect(recovered).toMatchObject({
         ok: false,
         mutated: true,
@@ -273,7 +273,7 @@ describe("transaction crash recovery E2E", () => {
     const { output } = await rootSetup();
     crash(output, "manifest-published:staged", "create");
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.2" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,
@@ -289,7 +289,7 @@ describe("transaction crash recovery E2E", () => {
     const claim = {
       format: "review-writer-claim/1",
       owner: "deliver-dual-audience-report/v0.2",
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       hostId: `sha256:${"0".repeat(64)}`,
       bootId: "boot-minute:0",
       pid: process.pid,
@@ -299,7 +299,7 @@ describe("transaction crash recovery E2E", () => {
     const bytes = `${JSON.stringify(claim)}\n`;
     await writeFile(claimPath, bytes, { mode: 0o600 });
     await chmod(claimPath, 0o600);
-    const recovered = await recoverTransactions({ root, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root, generatorVersion: "0.2.1" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,
@@ -320,7 +320,7 @@ describe("transaction crash recovery E2E", () => {
     await writeFile(claimPath, `${JSON.stringify(claim)}\n`);
     await chmod(claimPath, 0o600);
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toEqual({ ok: true, value: { rolledBack: 1, cleanedCommitted: 0 } });
     expect(await readdir(join(output, ".review-txn"))).toEqual([]);
   });
@@ -332,7 +332,7 @@ describe("transaction crash recovery E2E", () => {
     await writeFile(join(directory, "manifest.json"), "{broken\n");
     await chmod(join(directory, "manifest.json"), 0o600);
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,
@@ -348,7 +348,7 @@ describe("transaction crash recovery E2E", () => {
     await writeFile(join(directory, "stage-000000.bin"), "tampered");
     await chmod(join(directory, "stage-000000.bin"), 0o600);
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,
@@ -363,7 +363,7 @@ describe("transaction crash recovery E2E", () => {
     await writeFile(join(output, "artifact.txt"), "tampered");
     await chmod(join(output, "artifact.txt"), 0o600);
     const reopened = await reopenRoot(output);
-    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root: reopened, generatorVersion: "0.2.1" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,
@@ -431,7 +431,7 @@ describe("transaction crash recovery E2E", () => {
     const { output, root } = await rootSetup();
     const orphan = join(output, ".review-txn", "TXN-00000000000000000000");
     await mkdir(orphan, { mode: 0o700 });
-    const recovered = await recoverTransactions({ root, generatorVersion: "0.2.0" });
+    const recovered = await recoverTransactions({ root, generatorVersion: "0.2.1" });
     expect(recovered).toMatchObject({
       ok: false,
       mutated: true,

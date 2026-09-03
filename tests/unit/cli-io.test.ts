@@ -203,7 +203,7 @@ describe("validated output roots and targets", () => {
     });
     const hostile = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [hostileTarget],
     });
     expect(hostile).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
@@ -211,7 +211,7 @@ describe("validated output roots and targets", () => {
     for (const invalid of [null, [], "text"] as unknown[]) {
       const result = await commitFileTransaction({
         root,
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [invalid as FileTransactionTarget],
       });
       expect(result).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
@@ -236,7 +236,7 @@ describe("validated output roots and targets", () => {
     for (const invalid of invalidDescriptors) {
       const result = await commitFileTransaction({
         root,
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [invalid as unknown as FileTransactionTarget],
       });
       expect(result).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
@@ -244,7 +244,7 @@ describe("validated output roots and targets", () => {
     const proxiedBytes = new Proxy(new Uint8Array([1]), {});
     const badBytes = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("proxied-bytes.txt"),
         bytes: proxiedBytes,
@@ -257,7 +257,7 @@ describe("validated output roots and targets", () => {
     Object.defineProperty(symbolBytes, Symbol("hidden"), { value: true });
     const symbolResult = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("symbol-bytes.txt"),
         bytes: symbolBytes,
@@ -271,7 +271,7 @@ describe("validated output roots and targets", () => {
     Object.defineProperty(keyedBytes, "extra", { value: true, enumerable: true });
     const keyedResult = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("keyed-bytes.txt"),
         bytes: keyedBytes,
@@ -287,7 +287,7 @@ describe("validated output roots and targets", () => {
     Object.defineProperty(symbolPlan, Symbol("hidden"), { value: true });
     expect(await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [symbolPlan],
     })).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
 
@@ -307,7 +307,7 @@ describe("validated output roots and targets", () => {
     for (let index = 0; index < badVerifierResults.length; index += 1) {
       const result = await commitFileTransaction({
         root,
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [{
           target: target(`hostile-${index}.txt`),
           bytes: bytes("safe"),
@@ -410,7 +410,7 @@ describe("validated output roots and targets", () => {
     const base = {
       format: "review-writer-claim/1",
       owner: "deliver-dual-audience-report/v0.2",
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       hostId: `sha256:${"0".repeat(64)}`,
       bootId: "boot-minute:0",
       pid: 1,
@@ -456,7 +456,7 @@ describe("validated output roots and targets", () => {
     for (const variant of variants) {
       await writeFile(claimPath, variant, { mode: 0o600 });
       await chmod(claimPath, 0o600);
-      const result = await recoverTransactions({ root, generatorVersion: "0.2.0" });
+      const result = await recoverTransactions({ root, generatorVersion: "0.2.1" });
       expect(result).toMatchObject({
         ok: false,
         mutated: true,
@@ -468,7 +468,7 @@ describe("validated output roots and targets", () => {
     }
     await writeFile(claimPath, encoded(base), { mode: 0o600 });
     await chmod(claimPath, 0o644);
-    expect(await recoverTransactions({ root, generatorVersion: "0.2.0" })).toMatchObject({
+    expect(await recoverTransactions({ root, generatorVersion: "0.2.1" })).toMatchObject({
       ok: false,
       mutated: true,
       recoveryRequired: true,
@@ -476,7 +476,7 @@ describe("validated output roots and targets", () => {
     });
     await unlink(claimPath);
     await mkdir(claimPath, { mode: 0o700 });
-    expect(await recoverTransactions({ root, generatorVersion: "0.2.0" })).toMatchObject({
+    expect(await recoverTransactions({ root, generatorVersion: "0.2.1" })).toMatchObject({
       ok: false,
       mutated: true,
       recoveryRequired: true,
@@ -493,7 +493,7 @@ describe("validated output roots and targets", () => {
     const claim = await acquireWriterClaim(nativeFileSystemAdapter, {
       rootPath: output,
       rootMetadata,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
     });
     const claimBytes = await readFile(claim.claimPath);
     expect((await stat(claim.claimPath)).mode & 0o777).toBe(0o600);
@@ -520,7 +520,7 @@ describe("validated output roots and targets", () => {
     await expect(acquireWriterClaim(crossDeviceAdapter, {
       rootPath: output,
       rootMetadata,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
     })).rejects.toThrow();
 
     const escapedRootAdapter: PrivateFileSystemAdapter = {
@@ -530,13 +530,13 @@ describe("validated output roots and targets", () => {
     await expect(acquireWriterClaim(escapedRootAdapter, {
       rootPath: output,
       rootMetadata,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
     })).rejects.toThrow();
     expect(await readdir(container)).toEqual([]);
 
     const invalidRandom = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("random.txt"), bytes: bytes("safe"), disposition: "create", verifyStaged: valid }],
     }, { ...nativeFileSystemAdapter, randomBytes: () => new Uint8Array(9) });
     expect(invalidRandom).toMatchObject({
@@ -559,7 +559,7 @@ describe("validated output roots and targets", () => {
     };
     const racedCommit = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("race.txt"), bytes: bytes("safe"), disposition: "create", verifyStaged: valid }],
     }, missingClaimRace);
     expect(racedCommit.ok).toBe(true);
@@ -573,7 +573,7 @@ describe("validated output roots and targets", () => {
     };
     const copiedClaim = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("copy-link.txt"), bytes: bytes("safe"), disposition: "create", verifyStaged: valid }],
     }, copyLinkAdapter);
     expect(copiedClaim).toMatchObject({ ok: false, mutated: true, recoveryRequired: true });
@@ -587,7 +587,7 @@ describe("validated output roots and targets", () => {
     const claim = await acquireWriterClaim(nativeFileSystemAdapter, {
       rootPath: output,
       rootMetadata,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
     });
     const currentRecord = JSON.parse(await readFile(claim.claimPath, "utf8")) as Record<string, unknown>;
     const writeCandidate = async (nonce: string, overrides: Record<string, unknown> = {}) => {
@@ -646,7 +646,7 @@ describe("file transaction facade", () => {
     let verifierCalls = 0;
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [
         { target: target("agent.md"), bytes: bytes("agent\n"), disposition: "create", verifyStaged: () => { verifierCalls += 1; return valid(); } },
         { target: target("nested/approval.html"), bytes: bytes("<main>safe</main>\n"), disposition: "create", verifyStaged: valid },
@@ -668,13 +668,13 @@ describe("file transaction facade", () => {
     const artifact = target("artifact.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("old"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
 
     const mismatch = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("new"),
@@ -688,7 +688,7 @@ describe("file transaction facade", () => {
 
     const replaced = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("new"),
@@ -712,13 +712,13 @@ describe("file transaction facade", () => {
     const same = (): { ok: true } => valid();
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("stable"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
 
     const identical = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("stable"),
@@ -740,7 +740,7 @@ describe("file transaction facade", () => {
     // a genuinely different one.
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("stable"),
@@ -751,7 +751,7 @@ describe("file transaction facade", () => {
     })).ok).toBe(true);
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("moved on"),
@@ -769,7 +769,7 @@ describe("file transaction facade", () => {
     const artifact = target("artifact.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("precious"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
 
@@ -777,7 +777,7 @@ describe("file transaction facade", () => {
     // digests the rollback could not tell the installed file from the new one.
     const interrupted = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("precious"),
@@ -799,7 +799,7 @@ describe("file transaction facade", () => {
     const { output, root } = await existingRoot();
     const missing = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("missing.txt"),
         bytes: bytes("new"),
@@ -813,7 +813,7 @@ describe("file transaction facade", () => {
     const artifact = target("artifact.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("old"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
     const finalPath = join(output, "artifact.txt");
@@ -826,7 +826,7 @@ describe("file transaction facade", () => {
     };
     const crossDevice = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("new"),
@@ -844,7 +844,7 @@ describe("file transaction facade", () => {
     await writeFile(join(output, "exists.txt"), "external");
     const exists = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("exists.txt"), bytes: bytes("new"), disposition: "create", verifyStaged: valid }],
     });
     expect(exists).toMatchObject({ ok: false, mutated: false, errors: [{ code: "TARGET_EXISTS" }] });
@@ -852,14 +852,14 @@ describe("file transaction facade", () => {
 
     const forgedRoot = await commitFileTransaction({
       root: { absolutePath: output, createdByThisCall: false } as ResolvedOutputRoot,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("safe.txt"), bytes: bytes("safe"), disposition: "create", verifyStaged: valid }],
     });
     expect(forgedRoot.ok).toBe(false);
 
     const forgedTarget = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: { relativePath: "safe.txt", portableKey: "safe.txt" } as ValidatedRelativeTarget,
         bytes: bytes("safe"),
@@ -878,7 +878,7 @@ describe("file transaction facade", () => {
     ]) {
       const result = await commitFileTransaction({
         root,
-        generatorVersion: "0.2.0",
+        generatorVersion: "0.2.1",
         targets: [plan as unknown as FileTransactionTarget],
       });
       expect(result.ok).toBe(false);
@@ -912,7 +912,7 @@ describe("file transaction facade", () => {
 
   it("rejects malformed transaction envelopes and preserves ordinary lstat failures", async () => {
     const { root } = await existingRoot();
-    for (const invalidVersion of [null, "", "v0.2.0", "1.0"] as unknown[]) {
+    for (const invalidVersion of [null, "", "v0.2.1", "1.0"] as unknown[]) {
       const result = await commitFileTransaction({
         root,
         generatorVersion: invalidVersion as string,
@@ -920,11 +920,11 @@ describe("file transaction facade", () => {
       });
       expect(result).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
     }
-    const empty = await commitFileTransaction({ root, generatorVersion: "0.2.0", targets: [] });
+    const empty = await commitFileTransaction({ root, generatorVersion: "0.2.1", targets: [] });
     expect(empty).toMatchObject({ ok: false, mutated: false, errors: [{ code: "PATH_INVALID" }] });
     const oversized = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: Array.from({ length: 1025 }, () => ({
         target: target("same.txt"),
         bytes: bytes("safe"),
@@ -945,7 +945,7 @@ describe("file transaction facade", () => {
     };
     const ordinaryFailure = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("ordinary-io.txt"),
         bytes: bytes("safe"),
@@ -966,7 +966,7 @@ describe("file transaction facade", () => {
     let calls = 0;
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("artifact.txt"),
         bytes: bytes("content"),
@@ -988,7 +988,7 @@ describe("file transaction facade", () => {
     let calls = 0;
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("artifact.txt"),
         bytes: bytes("content"),
@@ -1020,7 +1020,7 @@ describe("file transaction facade", () => {
     const { output, root } = await existingRoot();
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("artifact.txt"), bytes: bytes("new"), disposition: "create", verifyStaged: valid }],
     }, checkpointAdapter(point));
     expect(result).toMatchObject({ ok: false, mutated: false, recoveryRequired: false });
@@ -1038,12 +1038,12 @@ describe("file transaction facade", () => {
     const artifact = target("artifact.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("old"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: artifact,
         bytes: bytes("new"),
@@ -1061,7 +1061,7 @@ describe("file transaction facade", () => {
     const { output, root } = await existingRoot();
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("artifact.txt"), bytes: bytes("new"), disposition: "create", verifyStaged: valid }],
     }, checkpointAdapter("manifest-published:committed"));
     expect(result.ok).toBe(true);
@@ -1074,12 +1074,12 @@ describe("file transaction facade", () => {
     const existing = target("existing.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: existing, bytes: bytes("old"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
     const result = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [
         { target: existing, bytes: bytes("replacement"), disposition: "replace", verifyStaged: valid, verifyExisting: valid },
         { target: target("created.txt"), bytes: bytes("created"), disposition: "create", verifyStaged: valid },
@@ -1107,7 +1107,7 @@ describe("file transaction facade", () => {
     };
     const first = commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("first.txt"), bytes: bytes("first"), disposition: "create", verifyStaged: valid }],
     }, holdingAdapter);
     await held;
@@ -1122,7 +1122,7 @@ describe("file transaction facade", () => {
     };
     const blocked = await commitFileTransactionWithAdapter({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: target("second.txt"), bytes: bytes("second"), disposition: "create", verifyStaged: valid }],
     }, boundedAdapter);
     expect(blocked).toMatchObject({
@@ -1144,13 +1144,13 @@ describe("file transaction facade", () => {
     const artifact = target("artifact.txt");
     expect((await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("old"), disposition: "create", verifyStaged: valid }],
     })).ok).toBe(true);
     await chmod(join(output, "artifact.txt"), 0o644);
     const result = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{ target: artifact, bytes: bytes("new"), disposition: "replace", verifyStaged: valid, verifyExisting: valid }],
     });
     expect(result).toMatchObject({ ok: false, errors: [{ code: "REPLACE_IDENTITY_MISMATCH" }] });

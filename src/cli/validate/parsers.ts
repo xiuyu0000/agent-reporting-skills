@@ -79,8 +79,8 @@ const GENERATOR_TOKENS = [
   "@@DAR_DOCUMENT_BASE64@@",
 ] as const;
 
-const SUPPORTED_GENERATOR_VERSION = "0.2.0";
-export const SUPPORTED_GENERATED_ARTIFACT_VERSIONS: readonly ["0.2.0"] = Object.freeze([
+const SUPPORTED_GENERATOR_VERSION = "0.2.1";
+export const SUPPORTED_GENERATED_ARTIFACT_VERSIONS: readonly ["0.2.1"] = Object.freeze([
   SUPPORTED_GENERATOR_VERSION,
 ]);
 

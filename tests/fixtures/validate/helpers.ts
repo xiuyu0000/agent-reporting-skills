@@ -7,7 +7,7 @@ import {
   type ReviewDocumentV1,
 } from "../../../src/protocol/index.js";
 
-export const GENERATOR_VERSION = "0.2.0";
+export const GENERATOR_VERSION = "0.2.1";
 
 const encoder = new TextEncoder();
 

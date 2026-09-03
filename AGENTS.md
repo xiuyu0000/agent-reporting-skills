@@ -24,10 +24,12 @@ instruction source for this repository.
 
 ## Authority and working-tree rules
 
-- Treat `codex/v0.2.0` and its recorded candidate baseline as the release
-  lineage and the base for every PR. `main` is kept tree-identical to it by a
-  sync merge (since 2026-08-20); still branch from `codex/v0.2.0`, and run
-  pilot work only in the dedicated worktree the handoff prescribes.
+- Treat `codex/v0.2.1` (integration branch since 2026-09-03) and its recorded
+  candidate baseline as the release lineage and the base for every PR. `main`
+  is kept tree-identical to it by the established `-s ours` sync merge; still
+  branch from `codex/v0.2.1`. `codex/v0.2.0` is frozen at `3ff6509` as the
+  v0.2.0 candidate lineage and is not a PR base. Run pilot work only in the
+  dedicated worktree the handoff prescribes.
 - Use an isolated feature worktree and branch for repository changes. Inspect
   `git status`, branch, parent SHA, and `git worktree list --porcelain` before
   mutating files.

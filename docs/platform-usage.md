@@ -1,9 +1,10 @@
 # `deliver-dual-audience-report` 跨平台使用指南
 
 > - 文档状态：现行
-> - 适用版本：v0.2 候选 ZIP（摘要以 [claude-code-handoff.md](claude-code-handoff.md) §1 为准）
+> - 适用版本：v0.2.1 候选 ZIP（摘要以 [claude-code-handoff.md](claude-code-handoff.md) §1 为准）
 > - 覆盖平台：Claude Code、Claude Cowork（含 claude.ai）、OpenAI Codex、Kimi（Kimi Code CLI 与 Kimi Work）
 > - 事实基线：本文的平台机制核对于 2026-08-20，来源为各平台官方文档与本机实测；平台行为会演进，冲突时以平台当前文档为准
+> - 2026-09-03 补记：安装机制（目录、热加载、上传入口）的核对时间仍为 2026-08-20/24；§7 的升级步骤是 2026-09-03 随 v0.2.1 版本线切换新写的指引，“替换已安装版本”未逐平台实测，其中推断部分逐条标注为“按平台机制推断，未在本轮实测”
 
 本 Skill 遵循开放 Agent Skills 规范（agentskills.io，SKILL.md + YAML frontmatter），
 frontmatter 只使用规范字段（`name`、`description`、`compatibility`），因此在所有
@@ -22,12 +23,12 @@ frontmatter 只使用规范字段（`name`、`description`、`compatibility`）�
 
 ### 2.1 获取并校验 ZIP
 
-发布物是确定性 ZIP：`dist/deliver-dual-audience-report-v0.2.0.zip`，顶层目录即
+发布物是确定性 ZIP：`dist/deliver-dual-audience-report-v0.2.1.zip`，顶层目录即
 技能目录 `deliver-dual-audience-report/`。安装前核对 SHA-256（当前值见
 [claude-code-handoff.md](claude-code-handoff.md) §1 的候选快照表）：
 
 ```bash
-shasum -a 256 deliver-dual-audience-report-v0.2.0.zip
+shasum -a 256 deliver-dual-audience-report-v0.2.1.zip
 ```
 
 ### 2.2 运行时要求（重要）
@@ -51,7 +52,7 @@ CLI 拒绝符号链接路径（`SYMLINK_REJECTED`）与相对歧义路径；给 
 **安装**（个人级，所有项目可用）：
 
 ```bash
-unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.claude/skills/
+unzip deliver-dual-audience-report-v0.2.1.zip -d ~/.claude/skills/
 ```
 
 项目级改放 `<repo>/.claude/skills/`；同名时企业 > 个人 > 项目。技能目录是热加载
@@ -74,7 +75,7 @@ v0.2 描述；固定版官方验证器 `skills-ref validate` 通过；Node 24 �
 Cowork 不读取本机 `~/.claude/skills/`，技能随账号同步。上传路径：
 
 1. 打开 **Customize → Skills → ＋ → Upload a skill**；
-2. 直接上传 `deliver-dual-audience-report-v0.2.0.zip`——Cowork 要求 ZIP 根即技能
+2. 直接上传 `deliver-dual-audience-report-v0.2.1.zip`——Cowork 要求 ZIP 根即技能
    目录，本发布物的布局天然满足，无需重新打包；
 3. 需要启用 **code execution**（Team/Enterprise 由管理员开启，可组织级分发）。
 
@@ -105,11 +106,11 @@ Codex（CLI 0.148+ 实测）原生支持 Agent Skills，且本 Skill 自带的
 ```bash
 # Codex 默认目录
 mkdir -p ~/.codex/skills
-unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.codex/skills/
+unzip deliver-dual-audience-report-v0.2.1.zip -d ~/.codex/skills/
 
 # 或：跨工具互操作目录，与 Kimi 共用同一份安装
 mkdir -p ~/.agents/skills
-unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.agents/skills/
+unzip deliver-dual-audience-report-v0.2.1.zip -d ~/.agents/skills/
 ```
 
 项目级放 `<repo>/.agents/skills/`。不要在两个目录里同时放同名技能。
@@ -152,7 +153,94 @@ unzip deliver-dual-audience-report-v0.2.0.zip -d ~/.agents/skills/
 **Kimi Work**（桌面产品，内核即 Kimi Code）：在其 Skills 面板上传/启用技能，
 支持本地上传；上传物即本 ZIP。桌面端未公开磁盘级技能规范，以面板操作为准。
 
-## 7. 完整使用工作流（四平台一致）
+## 7. 更新已安装的技能（升级到新候选）
+
+本节适用于本机或平台上已装有旧候选（例如 2026-09-02 的 0.2.0 构建）而要切换到
+v0.2.1 候选 ZIP 的情形。各平台的安装机制沿用 §3–§6 的 2026-08-20/24 核对结果；
+“替换已安装版本”这一动作本身未在本轮逐平台实测，凡属推断处均已标注。截至
+2026-09-03，本仓库维护机上的 `~/.claude/skills/` 与 `~/.agents/skills/` 副本仍是
+2026-09-02 的 0.2.0 构建，尚未同步到本候选；同步属安装动作，需用户授权后按本节执行。
+
+### 7.1 通用检查清单（所有平台相同）
+
+1. **先校验再安装**：`shasum -a 256 deliver-dual-audience-report-v0.2.1.zip`，与
+   [claude-code-handoff.md](claude-code-handoff.md) §1 候选快照表一致后才继续；
+2. **同一技能只保留一份**：先删除（或移走留档）旧技能目录，再解压新 ZIP；不要让
+   同名技能同时出现在两个扫描目录，也不要让新旧版本并存；
+3. **旧的生成视图仍可打开，但新 CLI 不再受理它**（2026-09-03 实测：用 0.2.0
+   运行时渲染一份 W23 时期的 fixture，再用 0.2.1 CLI 处理它）：由 0.2.0 生成的
+   `<base>_APPROVAL.html` 内嵌的是它自己的 0.2.0 工作台外壳，是自包含的离线工作台，
+   升级后照样能在浏览器打开、把本轮审阅走完并导出回执；不会出现
+   `META_IDENTITY_MISMATCH`。但 0.2.1 运行时只接受与自身一致的 generatorVersion
+   （现为 0.2.1，DES-014 的无双轨规则）：对旧视图做 `validate delivery` 报
+   `CSP_INVALID`（`/approval`、`/approval/csp`）；做 `--replace-generated` 除
+   `CSP_INVALID` 外另报 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`）——原因是旧
+   外壳的内联脚本/CSP 哈希与生成器 meta 都不同于当前运行时会生成的内容。处理：把旧
+   视图移走留档，或在新的空目录全新 render（render 只创建不覆盖，目标已存在报
+   `TARGET_EXISTS`），输入仍是未变动的 `review-document.json`（`review-document/1`，
+   本轮协议面未变）；不要删除私有输出根目录下的任何内容；
+4. **旧回执仍可对未变动的文档消费**：`review-packet/1` 回执绑定的是文档身份
+   （id、title、contentVersion、round、reviewDigest），不绑定 APPROVAL.html 本身；
+   用 0.2.1 重渲染未变动的 `review-document.json` 得到的 dar-review-digest、
+   contentVersion 与 round 与 0.2.0 相同（只有 dar-generator-version 由 0.2.0 变为
+   0.2.1），因此从旧视图导出的回执对该文档做 `validate packet` / `consume` 仍然有效。
+   只有文档本身改了才需要重新审阅；
+5. **验收**：平台技能清单只列出一份 `deliver-dual-audience-report`；
+   `node <skills-dir>/deliver-dual-audience-report/scripts/review-delivery.mjs --help`
+   能运行；如需确认落盘内容确为本候选，把安装目录内文件的 SHA-256 与
+   `dist/deliver-dual-audience-report-v0.2.1.manifest.json` 的 `files` 条目逐一比对。
+
+### 7.2 Claude Code
+
+```bash
+rm -rf ~/.claude/skills/deliver-dual-audience-report        # 或项目级 <repo>/.claude/skills/deliver-dual-audience-report
+unzip deliver-dual-audience-report-v0.2.1.zip -d ~/.claude/skills/
+```
+
+技能目录热加载（§3）；“替换后当前会话即可见”按平台机制推断，未在本轮实测——若
+清单仍显示旧描述，重开会话。验收时只输入 `/` 打开命令菜单、不要提交（提交
+`/deliver-dual-audience-report` 会直接调用技能），在菜单里找到
+`deliver-dual-audience-report` 条目，读其 description 是否与新 SKILL.md 一致，并确认
+只有一份。企业/个人/项目三级若各有一份同名技能，按 §3 的优先级只会生效一份——升级
+时把所有层级的旧副本一并清掉。
+
+### 7.3 Claude Cowork（含 claude.ai）
+
+1. 打开 **Customize → Skills**；若列表里仍有旧的 `deliver-dual-audience-report`，
+   先在面板中移除它（面板移除入口按平台机制推断，未在本轮实测）；
+2. 再按 §4 的路径 **＋ → Upload a skill** 上传新 ZIP；
+3. 上传后核对面板显示的 description 与新 SKILL.md 一致；**code execution** 仍是前置。
+
+同名技能上传时是否会自动覆盖旧版，本文不作断言（按平台机制推断，未在本轮实测）；
+按上面“先移除、再上传、后核对”的顺序操作即可不依赖该行为。
+
+### 7.4 OpenAI Codex（CLI / IDE / 云端）
+
+在你当初使用的那一个目录里替换（§5：`~/.codex/skills/` 或 `~/.agents/skills/`），
+且只保留一份：
+
+```bash
+rm -rf ~/.codex/skills/deliver-dual-audience-report          # 或 ~/.agents/skills/deliver-dual-audience-report
+unzip deliver-dual-audience-report-v0.2.1.zip -d ~/.codex/skills/   # 与被删目录同一父目录
+```
+
+2026-08-24 的实测是“新装技能无需重启即被列出”（§5）；替换已有目录后是否同样
+即时生效，按平台机制推断、未在本轮实测——若 `/skills` 清单仍显示旧描述，重启 CLI。
+`~/.codex/config.toml` 的 `[[skills.config]]` 开关本轮无变化，不需要改。
+**Codex 云端**：若你是在环境 setup script 里解压本 ZIP 落盘技能的，把引用换成
+v0.2.1 后重新运行 setup，让环境重新落盘新技能（按平台机制推断，未在本轮实测）。
+
+### 7.5 Kimi（Kimi Code CLI 与 Kimi Work）
+
+**Kimi Code CLI**：与 §7.4 相同的目录替换——删掉旧目录（`~/.agents/skills/`、
+`~/.kimi-code/skills/` 或 `extra_skill_dirs` 指向的目录，以你当初使用的为准）后解压
+新 ZIP，只保留一份；用 `kimi doctor` 与技能清单确认。替换后的生效时机按平台机制
+推断，未在本轮实测。
+
+**Kimi Work**：在 Skills 面板移除旧技能后重新上传新 ZIP，并核对面板显示的描述
+（面板行为按平台机制推断，未在本轮实测）。
+
+## 8. 完整使用工作流（四平台一致）
 
 Agent 触发技能后按 SKILL.md 的阶段推进；人只在两处介入：授权与审阅。
 
@@ -176,19 +264,21 @@ node <skills-dir>/deliver-dual-audience-report/scripts/review-delivery.mjs --hel
 `references/review-protocols.md`；写作要求（零上下文直白语言、termRef 术语绑定、
 结构化可视化）见 `references/audience-contracts.md`。
 
-## 8. 故障排查
+## 9. 故障排查
 
 | 症状 | 原因与处理 |
 |---|---|
 | `SYMLINK_REJECTED` | 路径含符号链接（macOS 的 `/tmp` 等）；改用真实绝对路径 |
-| render 报 `CSP_INVALID`（replace 时） | 旧产物出自不同版本的生成器，配对校验按设计拒绝；在新的空目录全新 render，旧产物留档 |
+| validate/replace 报 `CSP_INVALID`（`/approval`、`/approval/csp`） | APPROVAL.html 的 CSP 或内联脚本/样式哈希与当前运行时应生成的不一致——文件被手改，或出自另一版本的工作台外壳；不要手改产物，在新的空目录全新 render，旧产物留档 |
+| CLI 对旧版本视图报 `CSP_INVALID`（`/approval`、`/approval/csp`），`--replace-generated` 另报 `ARTIFACT_IDENTITY_MISMATCH`（`/approval/meta`） | validate delivery 或 `--replace-generated` 指向的是上一版本（如 0.2.0）生成的视图，其外壳哈希与生成器 meta 与 0.2.1 运行时不一致；旧视图本身仍可在浏览器打开并走完本轮。把旧视图移走留档或在新的空目录用未变动的 review-document.json 全新 render（§7.1）；旧回执对未变动的文档仍可消费 |
+| 工作台报 `META_IDENTITY_MISMATCH` | 载入工作台外壳的 payload/meta 出自另一生成器版本——只会发生在文件被手改或新旧文件被混拼时，CLI 正常生成的视图不会触发；不要手拼产物，用 review-document.json 重新 render |
 | 回执被拒 | 回执与文档的 id/轮次/摘要不匹配，或内容被改动；从工作台重新导出 |
-| 技能不出现（Codex） | 检查目录（`~/.agents/skills/` 或遗留 `~/.codex/skills/`），重启 CLI；`codex features list` 确认 skills 特性开启 |
+| 技能不出现（Codex） | 检查目录（`~/.codex/skills/` 或 `~/.agents/skills/`，两者都是现行受支持路径，见 §5），重启 CLI；`codex features list` 确认 skills 特性开启 |
 | 技能不出现（Kimi） | `kimi doctor` 校验配置；确认目录或 `extra_skill_dirs` |
 | Cowork 上传被拒 | 确认 ZIP 根即技能目录且 frontmatter 仅含规范字段（本发布物已满足；勿自行改包） |
 | 产物字节与记录摘要不一致 | 检查 node 版本——可复现承诺仅限 Node 24（§2.2） |
 
-## 9. 隐私与边界
+## 10. 隐私与边界
 
 - 真实业务内容只写入你授权的私有输出目录；APPROVAL.html/AGENT.md/回执都含业务
   正文，不要提交进公开仓库或上传到未授权服务；

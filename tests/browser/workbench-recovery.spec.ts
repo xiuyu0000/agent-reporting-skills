@@ -38,7 +38,7 @@ function fillTemplate(template: string, value: ReviewDocumentV1): string {
   const digest = computeReviewDigest(value);
   if (!digest.ok) throw new Error("review digest failed");
   const replacements: Readonly<Record<string, string>> = {
-    "@@DAR_GENERATOR_VERSION@@": "0.2.0",
+    "@@DAR_GENERATOR_VERSION@@": "0.2.1",
     "@@DAR_DOCUMENT_ID@@": value.document.id,
     "@@DAR_CONTENT_VERSION@@": String(value.document.contentVersion),
     "@@DAR_ROUND@@": String(value.document.round),

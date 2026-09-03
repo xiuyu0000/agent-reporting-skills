@@ -81,7 +81,7 @@ describe("symlink rejection E2E", () => {
     await symlink(outside, join(output, "linked-parent"));
     const parentResult = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("linked-parent/report.txt"),
         bytes: encoder.encode("safe"),
@@ -96,7 +96,7 @@ describe("symlink rejection E2E", () => {
     await symlink(external, join(output, "report.txt"));
     const finalResult = await commitFileTransaction({
       root,
-      generatorVersion: "0.2.0",
+      generatorVersion: "0.2.1",
       targets: [{
         target: target("report.txt"),
         bytes: encoder.encode("ours"),
@@ -112,7 +112,7 @@ describe("symlink rejection E2E", () => {
     const { output, root } = await rootSetup();
     const outside = await temporaryDirectory();
     await symlink(outside, join(output, ".review-txn", "TXN-00000000000000000000"));
-    const result = await recoverTransactions({ root, generatorVersion: "0.2.0" });
+    const result = await recoverTransactions({ root, generatorVersion: "0.2.1" });
     expect(result).toMatchObject({
       ok: false,
       mutated: true,
