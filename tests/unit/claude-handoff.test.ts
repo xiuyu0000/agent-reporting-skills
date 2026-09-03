@@ -16,8 +16,8 @@ const usagePath = resolve(ROOT, "src/cli/record-usage.ts");
 const zipPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.0.zip");
 const manifestPath = resolve(ROOT, "dist/deliver-dual-audience-report-v0.2.0.manifest.json");
 
-const EXPECTED_ZIP_SHA256 = "0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7";
-const EXPECTED_MANIFEST_SHA256 = "0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5";
+const EXPECTED_ZIP_SHA256 = "cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4";
+const EXPECTED_MANIFEST_SHA256 = "189c763874b47f198381702a7d786cce9557cecf84a7a575147ca9fc60a44c5b";
 const execFileAsync = promisify(execFile);
 const PILOT_INPUT_KEYS = [
   "eligible",
@@ -134,8 +134,8 @@ describe("Claude Code handoff documentation", () => {
     const { handoff, zip, manifest, packageJson } = await readHandoffFiles();
 
     expect(handoff).toContain("dae53e5b76e6507592b37c1a241e7ad6c6e22905");
-    expect(handoff).toContain("0cd852d4d55b4e50edc509722e660414f37011352cdb110cf5f0cb20026979c7");
-    expect(handoff).toContain("0113f14a6066a44f311bc8ff62b4d513ea7f321c9b3116afa16f1b89fe6f95b5");
+    expect(handoff).toContain("cd103f2f452777866ac94cb1fd59b6702bae4251c7c7a19bdf7836bf5fcfdad4");
+    expect(handoff).toContain("189c763874b47f198381702a7d786cce9557cecf84a7a575147ca9fc60a44c5b");
     expect(handoff).toContain("PIL-001");
     expect(handoff).toContain("MET-001");
     expect(handoff).toContain("#61");
@@ -160,8 +160,8 @@ describe("Claude Code handoff documentation", () => {
       readonly archive: { readonly entryCount: number; readonly root: string };
       readonly files: readonly { readonly path: string }[];
     };
-    expect(releaseManifest.archive).toMatchObject({ entryCount: 11, root: "deliver-dual-audience-report" });
-    expect(releaseManifest.files).toHaveLength(11);
+    expect(releaseManifest.archive).toMatchObject({ entryCount: 12, root: "deliver-dual-audience-report" });
+    expect(releaseManifest.files).toHaveLength(12);
     expect(releaseManifest.files.map((file) => file.path)).toContain(
       "deliver-dual-audience-report/scripts/review-delivery.mjs",
     );

@@ -236,6 +236,36 @@ describe("validate delivery subprocess", () => {
         if (inline?.type !== "text") throw new Error("fixture drift");
         inline.text = `${braces} 仍未替换。`;
       }, "/blocks/0/body/0/content/0/text"],
+      // The shared content walker gained a `scale` branch; without a case here
+      // an unreplaced placeholder inside one would reach a reviewer.
+      ["scale item label", (document) => {
+        document.blocks[0]!.body.push({
+          type: "scale",
+          title: "强弱阶梯",
+          description: "载体的强制力由弱到强。",
+          axis: { lowLabel: "最弱", highLabel: "最强" },
+          items: [
+            { label: `${braces} 待替换的载体`, position: 5 },
+            { label: "阻断级门禁", position: 95 },
+          ],
+        });
+      }, `/blocks/0/body/${reviewDocumentFixture().blocks[0]!.body.length}/items/0/label`],
+      ["scale item note", (document) => {
+        document.blocks[0]!.body.push({
+          type: "scale",
+          title: "强弱阶梯",
+          description: "载体的强制力由弱到强。",
+          axis: { lowLabel: "最弱", highLabel: "最强" },
+          items: [
+            { label: "对话约定", position: 5 },
+            {
+              label: "阻断级门禁",
+              position: 95,
+              note: [{ type: "text", text: `${braces} 仍未替换。` }],
+            },
+          ],
+        });
+      }, `/blocks/0/body/${reviewDocumentFixture().blocks[0]!.body.length}/items/1/note/0/text`],
     ];
 
     for (const [label, mutate, path] of cases) {

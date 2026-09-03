@@ -1,4 +1,4 @@
-import type { BatchHandoff, DeliveryHandoff, ValidationError } from "../validate.js";
+import type { BatchHandoff, DeliveryHandoff, DeliveryWarning, ValidationError } from "../validate.js";
 import type { CliIoError } from "../result.js";
 
 export interface RenderSuccess {
@@ -7,6 +7,7 @@ export interface RenderSuccess {
   mode: "delivery" | "batch";
   mutated: true;
   handoff: DeliveryHandoff | BatchHandoff;
+  warnings?: readonly DeliveryWarning[];
 }
 
 export interface RenderFailure {

@@ -3,6 +3,8 @@ export type {
   BatchHandoff,
   DeliveryHandoff,
   DeliveryPartHandoff,
+  DeliveryWarning,
+  DeliveryWarningCode,
   GeneratedArtifactByteVerifier,
   ExactGeneratedArtifactByteVerifierInput,
   ExactGeneratedArtifactByteVerifiers,
@@ -25,6 +27,14 @@ export type {
 export type { ValidateRuntimeOptions } from "./command.js";
 export { runValidateCommand } from "./command.js";
 export { validateDeliverableDocument } from "./business.js";
+export {
+  APPROVAL_PAYLOAD_LIMIT_BYTES,
+  APPROVAL_PAYLOAD_RESERVE_BYTES,
+  APPROVAL_PAYLOAD_WARNING_BYTES,
+  approvalPayloadBytes,
+  approvalPayloadWarning,
+  approvalPayloadWarnings,
+} from "./payload.js";
 export { validatePrivateData } from "./privacy.js";
 export { decodeStrictUtf8, parseStrictJson } from "./text.js";
 export {

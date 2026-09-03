@@ -25,6 +25,7 @@ import {
 import { buildBatchHandoff } from "./handoff.js";
 import { validateDeliveryAndBuildHandoff } from "./delivery.js";
 import { validateDeliverableDocument } from "./business.js";
+import { approvalPayloadWarnings } from "./payload.js";
 import { validatePrivateData } from "./privacy.js";
 import { readFromRoot, readPath, resolveInputRoot } from "./read.js";
 import type { ResolvedInputRoot } from "../io/index.js";
@@ -296,9 +297,16 @@ async function runDelivery(arguments_: ParsedArguments, runtime: ValidateRuntime
   const template = await loadTemplate(runtime);
   if (!template.ok) return outcomeFailure(template.errors);
   const delivery = await validateOneDelivery(arguments_.document[0]!, template.value);
-  return delivery.ok
-    ? outcomeSuccess({ status: "ok", phase: "validate", mode: "delivery", mutated: false, handoff: delivery.value.handoff })
-    : outcomeFailure(delivery.errors);
+  if (!delivery.ok) return outcomeFailure(delivery.errors);
+  const warnings = approvalPayloadWarnings([delivery.value.document]);
+  return outcomeSuccess({
+    status: "ok",
+    phase: "validate",
+    mode: "delivery",
+    mutated: false,
+    handoff: delivery.value.handoff,
+    ...(warnings.length === 0 ? {} : { warnings }),
+  });
 }
 
 async function runBatch(arguments_: ParsedArguments, runtime: ValidateRuntimeOptions): Promise<ValidateCommandOutcome> {
@@ -322,9 +330,18 @@ async function runBatch(arguments_: ParsedArguments, runtime: ValidateRuntimeOpt
     deliveries.push(result.value);
   }
   const handoff = buildBatchHandoff({ deliveries });
-  return handoff.ok
-    ? outcomeSuccess({ status: "ok", phase: "validate", mode: "batch", mutated: false, handoff: handoff.value })
-    : outcomeFailure(handoff.errors);
+  if (!handoff.ok) return outcomeFailure(handoff.errors);
+  const ordered = [...deliveries].sort((left, right) =>
+    (left.document.delivery.splitGroup?.part ?? 0) - (right.document.delivery.splitGroup?.part ?? 0));
+  const warnings = approvalPayloadWarnings(ordered.map((item) => item.document));
+  return outcomeSuccess({
+    status: "ok",
+    phase: "validate",
+    mode: "batch",
+    mutated: false,
+    handoff: handoff.value,
+    ...(warnings.length === 0 ? {} : { warnings }),
+  });
 }
 
 async function runPacket(arguments_: ParsedArguments): Promise<ValidateCommandOutcome> {

@@ -13,8 +13,11 @@ Treat both views as evidence syntheses, not as new factual sources.
 
 ## Read only what the stage needs
 
-- Read [audience contracts](references/audience-contracts.md) before checking
-  each view and running reader-isolation tests.
+- Read [audience contracts](references/audience-contracts.md) before writing
+  block bodies, and again before checking each view and running
+  reader-isolation tests.
+- Read [approval writing examples](references/approval-writing-examples.md)
+  when a block needs a carrier other than prose.
 - Read [evidence and privacy](references/evidence-and-privacy.md) before
   collecting sources or selecting an output boundary.
 - Read [review protocols](references/review-protocols.md) before writing a
@@ -70,6 +73,15 @@ reuse an ID after deletion or across rounds. Use
 guide, not as a second source of truth and not as a file to hand-edit after
 generation.
 
+Write for the zero-context reviewer from the first draft, not at validation
+time. Before writing each block body, name the relationship it expresses and
+choose its carrier from the table in
+[audience contracts](references/audience-contracts.md); a body that leaves an
+ordered, compared, or branching relationship in prose is a defect. Bind every
+professional term to a glossary entry, and keep `title`, `summary`, `whyTier`
+and `ask` jargon-free because those plain strings cannot carry a term
+reference.
+
 Split the proposal into decision blocks by independent judgment, not by
 paragraph. Assign T2 when any consequence condition requires the reviewer to
 decide; include both `whyTier` and a concrete `ask`. Assign T1 only when the
@@ -98,6 +110,14 @@ Render the Agent Markdown and Approval HTML together from the same validated
 contract and generator version. Never hand-edit either generated view. Treat a
 missing success result as incomplete. Use `--replace-generated` only for
 identity-matching generated files and only when replacement is intended.
+
+A successful `render` or `validate delivery`/`batch` result may carry a
+`warnings` array beside `handoff`. `APPROVAL_PAYLOAD_NEAR_LIMIT` means the
+embedded contract is within 1,536 bytes of, and `APPROVAL_PAYLOAD_OVER_LIMIT`
+that it is past, the 49,152-byte payload that workbenches generated before
+the multi-text-node reader could load in WebKit browsers. Warnings never
+change the exit code; trim non-semantic fields or split the delivery in
+round 1, because each later round adds approval bookkeeping.
 
 ### 5. Validate meaning and real-browser behavior
 
@@ -205,6 +225,8 @@ invent a usage record.
 
 - Use `scripts/review-delivery.mjs` as the single public command entry point.
 - Use `assets/agent-context.template.md` only for Agent-view coverage.
+- Read `references/approval-writing-examples.md` for worked before/after pairs
+  of the mandatory Approval HTML writing rules.
 - Read `references/review-protocols.md` for actions, rounds, wire authority, and
   exact CLI behavior.
 - Read `references/audience-contracts.md` for two-view responsibilities and

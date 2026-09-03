@@ -70,10 +70,16 @@ Fill the contract in this order:
    packets, topic mappings, impact assessments, and feedback resolutions.
 
 Use only supported structured content nodes: paragraphs, one-level lists,
-tables, inert code, controlled callouts, controlled steps, and controlled flows;
-use text, strong text, emphasis, inline code, safe links, and glossary terms
-inline. Reject unknown nodes. Keep table width, flow references, term references,
-and URLs valid. Never insert raw HTML or executable content.
+tables, inert code, controlled callouts, controlled steps, controlled flows, and
+ranked scales; use text, strong text, emphasis, inline code, safe links, and
+glossary terms inline. Reject unknown nodes. Keep table width, flow references,
+term references, scale positions, and URLs valid. Never insert raw HTML or
+executable content.
+
+A flow node and edge may carry an optional `kind`. Use `start`, `step`,
+`decision` or `end` on a node and `then`, `yes`, `no` or `else` on an edge; the
+renderer draws the matching shape and repeats the word in the text alternative,
+so meaning never rests on shape alone.
 
 Refresh time-sensitive sources used by core facts or decisions before render.
 Stop on an unresolved blocking evidence conflict.
@@ -127,6 +133,15 @@ rounds.
 
 Use the successful batch handoff to report the group reason, total, each part's
 judgment boundary, and both generated paths for every part.
+
+Treat a `warnings` entry with code `APPROVAL_PAYLOAD_NEAR_LIMIT` or
+`APPROVAL_PAYLOAD_OVER_LIMIT` as a size signal of the same kind: the canonical
+contract is within 1,536 bytes of, or past, the 49,152-byte payload that
+workbenches generated before the multi-text-node reader can load in WebKit
+browsers (`payloadBytes` and `limitBytes` carry the counts; `path` names the
+document or the `/batch/parts/N` part). Prefer trimming non-semantic fields or
+splitting in round 1, because each later round adds roughly 700–800 bytes of
+approval bookkeeping. A warning never blocks the delivery.
 
 ## Apply review actions
 

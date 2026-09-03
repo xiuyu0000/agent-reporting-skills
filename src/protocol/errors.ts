@@ -6,6 +6,7 @@ export type SchemaErrorCode =
   | "SCHEMA_FORMAT"
   | "SCHEMA_MAX_CONTAINS"
   | "SCHEMA_MAX_ITEMS"
+  | "SCHEMA_MAXIMUM"
   | "SCHEMA_MIN_ITEMS"
   | "SCHEMA_MIN_LENGTH"
   | "SCHEMA_MINIMUM"
@@ -190,6 +191,7 @@ const DEFAULTS: Record<ProtocolErrorCode, readonly [message: string, hint: strin
   SCHEMA_FORMAT: ["A field does not match its required format.", "Provide a value in the required public format."],
   SCHEMA_MAX_CONTAINS: ["An array contains too many matching items.", "Split the review before delivery."],
   SCHEMA_MAX_ITEMS: ["An array exceeds its protocol limit.", "Split the review before delivery."],
+  SCHEMA_MAXIMUM: ["A number is above its protocol maximum.", "Use a value within the public protocol range."],
   SCHEMA_MIN_ITEMS: ["An array does not contain enough items.", "Provide the minimum complete protocol content."],
   SCHEMA_MIN_LENGTH: ["A required string is empty.", "Provide the required non-empty text."],
   SCHEMA_MINIMUM: ["A number is below its protocol minimum.", "Use a value within the public protocol range."],

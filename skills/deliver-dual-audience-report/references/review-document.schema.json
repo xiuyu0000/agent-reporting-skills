@@ -661,7 +661,8 @@
         { "$ref": "#/$defs/CodeNode" },
         { "$ref": "#/$defs/CalloutNode" },
         { "$ref": "#/$defs/StepsNode" },
-        { "$ref": "#/$defs/FlowNode" }
+        { "$ref": "#/$defs/FlowNode" },
+        { "$ref": "#/$defs/ScaleNode" }
       ]
     },
     "SimpleContentNode": {
@@ -812,6 +813,46 @@
         }
       }
     },
+    "ScaleNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "title", "description", "axis", "items"],
+      "properties": {
+        "type": { "const": "scale" },
+        "title": { "$ref": "#/$defs/NonEmptyString" },
+        "description": { "$ref": "#/$defs/NonEmptyString" },
+        "axis": { "$ref": "#/$defs/ScaleAxis" },
+        "items": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/ScaleItem" }
+        }
+      }
+    },
+    "ScaleAxis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lowLabel", "highLabel"],
+      "properties": {
+        "lowLabel": { "$ref": "#/$defs/NonEmptyString" },
+        "highLabel": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "ScaleItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "position"],
+      "properties": {
+        "label": { "$ref": "#/$defs/NonEmptyString" },
+        "position": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "display": { "$ref": "#/$defs/NonEmptyString" },
+        "note": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/InlineNode" }
+        }
+      }
+    },
     "FlowGraphNode": {
       "type": "object",
       "additionalProperties": false,
@@ -821,7 +862,8 @@
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
         },
-        "label": { "$ref": "#/$defs/NonEmptyString" }
+        "label": { "$ref": "#/$defs/NonEmptyString" },
+        "kind": { "enum": ["start", "step", "decision", "end"] }
       }
     },
     "FlowGraphEdge": {
@@ -837,7 +879,8 @@
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
         },
-        "label": { "$ref": "#/$defs/NonEmptyString" }
+        "label": { "$ref": "#/$defs/NonEmptyString" },
+        "kind": { "enum": ["then", "yes", "no", "else"] }
       }
     },
     "TextNode": {

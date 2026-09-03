@@ -1,9 +1,72 @@
 import type { ContentNode } from "../protocol/index.js";
 import type { WorkbenchStrings } from "./i18n.js";
+import { DECISION_BEVEL, layoutFlow, type PlacedNode } from "./flow-layout.js";
 
 type FlowNode = Extract<ContentNode, { type: "flow" }>;
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const NODE_LINE_H = 19;
+
+function nodeKindWord(kind: PlacedNode["kind"], strings: WorkbenchStrings): string | null {
+  switch (kind) {
+    case "start": return strings.flowKindStart;
+    case "decision": return strings.flowKindDecision;
+    case "end": return strings.flowKindEnd;
+    // A plain step adds no word: the shape is the default and naming it is noise.
+    case "step": return null;
+  }
+}
+
+function edgeKindWord(
+  kind: "then" | "yes" | "no" | "else" | undefined,
+  strings: WorkbenchStrings,
+): string | null {
+  switch (kind) {
+    case "yes": return strings.flowEdgeYes;
+    case "no": return strings.flowEdgeNo;
+    case "else": return strings.flowEdgeElse;
+    case "then": return strings.flowEdgeThen;
+    case undefined: return null;
+  }
+}
+
+/**
+ * Node outlines carry meaning, so the kind word is repeated in the text
+ * alternative: shape is never the only channel (spec §13.5).
+ */
+function nodeOutline(node: PlacedNode): { name: string; attribute: string; value: string } {
+  const left = node.cx - node.width / 2;
+  const top = node.cy - node.height / 2;
+  const right = left + node.width;
+  const bottom = top + node.height;
+  if (node.kind === "decision") {
+    const bevel = Math.min(DECISION_BEVEL, node.width / 3);
+    const middle = node.cy;
+    return {
+      name: "polygon",
+      attribute: "points",
+      value: `${left},${middle} ${left + bevel},${top} ${right - bevel},${top} `
+        + `${right},${middle} ${right - bevel},${bottom} ${left + bevel},${bottom}`,
+    };
+  }
+  return { name: "rect", attribute: "rx", value: node.kind === "step" ? "10" : String(node.height / 2) };
+}
+
+/**
+ * Reader-facing names for the text alternative. design.md §11.3 and §7.3 require
+ * the alternative to be built from the title, description, node labels and edge
+ * relationships — not from the local node ids, which mean nothing to a
+ * zero-context reviewer. Ids reappear only to disambiguate repeated labels.
+ */
+function readableNames(flow: FlowNode): Map<string, string> {
+  const seen = new Map<string, number>();
+  for (const node of flow.nodes) seen.set(node.label, (seen.get(node.label) ?? 0) + 1);
+  const names = new Map<string, string>();
+  for (const node of flow.nodes) {
+    names.set(node.id, (seen.get(node.label) ?? 0) > 1 ? `${node.label} (${node.id})` : node.label);
+  }
+  return names;
+}
 
 export function renderFlow(
   ownerDocument: Document,
@@ -11,6 +74,12 @@ export function renderFlow(
   strings: WorkbenchStrings,
   uiLocale: string,
 ): HTMLElement {
+  const layout = layoutFlow(flow, (edge) => {
+    const word = edgeKindWord(edge.kind, strings);
+    if (edge.label === undefined) return word ?? undefined;
+    return word === null ? edge.label : `${word} · ${edge.label}`;
+  });
+
   const figure = ownerDocument.createElement("figure");
   figure.className = "flow";
 
@@ -22,114 +91,85 @@ export function renderFlow(
   caption.append(title, description);
 
   const svg = ownerDocument.createElementNS(SVG_NAMESPACE, "svg");
-  const rowCount = Math.ceil(flow.nodes.length / 2);
-  svg.setAttribute("viewBox", `0 0 720 ${Math.max(150, rowCount * 120 + 30)}`);
+  const box = layout.viewBox;
+  svg.setAttribute("viewBox", `${box.x} ${box.y} ${box.width} ${box.height}`);
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", `${flow.title}. ${flow.description}`);
   svg.setAttribute("focusable", "false");
 
-  const positions = new Map<string, { x: number; y: number }>();
-  flow.nodes.forEach((node, index) => {
-    positions.set(node.id, {
-      x: 180 + (index % 2) * 360,
-      y: 64 + Math.floor(index / 2) * 120,
-    });
-  });
-
+  // Three explicit paint layers. Labels sit above the node boxes so an opaque
+  // rect can never swallow one, while collision-aware placement keeps them off
+  // the boxes in the first place.
   const edgeLayer = ownerDocument.createElementNS(SVG_NAMESPACE, "g");
-  for (const edge of flow.edges) {
-    const from = positions.get(edge.from);
-    const to = positions.get(edge.to);
-    if (!from || !to) throw new Error("FLOW_REFERENCE_INVALID");
-    const deltaX = to.x - from.x;
-    const deltaY = to.y - from.y;
-    const distance = Math.hypot(deltaX, deltaY);
-    if (distance === 0) {
-      const loopDirection = from.x > 360 ? -1 : 1;
-      const edgeX = from.x + loopDirection * 140;
-      const controlX = from.x + loopDirection * 210;
-      const path = ownerDocument.createElementNS(SVG_NAMESPACE, "path");
-      path.setAttribute(
-        "d",
-        `M ${edgeX} ${from.y - 12} C ${controlX} ${from.y - 50}, ${controlX} ${from.y + 70}, ${edgeX} ${from.y + 12}`,
-      );
-      path.setAttribute("class", "flow-edge flow-loop");
-      path.setAttribute("fill", "none");
-      const arrow = ownerDocument.createElementNS(SVG_NAMESPACE, "polygon");
-      arrow.setAttribute(
-        "points",
-        `${edgeX},${from.y + 12} ${from.x + loopDirection * 156},${from.y + 9} ${from.x + loopDirection * 151},${from.y + 25}`,
-      );
-      arrow.setAttribute("class", "flow-arrow");
-      edgeLayer.append(path, arrow);
-      if (edge.label !== undefined) {
-        const label = ownerDocument.createElementNS(SVG_NAMESPACE, "text");
-        label.setAttribute("x", String(from.x + loopDirection * 202));
-        label.setAttribute("y", String(from.y - 3));
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("class", "flow-label");
-        label.textContent = edge.label;
-        edgeLayer.append(label);
-      }
-      continue;
-    }
-    const unitX = deltaX / distance;
-    const unitY = deltaY / distance;
-    const horizontalBoundary = unitX === 0 ? Number.POSITIVE_INFINITY : 140 / Math.abs(unitX);
-    const verticalBoundary = unitY === 0 ? Number.POSITIVE_INFINITY : 29 / Math.abs(unitY);
-    const boundary = Math.min(horizontalBoundary, verticalBoundary);
-    const startX = from.x + unitX * boundary;
-    const startY = from.y + unitY * boundary;
-    const endX = to.x - unitX * boundary;
-    const endY = to.y - unitY * boundary;
-    const line = ownerDocument.createElementNS(SVG_NAMESPACE, "line");
-    line.setAttribute("x1", String(startX));
-    line.setAttribute("y1", String(startY));
-    line.setAttribute("x2", String(endX));
-    line.setAttribute("y2", String(endY));
-    line.setAttribute("class", "flow-edge");
+  const nodeLayer = ownerDocument.createElementNS(SVG_NAMESPACE, "g");
+  const labelLayer = ownerDocument.createElementNS(SVG_NAMESPACE, "g");
+
+  for (const placed of layout.edges) {
+    const path = ownerDocument.createElementNS(SVG_NAMESPACE, "path");
+    path.setAttribute("d", placed.path);
+    path.setAttribute("class", placed.loop ? "flow-edge flow-loop" : "flow-edge");
+    path.setAttribute("fill", "none");
     const arrow = ownerDocument.createElementNS(SVG_NAMESPACE, "polygon");
-    const baseX = endX - unitX * 14;
-    const baseY = endY - unitY * 14;
-    const perpendicularX = -unitY * 7;
-    const perpendicularY = unitX * 7;
-    arrow.setAttribute(
-      "points",
-      `${endX},${endY} ${baseX + perpendicularX},${baseY + perpendicularY} ${baseX - perpendicularX},${baseY - perpendicularY}`,
-    );
+    arrow.setAttribute("points", placed.arrow);
     arrow.setAttribute("class", "flow-arrow");
-    edgeLayer.append(line, arrow);
-    if (edge.label !== undefined) {
-      const label = ownerDocument.createElementNS(SVG_NAMESPACE, "text");
-      label.setAttribute("x", String((startX + endX) / 2));
-      label.setAttribute("y", String((startY + endY) / 2 - 9));
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("class", "flow-label");
-      label.textContent = edge.label;
-      edgeLayer.append(label);
+    edgeLayer.append(path, arrow);
+
+    if (!placed.label) continue;
+    const label = placed.label;
+    const group = ownerDocument.createElementNS(SVG_NAMESPACE, "g");
+    group.setAttribute("class", label.crowded ? "flow-label-box crowded" : "flow-label-box");
+    const plate = ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
+    plate.setAttribute("x", String(label.cx - label.width / 2));
+    plate.setAttribute("y", String(label.cy - label.height / 2));
+    plate.setAttribute("width", String(label.width));
+    plate.setAttribute("height", String(label.height));
+    plate.setAttribute("rx", "4");
+    plate.setAttribute("class", "flow-label-plate");
+    const text = ownerDocument.createElementNS(SVG_NAMESPACE, "text");
+    text.setAttribute("x", String(label.cx));
+    text.setAttribute("y", String(label.cy + 4.5));
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("class", "flow-label");
+    text.textContent = label.text;
+    group.append(plate, text);
+    if (label.text !== label.full) {
+      // The plate shows an elided label; the authored string stays reachable
+      // here and, in full, in the text alternative below the diagram.
+      const full = ownerDocument.createElementNS(SVG_NAMESPACE, "title");
+      full.textContent = label.full;
+      group.append(full);
     }
+    labelLayer.append(group);
   }
 
-  svg.append(edgeLayer);
-  flow.nodes.forEach((node) => {
-    const position = positions.get(node.id);
-    if (!position) throw new Error("FLOW_REFERENCE_INVALID");
+  for (const node of layout.nodes) {
     const group = ownerDocument.createElementNS(SVG_NAMESPACE, "g");
-    group.setAttribute("transform", `translate(${position.x - 140} ${position.y - 29})`);
-    const rect = ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
-    rect.setAttribute("width", "280");
-    rect.setAttribute("height", "58");
-    rect.setAttribute("rx", "12");
-    rect.setAttribute("class", "flow-node");
-    const text = ownerDocument.createElementNS(SVG_NAMESPACE, "text");
-    text.setAttribute("x", "140");
-    text.setAttribute("y", "35");
-    text.setAttribute("text-anchor", "middle");
-    text.textContent = node.label;
-    group.append(rect, text);
-    svg.append(group);
-  });
+    const outline = nodeOutline(node);
+    const shape = ownerDocument.createElementNS(SVG_NAMESPACE, outline.name);
+    if (outline.name === "rect") {
+      shape.setAttribute("x", String(node.cx - node.width / 2));
+      shape.setAttribute("y", String(node.cy - node.height / 2));
+      shape.setAttribute("width", String(node.width));
+      shape.setAttribute("height", String(node.height));
+    }
+    shape.setAttribute(outline.attribute, outline.value);
+    shape.setAttribute("class", `flow-node flow-node-${node.kind}`);
+    group.append(shape);
+    const first = node.cy - ((node.lines.length - 1) * NODE_LINE_H) / 2 + 5;
+    node.lines.forEach((line, index) => {
+      const text = ownerDocument.createElementNS(SVG_NAMESPACE, "text");
+      text.setAttribute("x", String(node.cx));
+      text.setAttribute("y", String(first + index * NODE_LINE_H));
+      text.setAttribute("text-anchor", "middle");
+      text.textContent = line;
+      group.append(text);
+    });
+    nodeLayer.append(group);
+  }
 
+  svg.append(edgeLayer, nodeLayer, labelLayer);
+
+  const names = readableNames(flow);
   const details = ownerDocument.createElement("details");
   details.className = "flow-alternative";
   const summary = ownerDocument.createElement("summary");
@@ -142,7 +182,9 @@ export function renderFlow(
   const nodesList = ownerDocument.createElement("ul");
   for (const node of flow.nodes) {
     const item = ownerDocument.createElement("li");
-    item.textContent = `${node.id}: ${node.label}`;
+    const word = nodeKindWord(node.kind ?? "step", strings);
+    const name = names.get(node.id) ?? node.label;
+    item.textContent = word === null ? name : `${name} (${word})`;
     nodesList.append(item);
   }
   const edgesHeading = ownerDocument.createElement("h4");
@@ -151,9 +193,13 @@ export function renderFlow(
   const edgesList = ownerDocument.createElement("ul");
   for (const edge of flow.edges) {
     const item = ownerDocument.createElement("li");
-    item.textContent = edge.label === undefined
-      ? `${edge.from} → ${edge.to}`
-      : `${edge.from} → ${edge.to}: ${edge.label}`;
+    const from = names.get(edge.from) ?? edge.from;
+    const to = names.get(edge.to) ?? edge.to;
+    const parts = [edgeKindWord(edge.kind, strings), edge.label]
+      .filter((part): part is string => part !== null && part !== undefined);
+    item.textContent = parts.length === 0
+      ? `${from} → ${to}`
+      : `${from} → ${to}: ${parts.join(" — ")}`;
     edgesList.append(item);
   }
   details.append(summary, descriptionText, nodesHeading, nodesList, edgesHeading, edgesList);
