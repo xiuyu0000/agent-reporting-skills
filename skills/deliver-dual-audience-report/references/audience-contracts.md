@@ -9,6 +9,9 @@ source for the other.
 
 - [Agent Markdown](#agent-markdown)
 - [Approval HTML](#approval-html)
+  - [Choose the carrier before writing the prose](#choose-the-carrier-before-writing-the-prose)
+  - [Bind every term the reviewer cannot be assumed to know](#bind-every-term-the-reviewer-cannot-be-assumed-to-know)
+  - [Write a flow's two required strings for a reader](#write-a-flows-two-required-strings-for-a-reader)
 - [Shared snapshot boundary](#shared-snapshot-boundary)
 - [Reader-isolation checks](#reader-isolation-checks)
 - [Delivery handoff](#delivery-handoff)
@@ -45,30 +48,71 @@ Write for one human reviewer who receives no Agent Markdown and no prior
 conversation. Keep all decision-essential information inside the file.
 
 Preserve the proposal's narrative block order. Default T2 blocks open; let T1
-and T0 start compact while remaining expandable. Use a controlled flow only
-when it makes a relationship materially easier to judge, and provide
-equivalent text.
+and T0 start compact while remaining expandable.
 
 Write every sentence for a reader starting from zero context, in the plainest
-language that stays accurate. These rules are mandatory, not stylistic:
+language that stays accurate. These rules are mandatory, not stylistic.
+
+### Choose the carrier before writing the prose
+
+Name the relationship a block expresses, then pick its carrier. Prose is the
+carrier of last resort, not the default.
+
+| The block expresses | Carrier | What prose loses |
+|---|---|---|
+| Three or more ordered actions | `steps` | order stops being visible while the reader judges each step |
+| Two or more options compared on two or more criteria, or several items sharing one set of attributes | `table` | the reader cannot scan one criterion across the options |
+| A branch, a condition with two or more outcomes, or a dependency chain among three or more named things | `flow` | the reader has to trace the paths to learn that two exist |
+| One consequence that must not be missed | `callout` | the warning reads at the same weight as its surroundings |
+| Several named things ordered on one axis — weakest to strongest, cheapest to dearest, a share of a whole | `scale` | rank is only implied by reading order, with no axis, direction, or magnitude |
+| An exact command, payload, or file excerpt | `code` | exactness is not guaranteed |
+
+A diagram is never required. `steps`, `table` and `callout` are structured
+carriers too, and a block whose content is genuinely linear may stay prose.
+Choose the lightest carrier that keeps the relationship visible.
+
+A decision block is defective when all three hold: its body contains only
+`paragraph` and `list` nodes; its body text runs past 80 display columns of
+continuous prose; and it encodes at least one relationship in the table above.
+Restructure it before rendering.
+
+If a reviewer must simulate a sequence in their head to judge a block,
+restructure it whatever its length.
+
+### Bind every term the reviewer cannot be assumed to know
 
 - Prefer the everyday phrase over the professional term. When a professional
   term is genuinely required, reference it with a glossary term node
   (`termRef`) bound to a glossary entry, so the reviewer gets the hover
   preview and the in-file appendix entry the term links to. A bare
   professional term with no glossary link is a defect.
+- `title`, `summary`, `whyTier`, `ask`, `objective`, `scope`, `exclusions`,
+  `constraints`, `risks`, `openQuestions`, every `nextActions` field, and a
+  flow's `description`, node `label` and edge `label` are plain strings and
+  cannot carry a `termRef`. Write them jargon-free. A term
+  that needs defining belongs in a block body, `currentState`, a fact, or a
+  decision, where a `termRef` is expressible. This matters most in `ask`,
+  which is the one sentence the reviewer must answer.
+- A `termRef` whose `text` is not the phrase the reviewer would actually use
+  defeats the rule.
 - The continuation section and the evidence snapshot render inside the
   Approval HTML for the same zero-context human. Write them in reviewer
   language too — never in Agent shorthand, bare identifiers, or untranslated
   tool output.
-- Express logic, processes, and multi-step relationships as structured
-  content — steps, tables, or a flow with its text equivalent — rather than
-  as long prose. If a reviewer must simulate a sequence in their head to
-  judge a block, restructure it.
-- Before delivery, self-check: could a careful person with no prior exposure
-  to the project read only this file, from top to bottom, and understand
-  every block well enough to decide it? If any block fails that test,
-  rewrite it before rendering.
+
+### Write a flow's two required strings for a reader
+
+A `flow` carries a mandatory `title` and `description`. Write the
+`description` as the takeaway the picture supports, not as a description of
+the picture. Every node `label` is reader-facing prose, never a block id or an
+internal code name: the text alternative is generated from those labels, so an
+id there is unreadable twice over. Give an edge a `label` only when the
+transition has a condition worth naming, and keep it short — an over-long edge
+label is elided in the picture and survives only in the text alternative.
+
+Before delivery, self-check: could a careful person with no prior exposure to
+the project read only this file, top to bottom, and understand every block well
+enough to decide it? If any block fails that test, rewrite it before rendering.
 
 Support these review behaviors without an external service:
 
@@ -113,10 +157,22 @@ Run both checks after deterministic validation and before delivery:
    authoritative sources, current state, active and frozen blocks, required
    next actions, and remaining uncertainty. Reject the view if the answer
    depends on hidden chat context.
-2. Give only the Approval HTML to a zero-context reviewer. Ask them to explain
-   the proposal, decide each T2 block, find supporting evidence and definitions,
-   record a decision, export feedback, and explain what is not yet authorized.
-   Reject the view if another report or external link is required.
+2. Give only the Approval HTML to a zero-context reviewer — no contract, no
+   conversation, no Agent Markdown. Ask this fixed set:
+   1. In one sentence, what is being decided overall?
+   2. For each T2 block, restate the `ask`, then say what happens if the answer
+      is yes and what happens if it is no.
+   3. Which terms could you not define from this file alone?
+   4. Which blocks did you have to read twice?
+
+   Then have them record a decision, export feedback, and explain what is not
+   yet authorized. Every unanswered item in 1–2, every term named in 3, and
+   every block named in 4 is a contract defect: fix the contract and rerender.
+   Reject the view if another report or an external link is required.
+
+   Record in `continuation.validationEvidence` that the set was run. That
+   record proves the check happened; it does not prove the file is clear. The
+   reviewer's actual answers are the evidence.
 
 Inspect the Approval HTML in a real browser with the network unavailable. Check
 desktop and narrow layouts, keyboard-only use, focus visibility, decision

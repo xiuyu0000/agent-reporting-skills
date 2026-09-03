@@ -356,6 +356,62 @@ describe("deterministic review artifact generators", () => {
   });
 });
 
+describe("Agent Markdown carriers for the newer content nodes", () => {
+  it("renders a ranked scale and the flow kinds the Approval HTML also shows", async () => {
+    // The Agent view is half the dual-audience contract; without this the whole
+    // `scale` arm could return [] and every gate would still be green.
+    const document = await fixture();
+    const candidate = structuredClone(document) as ReviewDocumentV1;
+    const block = candidate.blocks[0];
+    if (!block) throw new Error("fixture has no blocks");
+    block.body = [
+      {
+        type: "scale",
+        title: "Carrier strength",
+        description: "How reliably each carrier holds a rule.",
+        axis: { lowLabel: "weakest", highLabel: "strongest" },
+        items: [
+          { label: "Spoken", position: 5, display: "lowest" },
+          { label: "Checked", position: 95 },
+        ],
+      },
+      {
+        type: "flow",
+        title: "Gate",
+        description: "One branch.",
+        nodes: [
+          { id: "A", label: "Open", kind: "start" },
+          { id: "B", label: "Decide", kind: "decision" },
+          { id: "C", label: "Done", kind: "end" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "B", to: "C", kind: "yes", label: "checks pass" },
+        ],
+      },
+    ];
+    const validated = validateReviewDocument(candidate);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    const markdown = generateAgentMarkdown(validated.value, GENERATOR_VERSION);
+    expect(markdown.ok).toBe(true);
+    if (!markdown.ok) return;
+    const text = markdown.value;
+
+    // Text is entity-escaped on the way out, so assert the shipped form.
+    expect(text).toContain("**Carrier strength** — How reliably each carrier holds a rule&#46;");
+    expect(text).toContain("weakest → strongest");
+    expect(text).toContain("- Spoken (lowest)");
+    // No `display` falls back to a stated number rather than to nothing.
+    expect(text).toContain("- Checked (95&#47;100)");
+    // Flow kinds reach the Agent view too, so the two views agree on meaning.
+    expect(text).toContain("- A [start]: Open");
+    expect(text).toContain("- B [decision]: Decide");
+    expect(text).toContain("- B → C (yes — checks pass)");
+  });
+});
+
 describe("canonical review-document serialization", () => {
   it("serializes one canonical LF-terminated byte representation and verifies exact bytes", async () => {
     const document = await fixture();

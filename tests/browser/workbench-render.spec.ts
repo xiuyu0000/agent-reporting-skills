@@ -89,8 +89,17 @@ function buildDocument(base: ReviewDocumentV1, cases: RenderCases): ReviewDocume
   }];
   input.lineage.idHighWater.source = 2;
   input.lineage.idHighWater.decision = 1;
-  input.glossary = [{ id: "G-001", term: "Closure", definition: "Every downstream dependency." }];
-  input.lineage.idHighWater.glossary = 1;
+  input.glossary = [
+    { id: "G-001", term: "Closure", definition: "Every downstream dependency." },
+    {
+      id: "G-002",
+      term: "Blocking gate",
+      // Long enough that a clipped preview is unmistakably truncated.
+      definition: "A check that must pass before a change may merge. It runs in "
+        + "continuous integration and cannot be waived by the author.",
+    },
+  ];
+  input.lineage.idHighWater.glossary = 2;
   input.blocks[0]!.body = [
     {
       type: "paragraph",
@@ -102,8 +111,14 @@ function buildDocument(base: ReviewDocumentV1, cases: RenderCases): ReviewDocume
     },
     {
       type: "table",
-      headers: [[{ type: "text", text: "Long value" }]],
-      rows: [[[{ type: "text", text: cases.longToken.repeat(4) }]]],
+      headers: [
+        [{ type: "text", text: "Long value" }],
+        [{ type: "text", text: "Gate (" }, { type: "termRef", glossaryId: "G-002" }, { type: "text", text: ")" }],
+      ],
+      rows: [[
+        [{ type: "text", text: cases.longToken.repeat(4) }],
+        [{ type: "termRef", glossaryId: "G-002", text: "first row term" }],
+      ]],
     },
     { type: "code", language: "html", text: cases.injectionText },
     {
@@ -116,14 +131,24 @@ function buildDocument(base: ReviewDocumentV1, cases: RenderCases): ReviewDocume
       title: "Directed flow",
       description: "A safe visual plus an equivalent relationship list.",
       nodes: [
-        { id: "A", label: "Alpha" },
-        { id: "B", label: "Beta" },
+        { id: "A", label: "Alpha", kind: "start" },
+        { id: "B", label: "Beta", kind: "decision" },
         { id: "C", label: "Gamma" },
       ],
       edges: [
         { from: "A", to: "B", label: cases.injectionText },
-        { from: "B", to: "A", label: "reverse" },
+        { from: "B", to: "A", label: "reverse", kind: "no" },
         { from: "C", to: "C", label: "loop" },
+      ],
+    },
+    {
+      type: "scale",
+      title: "Carrier strength",
+      description: "How reliably each carrier holds a rule.",
+      axis: { lowLabel: "weakest", highLabel: "strongest" },
+      items: [
+        { label: "Spoken", position: 0, display: "lowest" },
+        { label: "Checked", position: 100 },
       ],
     },
   ];
@@ -303,10 +328,31 @@ test("@A19 render a safe offline shell with language and text alternatives", asy
   await expect(page.locator(".callout-tone").first()).toContainText("警告");
   await expect(page.locator(".flow-arrow")).toHaveCount(3);
   await expect(page.locator(".flow-loop")).toHaveCount(1);
-  await expect(page.locator(".flow-alternative")).toContainText("A → B");
+  // The text alternative speaks node labels, not local ids (design §11.3/§7.3).
+  await expect(page.locator(".flow-alternative")).toContainText("Alpha → Beta");
+  await expect(page.locator(".flow-alternative")).not.toContainText("A → B");
+  // Collision-aware placement: no label falls back to a crowded position.
+  await expect(page.locator(".flow-label-box.crowded")).toHaveCount(0);
+  // Node kind drives shape, and the same kind is stated as a word so shape is
+  // never the only channel (spec §13.5).
+  await expect(page.locator("polygon.flow-node-decision")).toHaveCount(1);
+  await expect(page.locator("rect.flow-node-start")).toHaveCount(1);
+  await expect(page.locator(".flow-alternative")).toContainText("Beta (判断)");
+  // The ranked scale renders as real text plus a proportional bar.
+  const scale = page.locator("figure.scale");
+  await expect(scale.locator("li")).toHaveCount(2);
+  await expect(scale).toContainText("weakest → strongest");
+  await expect(scale).toContainText("100/100");
+  // Proportional, not merely present: /\d/ also matches "0px".
+  const fills = await scale.locator(".scale-fill").evaluateAll((nodes) =>
+    nodes.map((node) => node.getBoundingClientRect().width));
+  expect(fills).toHaveLength(2);
+  expect(fills[0]).toBeLessThan(2);
+  expect(fills[1]).toBeGreaterThan(40);
+  expect(fills[1]).toBeGreaterThan((fills[0] ?? 0) * 10);
   // One anchor per term: hover/focus previews the definition (data-tip),
   // activating jumps to the in-file glossary appendix. No expand button.
-  const termRef = page.locator("a.term-ref");
+  const termRef = page.locator('a.term-ref[href="#glossary-G-001"]');
   await expect(termRef).toHaveAttribute("href", "#glossary-G-001");
   await expect(termRef).toHaveAttribute("data-tip", "Every downstream dependency.");
   await expect(page.locator("#glossary-G-001")).toHaveCount(1);
@@ -507,6 +553,73 @@ test("@A19 the approved workbench visual system drives tier, decision, and progr
   }));
   expect(layout.columns.split(" ").at(-1)).toBe("340px");
   expect(layout.maxWidth).toBe("1280px");
+});
+
+test("@A19 the glossary preview escapes every scroll container that used to clip it", async ({ page }) => {
+  await page.goto(pages.get("valid") ?? "");
+  await page.locator("details.b-body").first().evaluate((element: HTMLDetailsElement) => {
+    element.open = true;
+  });
+
+  // The reported failure position: a term inside a table, whose wrapper carries
+  // overflow-x:auto and therefore also clips the block axis.
+  const terms = page.locator('.table-region a.term-ref[href="#glossary-G-002"]');
+  const count = await terms.count();
+  expect(count).toBeGreaterThan(0);
+
+  for (let index = 0; index < count; index += 1) {
+    const term = terms.nth(index);
+    await term.scrollIntoViewIfNeeded();
+    // The page scrolls smoothly; hover only once it has settled, so the probe
+    // measures a resting position rather than an animating one.
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    await term.hover();
+    await expect(page.locator("#term-tip")).toBeVisible();
+    const report = await page.evaluate((position) => {
+      const tip = document.getElementById("term-tip");
+      const anchor = document.querySelectorAll(
+        '.table-region a.term-ref[href="#glossary-G-002"]',
+      )[position];
+      if (tip === null || anchor === undefined) return null;
+      const rect = tip.getBoundingClientRect();
+      const root = document.documentElement;
+      // Sample well inside the rounded corners: every probe must land on the
+      // preview itself, which is only possible if nothing clipped or covered it.
+      const probes: [number, number][] = [];
+      for (const fx of [0.15, 0.5, 0.85]) {
+        for (const fy of [0.2, 0.5, 0.8]) {
+          probes.push([rect.x + rect.width * fx, rect.y + rect.height * fy]);
+        }
+      }
+      const hits = probes.filter(([x, y]) => {
+        const found = document.elementFromPoint(x, y);
+        return found === tip || tip.contains(found);
+      }).length;
+      return {
+        hits,
+        probes: probes.length,
+        withinViewport: rect.x >= 0 && rect.y >= 0
+          && rect.right <= root.clientWidth && rect.bottom <= root.clientHeight,
+        text: tip.textContent ?? "",
+        describedBy: anchor.getAttribute("aria-describedby"),
+      };
+    }, index);
+    expect(report).not.toBeNull();
+    expect(report?.hits).toBe(report?.probes);
+    expect(report?.withinViewport).toBe(true);
+    expect(report?.describedBy).toBe("term-tip");
+    // The whole definition, not a clipped fragment.
+    expect(report?.text).toContain("cannot be waived by the author.");
+  }
+
+  // Escape dismisses the preview without disturbing the block keyboard contract.
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#term-tip")).toBeHidden();
+
+  // The wide table still scrolls inside its own focusable container.
+  await expect(page.locator("div.table-region").first()).toHaveAttribute("tabindex", "0");
 });
 
 test("a11y-shell has no serious axe violations in blocking browsers", async ({ page, browserName }) => {
